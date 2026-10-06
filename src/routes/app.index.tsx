@@ -59,7 +59,7 @@ function Dashboard() {
               </h1>
               <div className="mt-8 grid max-w-lg grid-cols-3 gap-4 text-sm">
                 {[["248", "Items", "assets"], ["£34.4k", "Insured value", "insurance"], ["92%", "Documented", "my-home"]].map(([v, l, sec]) => (
-                  <Link to="/app/$section" params={{ section: sec }} key={l} className="hover:opacity-80"><p className="font-display text-2xl">{v}</p><p className="text-midnight-foreground/60">{l}</p></Link>
+                  <Link to="/app/$section" params={{ section: sec ?? "" }} key={l} className="hover:opacity-80"><p className="font-display text-2xl">{v}</p><p className="text-midnight-foreground/60">{l}</p></Link>
                 ))}
               </div>
             </div>

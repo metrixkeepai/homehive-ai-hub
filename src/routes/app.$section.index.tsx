@@ -6,7 +6,7 @@ import { getSection } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 
 export const Route = createFileRoute("/app/$section/")({
-  validateSearch: (s: Record<string, unknown>): { add?: number } => (s.add ? { add: 1 } : {}),
+  validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
   head: ({ params }) => {
     const s = getSection(params.section);
     const t = `${s?.title ?? "Not found"} — HomeVault AI`;
@@ -38,8 +38,9 @@ function SectionPage() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const fields = s.addFields ?? [];
-    const title = form[fields[0]]?.trim();
-    if (!title) return toast.error(`Please enter ${fields[0]?.toLowerCase()}`);
+    const first = fields[0] ?? "";
+    const title = form[first]?.trim();
+    if (!title) { toast.error(`Please enter ${first.toLowerCase()}`); return; }
     add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"] });
     toast.success(`${title} added`, { description: "Saved for this session only — sign-in and saved data come next." });
     setForm({}); setOpen(false);
