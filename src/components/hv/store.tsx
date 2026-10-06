@@ -12,4 +12,4 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 export const useStore = () => useContext(StoreCtx);
 
 export const toneClass = (t?: string) =>
-  t === "success" ? "bg-success/15 text-success" : t === "warning" ? "bg-warning/20 text-warning-foreground" : t === "danger" ? "bg-destructive/15 text-destructive" : t === "primary" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground";
+  t === "success" ? "bg-success/15 text-success" : t === "warning" ? "bg-warning/20 text-warning" : t === "danger" ? "bg-destructive/15 text-destructive" : t === "primary" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground";
