@@ -1,6 +1,6 @@
 import {
   Home, Building2, DoorOpen, Package, Car, FileText, Wrench, ShieldCheck, Umbrella, Users, Bot, ListChecks,
-  History, Store, MessageSquare, Plug, User, CreditCard, Lock, Eye, Bell, Settings, LifeBuoy, type LucideIcon,
+  History, Store, MessageSquare, Plug, User, CreditCard, Lock, Eye, Bell, Settings, LifeBuoy, MapPin, UserCog, KeyRound, type LucideIcon,
 } from "lucide-react";
 
 export type Tone = "success" | "warning" | "primary" | "muted" | "danger";
@@ -20,6 +20,7 @@ export type Section = {
   slug: string;
   title: string;
   group: "main" | "account";
+  only?: "business";
   icon: LucideIcon;
   intro: string;
   kpis: [string, string][];
@@ -232,6 +233,32 @@ export const sections: Section[] = [
       { id: "outlook", title: "Outlook", subtitle: "Import receipts from Outlook", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
       { id: "whatsapp", title: "WhatsApp", subtitle: "Send photos and ask questions by chat", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
       { id: "drive", title: "Google Drive", subtitle: "Back up your vault", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
+    ],
+  },
+  {
+    slug: "locations", title: "Locations", group: "main", only: "business", icon: MapPin,
+    intro: "Every site your organisation runs — shops, offices, warehouses, depots.",
+    kpis: [["Sites", "Your sites"], ["Tip", "Add each address once"]],
+    addLabel: "Add location", addFields: ["Location name", "Address", "Type (shop, office, warehouse…)", "Site manager", "Opening hours"],
+    items: [],
+  },
+  {
+    slug: "team", title: "Team", group: "main", only: "business", icon: UserCog,
+    intro: "The people in your organisation and what each of them can do.",
+    kpis: [["Roles", "5"], ["Tip", "Give each person the lowest role they need"]],
+    addLabel: "Add team member", addFields: ["Full name", "Email", "Role (Owner, Admin, Manager, Staff, Viewer)", "Location", "Job title"],
+    items: [],
+  },
+  {
+    slug: "roles", title: "Roles & permissions", group: "main", only: "business", icon: KeyRound,
+    intro: "What each team role is allowed to see and change.",
+    kpis: [["Roles", "5"], ["Most access", "Owner"], ["Least access", "Viewer"]],
+    items: [
+      { id: "owner", title: "Owner", subtitle: "Full control of the organisation", status: ["Highest", "primary"], fields: [["Assets & documents", "View, add, edit, delete"], ["Locations", "Manage all"], ["Team", "Invite, change roles, remove"], ["Billing", "Manage"]] },
+      { id: "admin", title: "Admin", subtitle: "Runs day-to-day operations", status: ["High", "success"], fields: [["Assets & documents", "View, add, edit, delete"], ["Locations", "Manage all"], ["Team", "Invite and change roles below Admin"], ["Billing", "View only"]] },
+      { id: "manager", title: "Manager", subtitle: "Looks after one or more locations", status: ["Medium", "success"], fields: [["Assets & documents", "View, add, edit at their locations"], ["Locations", "Their own"], ["Team", "View their location's staff"], ["Billing", "No access"]] },
+      { id: "staff", title: "Staff", subtitle: "Logs equipment, receipts and faults", status: ["Standard", "muted"], fields: [["Assets & documents", "View and add at their location"], ["Locations", "View their own"], ["Team", "No access"], ["Billing", "No access"]] },
+      { id: "viewer", title: "Viewer", subtitle: "Read-only, e.g. accountant or auditor", status: ["Read only", "muted"], fields: [["Assets & documents", "View only"], ["Locations", "View"], ["Team", "No access"], ["Billing", "No access"]] },
     ],
   },
   {
