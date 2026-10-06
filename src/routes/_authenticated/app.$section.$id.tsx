@@ -4,6 +4,7 @@ import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
+import { Evidence } from "@/components/hv/Evidence";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   component: Detail,
 });
 
-const tabs = ["Overview", "Related", "Activity", "AI insight"] as const;
+const tabs = ["Overview", "Evidence", "Related", "Activity", "AI insight"] as const;
 
 function Detail() {
   const { section, id } = Route.useParams();
@@ -76,6 +77,10 @@ function Detail() {
             {item.fields.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}
           </dl>
         ) : <p className="text-sm text-muted-foreground">No details yet. Use the buttons above to get started.</p>)}
+
+        {tab === "Evidence" && (added[section]?.some((x) => x.id === id)
+          ? <Evidence itemId={id} />
+          : <p className="text-sm text-muted-foreground">This is a sample record. Add your own record to attach photos, receipts and PDFs.</p>)}
 
         {tab === "Related" && (item.links?.length ? (
           <div className="space-y-2">
