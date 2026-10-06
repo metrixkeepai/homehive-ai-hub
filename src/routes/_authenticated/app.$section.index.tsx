@@ -35,14 +35,15 @@ function SectionPage() {
   if (!s) return <Missing />;
   const items = [...(added[s.slug] ?? []), ...s.items].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fields = s.addFields ?? [];
     const first = fields[0] ?? "";
     const title = form[first]?.trim();
     if (!title) { toast.error(`Please enter ${first.toLowerCase()}`); return; }
-    add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"] });
-    toast.success(`${title} added`, { description: "Saved for this session only — sign-in and saved data come next." });
+    const ok = await add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"] });
+    if (!ok) { toast.error("Couldn't save — please try again"); return; }
+    toast.success(`${title} saved to your HomeVault`);
     setForm({}); setOpen(false);
   };
 

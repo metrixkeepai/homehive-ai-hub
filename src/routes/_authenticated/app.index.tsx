@@ -53,7 +53,7 @@ function Dashboard() {
           {/* Home Pulse */}
           <section className="grid gap-6 overflow-hidden rounded-[2rem] bg-midnight-glow p-8 text-midnight-foreground md:grid-cols-[1fr_auto] md:p-10">
             <div>
-              <p className="text-sm text-midnight-foreground/60">Good evening, Sarah</p>
+              <p className="text-sm text-midnight-foreground/60">Good evening{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}</p>
               <h1 className="mt-2 font-display text-4xl font-medium leading-tight md:text-5xl">
                 Your AI team checked everything.<br /><span className="text-aurora">Just {today.length} things need you.</span>
               </h1>
