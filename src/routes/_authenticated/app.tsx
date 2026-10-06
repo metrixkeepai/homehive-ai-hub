@@ -7,7 +7,7 @@ import { Logo } from "@/components/hv/Logo";
 import { sections, homeNav } from "@/components/hv/data";
 import { StoreProvider } from "@/components/hv/store";
 
-export const Route = createFileRoute("/app")({
+export const Route = createFileRoute("/_authenticated/app")({
   component: AppLayout,
 });
 

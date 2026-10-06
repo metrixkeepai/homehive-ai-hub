@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 
-export const Route = createFileRoute("/app/$section/")({
+export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
   head: ({ params }) => {
     const s = getSection(params.section);

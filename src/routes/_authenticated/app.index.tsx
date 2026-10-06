@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FileText, Wrench, ShieldCheck, Package, Sparkles, Check, Send } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-export const Route = createFileRoute("/app/")({
+export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
     meta: [
       { title: "Home — HomeVault AI" },

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 
-export const Route = createFileRoute("/app/$section/$id")({
+export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
     const i = getItem(params.section, params.id);
     const t = `${i?.title ?? "Details"} — HomeVault AI`;
