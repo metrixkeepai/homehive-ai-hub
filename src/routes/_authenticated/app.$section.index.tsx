@@ -33,7 +33,7 @@ function SectionPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   if (!s) return <Missing />;
-  const items = [...(added[s.slug] ?? []), ...s.items].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
+  const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +57,8 @@ function SectionPage() {
         </div>
         {s.addLabel && <button onClick={() => setOpen(true)} className="flex items-center gap-2 rounded-full bg-aurora px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"><Plus className="h-4 w-4" />{s.addLabel}</button>}
       </div>
+
+      {s.slug === "profile" && <ProfileEditor />}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {s.kpis.map(([l, v]) => (
@@ -97,5 +99,25 @@ function SectionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function ProfileEditor() {
+  const { profile, email, saveProfile } = useStore();
+  const [name, setName] = useState<string | null>(null);
+  const [home, setHome] = useState<string | null>(null);
+  const n = name ?? profile?.display_name ?? "";
+  const h = home ?? profile?.household ?? "";
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const ok = await saveProfile({ display_name: n.trim().slice(0, 100) || null, household: h.trim().slice(0, 200) || null });
+    if (ok) toast.success("Profile saved"); else toast.error("Couldn't save profile");
+  };
+  return (
+    <form onSubmit={save} className="grid gap-4 rounded-3xl border bg-card p-6 shadow-soft md:grid-cols-3">
+      <label className="block text-sm font-medium">Name<input value={n} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring" /></label>
+      <label className="block text-sm font-medium">Home address<input value={h} onChange={(e) => setHome(e.target.value)} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring" /></label>
+      <div className="flex flex-col justify-end gap-1"><p className="text-xs text-muted-foreground">{email}</p><button className="rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground">Save profile</button></div>
+    </form>
   );
 }

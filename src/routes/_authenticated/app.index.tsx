@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileText, Wrench, ShieldCheck, Package, Sparkles, Check, Send } from "lucide-react";
+import { useStore } from "@/components/hv/store";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/app/")({
@@ -34,6 +35,7 @@ const value = [
 const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 function Dashboard() {
+  const { profile } = useStore();
   const [today, setToday] = useState(initialToday);
   const [q, setQ] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
