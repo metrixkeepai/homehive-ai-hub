@@ -16,6 +16,8 @@ const linkCls = "flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-sm t
 const activeCls = { className: "bg-secondary font-semibold text-foreground" };
 
 function SideNav({ onPick }: { onPick?: () => void }) {
+  const { profile } = useStore();
+  const biz = profile?.account_type === "business";
   return (
     <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto">
       <Link to="/app" activeOptions={{ exact: true }} activeProps={activeCls} className={linkCls} onClick={onPick}>
@@ -24,7 +26,7 @@ function SideNav({ onPick }: { onPick?: () => void }) {
       {(["main", "account"] as const).map((g) => (
         <div key={g}>
           {g === "account" && <p className="mt-5 mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account</p>}
-          {sections.filter((s) => s.group === g).map((s) => (
+          {sections.filter((s) => s.group === g && (!s.only || biz)).map((s) => (
             <Link key={s.slug} to="/app/$section" params={{ section: s.slug }} activeProps={activeCls} className={linkCls} onClick={onPick}>
               <s.icon className="h-4 w-4" /> {s.title}
             </Link>

@@ -2,7 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { Item } from "./data";
 import { supabase } from "@/integrations/supabase/client";
 
-type Profile = { display_name: string | null; avatar_url: string | null; household: string | null };
+export type Profile = {
+  display_name: string | null; avatar_url: string | null; household: string | null;
+  account_type: "individual" | "business"; org_name: string | null; sector: string | null; job_title: string | null;
+  phone: string | null; language: string; currency: string; timezone: string; bio: string | null;
+};
+const emptyProfile: Profile = { display_name: null, avatar_url: null, household: null, account_type: "individual", org_name: null, sector: null, job_title: null, phone: null, language: "English (UK)", currency: "GBP", timezone: "Europe/London", bio: null };
 type Ctx = {
   added: Record<string, Item[]>;
   add: (slug: string, item: Item) => Promise<boolean>;
@@ -31,12 +36,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEmail(u.user.email ?? "");
     const [{ data: rows }, { data: p }] = await Promise.all([
       supabase.from("home_items").select("id,section,title,subtitle,fields,created_at").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("display_name,avatar_url,household").eq("id", u.user.id).maybeSingle(),
+      supabase.from("profiles").select("display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,bio").eq("id", u.user.id).maybeSingle(),
     ]);
     const map: Record<string, Item[]> = {};
     (rows ?? []).forEach((r) => { (map[r.section] ??= []).push(toItem(r as Row)); });
     setAdded(map);
-    setProfile(p ?? { display_name: null, avatar_url: null, household: null });
+    setProfile(p ? { ...emptyProfile, ...(p as Partial<Profile>) } : emptyProfile);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -56,8 +61,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const saveProfile = async (p: Partial<Profile>) => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return false;
-    const { error } = await supabase.from("profiles").upsert({ id: u.user.id, ...profile, ...p, updated_at: new Date().toISOString() });
-    if (!error) setProfile((cur) => ({ ...(cur ?? { display_name: null, avatar_url: null, household: null }), ...p }));
+    const { error } = await supabase.from("profiles").upsert({ id: u.user.id, ...(profile ?? {}), ...p, updated_at: new Date().toISOString() });
+    if (!error) setProfile((cur) => ({ ...(cur ?? emptyProfile), ...p }));
     return !error;
   };
 
