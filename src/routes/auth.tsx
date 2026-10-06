@@ -30,6 +30,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<"individual" | "business">("individual");
+  const [org, setOrg] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -43,9 +45,10 @@ function AuthPage() {
     e.preventDefault();
     const p = schema.safeParse({ email, password });
     if (!p.success) { toast.error(p.error.issues[0]?.message); return; }
+    if (mode === "up" && kind === "business" && !org.trim()) { toast.error("Please enter your organisation name"); return; }
     setBusy(true);
     if (mode === "up") {
-      const { error } = await supabase.auth.signUp({ ...p.data, options: { emailRedirectTo: window.location.origin + "/app", data: { full_name: name.trim().slice(0, 100) } } });
+      const { error } = await supabase.auth.signUp({ ...p.data, options: { emailRedirectTo: window.location.origin + "/app", data: { full_name: name.trim().slice(0, 100), account_type: kind, org_name: kind === "business" ? org.trim().slice(0, 200) : undefined } } });
       if (error) toast.error(error.message); else setSent(true);
     } else {
       const { error } = await supabase.auth.signInWithPassword(p.data);
@@ -74,6 +77,14 @@ function AuthPage() {
             <button onClick={google} className="mt-6 w-full rounded-full border py-3 text-sm font-semibold transition hover:bg-secondary">Continue with Google</button>
             <p className="my-5 text-center text-xs text-muted-foreground">or with email</p>
             <form onSubmit={submit} className="space-y-3">
+              {mode === "up" && (
+                <div className="grid grid-cols-2 gap-2">
+                  {(["individual", "business"] as const).map((k) => (
+                    <button type="button" key={k} onClick={() => setKind(k)} className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${kind === k ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"}`}>{k === "individual" ? "For my home" : "For my business"}</button>
+                  ))}
+                </div>
+              )}
+              {mode === "up" && kind === "business" && <input value={org} onChange={(e) => setOrg(e.target.value)} placeholder="Organisation name" maxLength={200} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
               {mode === "up" && <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />

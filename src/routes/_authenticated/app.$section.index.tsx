@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Plus, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
-import { useStore, toneClass } from "@/components/hv/store";
+import { type Profile, useStore, toneClass } from "@/components/hv/store";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
@@ -102,22 +102,69 @@ function SectionPage() {
   );
 }
 
+const inp = "mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring";
+const SECTORS = ["Retail / shop", "Restaurant / hospitality", "Office / professional services", "School / education", "Clinic / healthcare", "Garage / automotive", "Construction / trades", "Property company", "Charity", "Warehouse / logistics", "Manufacturing", "Technology", "Other"];
+
 function ProfileEditor() {
   const { profile, email, saveProfile } = useStore();
-  const [name, setName] = useState<string | null>(null);
-  const [home, setHome] = useState<string | null>(null);
-  const n = name ?? profile?.display_name ?? "";
-  const h = home ?? profile?.household ?? "";
+  const [d, setD] = useState<Partial<Profile>>({});
+  if (!profile) return <p className="text-sm text-muted-foreground">Loading your profile…</p>;
+  const v = { ...profile, ...d };
+  const set = (k: keyof Profile) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setD((x) => ({ ...x, [k]: e.target.value }));
+  const biz = v.account_type === "business";
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = await saveProfile({ display_name: n.trim().slice(0, 100) || null, household: h.trim().slice(0, 200) || null });
-    if (ok) toast.success("Profile saved"); else toast.error("Couldn't save profile");
+    const clean = (x: string | null | undefined, n = 200) => (x ?? "").trim().slice(0, n) || null;
+    if (biz && !clean(v.org_name)) { toast.error("Please enter your organisation name"); return; }
+    const ok = await saveProfile({
+      display_name: clean(v.display_name, 100), household: clean(v.household), phone: clean(v.phone, 30), job_title: clean(v.job_title, 100),
+      bio: clean(v.bio, 500), account_type: v.account_type, org_name: clean(v.org_name), sector: clean(v.sector, 100),
+      language: v.language, currency: v.currency, timezone: v.timezone,
+    });
+    if (ok) { toast.success("Profile saved"); setD({}); } else toast.error("Couldn't save profile");
   };
   return (
-    <form onSubmit={save} className="grid gap-4 rounded-3xl border bg-card p-6 shadow-soft md:grid-cols-3">
-      <label className="block text-sm font-medium">Name<input value={n} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring" /></label>
-      <label className="block text-sm font-medium">Home address<input value={h} onChange={(e) => setHome(e.target.value)} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring" /></label>
-      <div className="flex flex-col justify-end gap-1"><p className="text-xs text-muted-foreground">{email}</p><button className="rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground">Save profile</button></div>
+    <form onSubmit={save} className="space-y-5">
+      <div className="rounded-3xl border bg-card p-6 shadow-soft">
+        <h2 className="font-display text-xl">Account type</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {([["individual", "Individual", "Your home, family, vehicles and belongings."], ["business", "Business", "Your organisation's locations, team, equipment and documents."]] as const).map(([k, t, desc]) => (
+            <button type="button" key={k} onClick={() => setD((x) => ({ ...x, account_type: k }))} className={`rounded-2xl border p-4 text-left transition ${v.account_type === k ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:bg-secondary"}`}>
+              <p className="font-semibold">{t}</p><p className="text-sm text-muted-foreground">{desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-4 rounded-3xl border bg-card p-6 shadow-soft md:grid-cols-2">
+        <h2 className="font-display text-xl md:col-span-2">Personal details</h2>
+        <label className="block text-sm font-medium">Full name<input value={v.display_name ?? ""} onChange={set("display_name")} maxLength={100} className={inp} /></label>
+        <label className="block text-sm font-medium">Email<input value={email} disabled className={inp + " opacity-60"} /></label>
+        <label className="block text-sm font-medium">Phone<input value={v.phone ?? ""} onChange={set("phone")} maxLength={30} className={inp} /></label>
+        <label className="block text-sm font-medium">{biz ? "Job title" : "Home address"}{biz
+          ? <input value={v.job_title ?? ""} onChange={set("job_title")} maxLength={100} className={inp} />
+          : <input value={v.household ?? ""} onChange={set("household")} maxLength={200} className={inp} />}</label>
+        <label className="block text-sm font-medium md:col-span-2">About you<textarea value={v.bio ?? ""} onChange={set("bio")} maxLength={500} rows={2} className={inp} /></label>
+      </div>
+      {biz && (
+        <div className="grid gap-4 rounded-3xl border bg-card p-6 shadow-soft md:grid-cols-2">
+          <h2 className="font-display text-xl md:col-span-2">Organisation</h2>
+          <label className="block text-sm font-medium">Organisation name<input value={v.org_name ?? ""} onChange={set("org_name")} maxLength={200} className={inp} /></label>
+          <label className="block text-sm font-medium">Sector<select value={v.sector ?? ""} onChange={set("sector")} className={inp}><option value="">Choose…</option>{SECTORS.map((x) => <option key={x}>{x}</option>)}</select></label>
+          <label className="block text-sm font-medium md:col-span-2">Head office address<input value={v.household ?? ""} onChange={set("household")} maxLength={200} className={inp} /></label>
+          <div className="flex flex-wrap gap-2 md:col-span-2">
+            <Link to="/app/$section" params={{ section: "locations" }} className="rounded-full border px-4 py-2 text-sm hover:bg-secondary">Manage locations</Link>
+            <Link to="/app/$section" params={{ section: "team" }} className="rounded-full border px-4 py-2 text-sm hover:bg-secondary">Manage team</Link>
+            <Link to="/app/$section" params={{ section: "roles" }} className="rounded-full border px-4 py-2 text-sm hover:bg-secondary">Roles & permissions</Link>
+          </div>
+        </div>
+      )}
+      <div className="grid gap-4 rounded-3xl border bg-card p-6 shadow-soft md:grid-cols-3">
+        <h2 className="font-display text-xl md:col-span-3">Preferences</h2>
+        <label className="block text-sm font-medium">Language<select value={v.language} onChange={set("language")} className={inp}>{["English (UK)", "English (US)", "Français", "Deutsch", "Español"].map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="block text-sm font-medium">Currency<select value={v.currency} onChange={set("currency")} className={inp}>{["GBP", "EUR", "USD"].map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="block text-sm font-medium">Time zone<select value={v.timezone} onChange={set("timezone")} className={inp}>{["Europe/London", "Europe/Paris", "America/New_York", "America/Los_Angeles", "Asia/Dubai"].map((x) => <option key={x}>{x}</option>)}</select></label>
+      </div>
+      <div className="flex justify-end"><button className="rounded-full bg-aurora px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow">Save profile</button></div>
     </form>
   );
 }
