@@ -85,7 +85,7 @@ function Dashboard() {
                   <p className="mt-3 text-sm font-semibold">{a.n}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{a.s}</p>
                   <div className="mt-3 h-1 overflow-hidden rounded-full bg-secondary"><div className="h-full w-2/3 animate-pulse rounded-full bg-aurora" /></div>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
