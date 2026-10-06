@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Signed-in app pages live under src/routes/_authenticated/ (client-only gate redirecting to /auth); user-added records are stored in one generic home_items table keyed by section slug, so new sections need no schema change.

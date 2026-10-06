@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileText, Wrench, ShieldCheck, Package, Sparkles, Check, Send } from "lucide-react";
+import { useStore } from "@/components/hv/store";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-export const Route = createFileRoute("/app/")({
+export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
     meta: [
       { title: "Home — HomeVault AI" },
@@ -34,6 +35,7 @@ const value = [
 const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 function Dashboard() {
+  const { profile } = useStore();
   const [today, setToday] = useState(initialToday);
   const [q, setQ] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -53,7 +55,7 @@ function Dashboard() {
           {/* Home Pulse */}
           <section className="grid gap-6 overflow-hidden rounded-[2rem] bg-midnight-glow p-8 text-midnight-foreground md:grid-cols-[1fr_auto] md:p-10">
             <div>
-              <p className="text-sm text-midnight-foreground/60">Good evening, Sarah</p>
+              <p className="text-sm text-midnight-foreground/60">Good evening{profile?.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}</p>
               <h1 className="mt-2 font-display text-4xl font-medium leading-tight md:text-5xl">
                 Your AI team checked everything.<br /><span className="text-aurora">Just {today.length} things need you.</span>
               </h1>

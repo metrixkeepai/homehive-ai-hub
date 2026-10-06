@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 
-export const Route = createFileRoute("/app/$section/$id")({
+export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
     const i = getItem(params.section, params.id);
     const t = `${i?.title ?? "Details"} — HomeVault AI`;
@@ -19,7 +19,8 @@ const tabs = ["Overview", "Related", "Activity", "AI insight"] as const;
 function Detail() {
   const { section, id } = Route.useParams();
   const s = getSection(section);
-  const { added } = useStore();
+  const { added, remove } = useStore();
+  const navigate = useNavigate();
   const item = getItem(section, id) ?? added[section]?.find((x) => x.id === id);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [done, setDone] = useState<string[]>([]);
@@ -32,7 +33,8 @@ function Detail() {
     );
   }
 
-  const act = (a: string) => {
+  const act = async (a: string) => {
+    if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
     setDone((d) => [...d, a]);
     toast.success(`${a} — done`, { description: "Demo action. Real bookings, payments and connections will be wired up next." });
   };

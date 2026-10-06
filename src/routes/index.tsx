@@ -102,7 +102,7 @@ function Landing() {
             <a href="#security" className="hover:text-midnight-foreground">Security</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/app" className="text-sm text-midnight-foreground/80 hover:text-midnight-foreground">Sign in</Link>
+            <Link to="/auth" className="text-sm text-midnight-foreground/80 hover:text-midnight-foreground">Sign in</Link>
             <Link to="/app" className="rounded-full bg-midnight-foreground px-5 py-2 text-sm font-semibold text-midnight transition hover:opacity-90">Start free</Link>
           </div>
         </header>
