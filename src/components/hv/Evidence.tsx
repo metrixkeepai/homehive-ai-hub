@@ -18,7 +18,7 @@ export function Evidence({ itemId }: { itemId: string }) {
     const rows = (data ?? []) as Ev[];
     if (rows.length) {
       const { data: signed } = await supabase.storage.from("evidence").createSignedUrls(rows.map((r) => r.path), 3600);
-      rows.forEach((r, i) => { r.url = signed?.[i]?.signedUrl; });
+      rows.forEach((r, i) => { r.url = signed?.[i]?.signedUrl ?? ""; });
     }
     setFiles(rows);
   }, [itemId]);
