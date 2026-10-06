@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      evidence_files: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          mime: string
+          name: string
+          path: string
+          size: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          mime?: string
+          name: string
+          path: string
+          size?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          mime?: string
+          name?: string
+          path?: string
+          size?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_files_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "home_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       home_items: {
         Row: {
           created_at: string
