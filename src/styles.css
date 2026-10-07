@@ -145,3 +145,16 @@
 @utility animate-marquee { animation: marquee 35s linear infinite; }
 @utility animate-float { animation: float-y 5s ease-in-out infinite; }
 @utility reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; &.in { opacity: 1; transform: none; } }
+
+.auth-experience {
+  --background: oklch(0.986 0.004 175);
+  --foreground: oklch(0.24 0.025 170);
+  --primary: oklch(0.42 0.085 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.42 0.085 175);
+}
+.auth-image-shade { background: linear-gradient(to top, oklch(0.17 0.025 170 / 0.91), oklch(0.17 0.025 170 / 0) 85%); }
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-float, .animate-marquee { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+}

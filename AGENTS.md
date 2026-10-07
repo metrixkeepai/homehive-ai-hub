@@ -14,3 +14,6 @@
 - Records are scoped to a workspace via home_items.workspace_id (null = the user's personal workspace from their profile); the active workspace lives in StoreProvider so every page filters the same way.
 - AI calls (Sera, Add anything capture) run in createServerFn handlers under src/lib/*.functions.ts so the AI key never reaches the browser.
 - Voucher codes are redeemed only through the redeem_voucher database function; the vouchers table has no client policies so codes can't be listed.
+- Account navigation is grouped through one shared workspace-aware navigation definition so individual and organisation menus cannot diverge across screen sizes.
+- Warranty and renewal records use home_items fields with ISO calendar dates; tracking pages show only saved workspace records and calculate statuses from dates, not sample counts.
+- Calendar reminders are downloadable ICS files, not claims of connected email or push notification delivery.

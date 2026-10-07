@@ -4,13 +4,14 @@ import { Plus, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
+import { TrackingPage } from "@/components/hv/Tracking";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
   head: ({ params }) => {
     const s = getSection(params.section);
     const t = `${s?.title ?? "Not found"} — MatrixKeep AI`;
-    return { meta: [{ title: t }, { name: "description", content: s?.intro ?? "" }, { property: "og:title", content: t }, { property: "og:description", content: s?.intro ?? "" }] };
+    return { meta: [{ title: t }, { name: "description", content: s?.intro ?? "" }, { property: "og:title", content: t }, { property: "og:description", content: s?.intro ?? "" }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] };
   },
   component: SectionPage,
 });
@@ -33,6 +34,7 @@ function SectionPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   if (!s) return <Missing />;
+  if (section === "warranties" || section === "renewals") return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
   const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
 
   const submit = async (e: React.FormEvent) => {

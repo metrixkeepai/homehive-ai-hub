@@ -1,6 +1,6 @@
 import {
   Home, Building2, DoorOpen, Package, Car, FileText, Wrench, ShieldCheck, Umbrella, Users, Bot, ListChecks,
-  History, Store, MessageSquare, Plug, User, CreditCard, Lock, Eye, Bell, Settings, LifeBuoy, MapPin, UserCog, KeyRound, type LucideIcon,
+  History, Store, MessageSquare, Plug, User, CreditCard, Lock, Eye, Bell, Settings, LifeBuoy, MapPin, UserCog, KeyRound, CalendarClock, type LucideIcon,
 } from "lucide-react";
 
 export type Tone = "success" | "warning" | "primary" | "muted" | "danger";
@@ -131,7 +131,7 @@ export const sections: Section[] = [
   },
   {
     slug: "warranties", title: "Warranties", group: "main", icon: ShieldCheck,
-    intro: "Every guarantee tracked, with reminders before cover ends.",
+    intro: "Your saved guarantees, cover details and expiry dates.",
     kpis: [["Active", "14"], ["Expiring in 90 days", "2"], ["Value protected", "£9.6k"], ["Claims made", "1"]],
     addLabel: "Add warranty", addFields: ["Product", "Expiry date"],
     items: [
@@ -141,6 +141,11 @@ export const sections: Section[] = [
       { id: "w-bosch", title: "Bosch dishwasher", subtitle: "Ends Aug 2027", status: ["Active", "success"], fields: [["Provider", "Bosch"]], links: [["assets", "bosch-dishwasher"]], actions: ["Start a claim"] },
       { id: "w-boiler", title: "Worcester boiler 10-year", subtitle: "Ends 2029 · service required yearly", status: ["Conditional", "primary"], fields: [["Condition", "Annual service"]], links: [["maintenance", "boiler-service"]], actions: ["Start a claim"] },
     ],
+  },
+  {
+    slug: "renewals", title: "Renewals", group: "main", icon: CalendarClock,
+    intro: "Insurance, subscriptions, contracts and certificates — every next date in one place.",
+    kpis: [], addLabel: "Add renewal", addFields: ["Name", "Renewal date", "Provider"], items: [],
   },
   {
     slug: "insurance", title: "Insurance", group: "main", icon: Umbrella,

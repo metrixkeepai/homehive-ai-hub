@@ -11,6 +11,8 @@ export const Route = createFileRoute("/_authenticated/app/")({
       { name: "description", content: "Your home at a glance: health, AI team activity and what needs you today." },
       { property: "og:title", content: "Home — MatrixKeep AI" },
       { property: "og:description", content: "Your AI household team has checked everything." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,

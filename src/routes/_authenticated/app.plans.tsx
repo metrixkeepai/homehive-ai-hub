@@ -12,6 +12,8 @@ export const Route = createFileRoute("/_authenticated/app/plans")({
       { name: "description", content: "Pick the MatrixKeep AI plan for your home, business or organisation, or redeem a voucher." },
       { property: "og:title", content: "Choose your plan — MatrixKeep AI" },
       { property: "og:description", content: "Plans for homes, businesses, enterprises and white-label partners." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Plans,

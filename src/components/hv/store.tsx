@@ -14,6 +14,7 @@ type Ctx = {
   add: (slug: string, item: Item) => Promise<boolean>;
   addReturning: (slug: string, item: Item) => Promise<string | null>;
   remove: (slug: string, id: string) => Promise<void>;
+  update: (id: string, item: Item) => Promise<boolean>;
   profile: Profile | null;
   email: string;
   saveProfile: (p: Partial<Profile>) => Promise<boolean>;
@@ -24,7 +25,7 @@ type Ctx = {
   reload: () => Promise<void>;
 };
 const personal: Workspace = { id: null, name: "Personal", type: "individual" };
-const StoreCtx = createContext<Ctx>({ added: {}, add: async () => false, addReturning: async () => null, remove: async () => {}, profile: null, email: "", saveProfile: async () => false, workspaces: [], current: { id: null, name: "Personal", type: "individual" }, switchWorkspace: () => {}, createWorkspace: async () => false, reload: async () => {} });
+const StoreCtx = createContext<Ctx>({ added: {}, add: async () => false, addReturning: async () => null, remove: async () => {}, update: async () => false, profile: null, email: "", saveProfile: async () => false, workspaces: [], current: { id: null, name: "Personal", type: "individual" }, switchWorkspace: () => {}, createWorkspace: async () => false, reload: async () => {} });
 
 type Row = { id: string; workspace_id?: string | null; section: string; title: string; subtitle: string; fields: unknown; created_at: string };
 const toItem = (r: Row): Item => ({
@@ -84,8 +85,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return data.id;
   };
   const remove = async (slug: string, id: string) => {
-    await supabase.from("home_items").delete().eq("id", id);
+    const { error } = await supabase.from("home_items").delete().eq("id", id);
+    if (error) throw error;
     setAllRows((r) => r.filter((x) => x.id !== id)); void slug;
+  };
+  const update = async (id: string, item: Item) => {
+    const { data, error } = await supabase.from("home_items").update({ title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields }).eq("id", id).select("id,workspace_id,section,title,subtitle,fields,created_at").single();
+    if (error || !data) return false;
+    setAllRows((rows) => rows.map((row) => row.id === id ? data as Row : row));
+    return true;
   };
   const saveProfile = async (p: Partial<Profile>) => {
     const { data: u } = await supabase.auth.getUser();
@@ -95,7 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return !error;
   };
 
-  return <StoreCtx.Provider value={{ added, add, addReturning, remove, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load }}>{children}</StoreCtx.Provider>;
+  return <StoreCtx.Provider value={{ added, add, addReturning, remove, update, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load }}>{children}</StoreCtx.Provider>;
 }
 export const useStore = () => useContext(StoreCtx);
 
