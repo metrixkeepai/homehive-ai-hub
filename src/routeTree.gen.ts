@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
 import { Route as AuthenticatedAppSectionIdRouteImport } from './routes/_authenticated/app.$section.$id'
 
@@ -41,6 +42,11 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppPlansRoute = AuthenticatedAppPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AuthenticatedAppRoute,
+} as any)
 const AuthenticatedAppSectionIndexRoute =
   AuthenticatedAppSectionIndexRouteImport.update({
     id: '/$section/',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/app/$section/': typeof AuthenticatedAppSectionIndexRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/app/$section': typeof AuthenticatedAppSectionIndexRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/_authenticated/app/$section/': typeof AuthenticatedAppSectionIndexRoute
@@ -82,15 +91,28 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/app' | '/app/' | '/app/$section/$id' | '/app/$section/'
+    | '/'
+    | '/auth'
+    | '/app'
+    | '/app/plans'
+    | '/app/'
+    | '/app/$section/$id'
+    | '/app/$section/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/app' | '/app/$section/$id' | '/app/$section'
+  to:
+    | '/'
+    | '/auth'
+    | '/app/plans'
+    | '/app'
+    | '/app/$section/$id'
+    | '/app/$section'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/app'
+    | '/_authenticated/app/plans'
     | '/_authenticated/app/'
     | '/_authenticated/app/$section/$id'
     | '/_authenticated/app/$section/'
@@ -139,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/plans': {
+      id: '/_authenticated/app/plans'
+      path: '/plans'
+      fullPath: '/app/plans'
+      preLoaderRoute: typeof AuthenticatedAppPlansRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/$section/': {
       id: '/_authenticated/app/$section/'
       path: '/$section'
@@ -157,12 +186,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppPlansRoute: typeof AuthenticatedAppPlansRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppSectionIdRoute: typeof AuthenticatedAppSectionIdRoute
   AuthenticatedAppSectionIndexRoute: typeof AuthenticatedAppSectionIndexRoute
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppPlansRoute: AuthenticatedAppPlansRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppSectionIdRoute: AuthenticatedAppSectionIdRoute,
   AuthenticatedAppSectionIndexRoute: AuthenticatedAppSectionIndexRoute,

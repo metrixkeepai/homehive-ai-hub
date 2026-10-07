@@ -104,8 +104,8 @@ function Avatar() {
   const navigate = useNavigate();
   const n = profile?.display_name || email;
   const ini = (n || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
-  const go = (section: string) => navigate({ to: "/app/$section", params: { section } });
-  const links: [string, string][] = [["My profile", "profile"], ["Subscription & billing", "billing"], ["Security", "security"], ["Integrations", "integrations"], ["Notifications", "notifications"], ["Privacy", "privacy"], ["Settings", "settings"], ["Help", "help"]];
+  const go = (section: string) => section === "__plans" ? navigate({ to: "/app/plans" }) : navigate({ to: "/app/$section", params: { section } });
+  const links: [string, string][] = [["My profile", "profile"], ["Plans & vouchers", "__plans"], ["Subscription & billing", "billing"], ["Security", "security"], ["Integrations", "integrations"], ["Notifications", "notifications"], ["Privacy", "privacy"], ["Settings", "settings"], ["Help", "help"]];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label="Account menu" className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold outline-none focus:ring-2 focus:ring-ring">{ini}</DropdownMenuTrigger>
