@@ -11,7 +11,7 @@ export const Route = createFileRoute("/pricing")({
 });
 
 type P = { n: string; p: string; d: string; f: string[]; hi?: boolean };
-const tiers: Record<string, P[]> = {
+const tiers = {
   Individual: [
     { n: "Free", p: "£0", d: "Get started with one home", f: ["50 items", "Basic AI capture", "1 member"] },
     { n: "Home", p: "£4.99", d: "Your whole home, organised", f: ["Unlimited items", "All AI agents", "Email import", "2 members"], hi: true },
@@ -26,7 +26,7 @@ const tiers: Record<string, P[]> = {
     { n: "Enterprise", p: "Custom", d: "Organisations at scale", f: ["Multi-entity hierarchy", "Agentic workflows", "Dedicated success manager", "Custom contracts"], hi: true },
     { n: "White-label", p: "Custom", d: "Offer MatrixKeep under your brand", f: ["Your branding & domain", "Customer licensing", "Partner dashboard"] },
   ],
-};
+} satisfies Record<string, P[]>;
 
 function Page() {
   const [tab, setTab] = useState<keyof typeof tiers>("Individual");
@@ -35,10 +35,10 @@ function Page() {
       <PageHero eyebrow="Pricing" title="Simple pricing." accent="Start free." lead={d} />
       <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="mx-auto flex w-fit gap-1 rounded-full border bg-card p-1">
-          {Object.keys(tiers).map((k) => <button key={k} onClick={() => setTab(k)} className={`rounded-full px-5 py-2 text-sm font-semibold transition ${tab === k ? "bg-aurora text-primary-foreground shadow-glow" : "text-muted-foreground"}`}>{k}</button>)}
+          {Object.keys(tiers).map((k) => <button key={k} onClick={() => setTab(k as keyof typeof tiers)} className={`rounded-full px-5 py-2 text-sm font-semibold transition ${tab === k ? "bg-aurora text-primary-foreground shadow-glow" : "text-muted-foreground"}`}>{k}</button>)}
         </div>
         <div key={tab} className={`mt-12 grid gap-5 md:grid-cols-2 ${tiers[tab].length > 2 ? "lg:grid-cols-4" : "mx-auto max-w-3xl"}`}>
-          {tiers[tab].map((p, i) => (
+          {tiers[tab].map((p: P, i: number) => (
             <Reveal key={p.n} delay={i * 80}>
               <div className={`h-full rounded-3xl border p-7 transition hover:-translate-y-1 ${p.hi ? "bg-midnight text-midnight-foreground shadow-glow" : "bg-card shadow-soft"}`}>
                 <h3 className="font-semibold">{p.n}</h3>
