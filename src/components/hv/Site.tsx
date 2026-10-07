@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode, type ComponentType } from "react";
-import { Menu, X, ChevronDown, Check, ArrowRight, Home, Building2, Landmark } from "lucide-react";
+import { Menu, X, ChevronDown, Check, ArrowRight, Home, Building2, Landmark, Sparkles, Workflow, Lock, Tag } from "lucide-react";
+import { industries, useCases } from "@/components/hv/siteContent";
 import { Logo } from "@/components/hv/Logo";
 
 export function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
@@ -109,12 +110,13 @@ export function SiteHeader() {
 export function SiteFooter() {
   const cols: [string, [string, string][]][] = [
     ["Solutions", [["/individual", "Individual"], ["/business", "Business"], ["/enterprise", "Enterprise"]]],
-    ["Product", [["/features", "Features"], ["/pricing", "Pricing"], ["/security", "Security"]]],
+    ["Product", [["/features", "Features"], ["/how-it-works", "How it works"], ["/pricing", "Pricing"], ["/security", "Security"]]],
+    ["Explore", [["/use-cases", "Use cases"], ["/industries", "Industries"]]],
     ["Company", [["/about", "About"], ["/contact", "Contact"], ["/auth", "Sign in"]]],
   ];
   return (
     <footer className="bg-midnight text-midnight-foreground">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-4">
+      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-5">
         <div>
           <Logo light />
           <p className="mt-4 max-w-xs text-sm text-midnight-foreground/60">Keep what matters. Know what’s next. The AI Digital Passport for everything you own, operate and need to remember.</p>
