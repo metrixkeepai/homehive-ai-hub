@@ -13,40 +13,52 @@ export function Reveal({ children, delay = 0, className = "" }: { children: Reac
   return <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>{children}</div>;
 }
 
-const solutions = [
-  { to: "/individual", t: "Individual", d: "Homes, belongings, families", icon: Home },
-  { to: "/business", t: "Business", d: "SMEs, shops, clinics, offices", icon: Building2 },
-  { to: "/enterprise", t: "Enterprise", d: "Multi-site, governance, scale", icon: Landmark },
-] as const;
-const links = [["/features", "Features"], ["/pricing", "Pricing"], ["/security", "Security"], ["/about", "About"], ["/contact", "Contact"]] as const;
+type MenuItem = { to: string; params?: { slug: string }; t: string; d: string; icon: ComponentType<{ className?: string }> };
+const menus: { label: string; all?: { to: string; t: string }; items: MenuItem[]; promo: [string, string, string] }[] = [
+  { label: "Product", items: [
+    { to: "/features", t: "Features", d: "Capture, passports, agents and evidence", icon: Sparkles },
+    { to: "/how-it-works", t: "How it works", d: "From one photo to a living memory", icon: Workflow },
+    { to: "/security", t: "Security", d: "Private by design", icon: Lock },
+    { to: "/pricing", t: "Pricing", d: "Plans for every need", icon: Tag },
+  ], promo: ["Meet Sera", "Your AI keeper answers from your own records.", "/how-it-works"] },
+  { label: "Solutions", items: [
+    { to: "/individual", t: "Individual", d: "Homes, belongings, families", icon: Home },
+    { to: "/business", t: "Business", d: "SMEs, shops, clinics, offices", icon: Building2 },
+    { to: "/enterprise", t: "Enterprise", d: "Multi-site, governance, scale", icon: Landmark },
+  ], promo: ["Start free", "Create your first Digital Passport in a minute.", "/auth"] },
+  { label: "Use Cases", all: { to: "/use-cases", t: "All use cases" }, items: useCases.map((u) => ({ to: "/use-cases/$slug", params: { slug: u.slug }, t: u.t, d: u.short, icon: u.icon })), promo: ["Warranty intelligence", "Expiry dates calculated from your receipts.", "/use-cases"] },
+  { label: "Industries", all: { to: "/industries", t: "All industries" }, items: industries.map((u) => ({ to: "/industries/$slug", params: { slug: u.slug }, t: u.t, d: u.short, icon: u.icon })), promo: ["Multi-location", "Every site, one view.", "/industries"] },
+];
+const links = [["/how-it-works", "How It Works"], ["/pricing", "Pricing"]] as const;
+
+function MenuLink({ m, onClick, compact }: { m: MenuItem; onClick: () => void; compact?: boolean }) {
+  return (
+    <Link to={m.to} params={m.params as never} onClick={onClick} className="flex items-start gap-3 rounded-xl p-3 transition hover:bg-midnight-foreground/5">
+      <m.icon className="mt-0.5 h-5 w-5 shrink-0 text-aurora" />
+      <span><span className="block text-sm font-semibold">{m.t}</span>{!compact && <span className="text-xs text-midnight-foreground/60">{m.d}</span>}</span>
+    </Link>
+  );
+}
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const [sol, setSol] = useState(false);
+  const [menu, setMenu] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => { const f = () => setScrolled(window.scrollY > 20); f(); window.addEventListener("scroll", f); return () => window.removeEventListener("scroll", f); }, []);
   const lc = "text-sm text-midnight-foreground/70 transition hover:text-midnight-foreground";
+  const active = menus.find((m) => m.label === menu);
+  const close = () => { setMenu(null); setOpen(false); };
   return (
-    <header className={`sticky top-0 z-50 text-midnight-foreground transition ${scrolled ? "bg-midnight/90 shadow-soft backdrop-blur" : "bg-midnight"}`}>
+    <header className={`sticky top-0 z-50 text-midnight-foreground transition ${scrolled ? "bg-midnight/90 shadow-soft backdrop-blur" : "bg-midnight"}`} onMouseLeave={() => setMenu(null)}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Logo light />
-        <nav className="hidden items-center gap-7 lg:flex">
-          <div className="relative" onMouseEnter={() => setSol(true)} onMouseLeave={() => setSol(false)}>
-            <button className={`${lc} flex items-center gap-1`} onClick={() => setSol((v) => !v)} aria-expanded={sol}>Solutions <ChevronDown className="h-3.5 w-3.5" /></button>
-            {sol && (
-              <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-3">
-                <div className="animate-rise rounded-2xl border border-midnight-foreground/10 bg-midnight p-2 shadow-glow">
-                  {solutions.map((s) => (
-                    <Link key={s.to} to={s.to} onClick={() => setSol(false)} className="flex items-start gap-3 rounded-xl p-3 hover:bg-midnight-foreground/5">
-                      <s.icon className="mt-0.5 h-5 w-5 text-aurora" />
-                      <span><span className="block text-sm font-semibold">{s.t}</span><span className="text-xs text-midnight-foreground/60">{s.d}</span></span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          {links.map(([to, t]) => <Link key={to} to={to} className={lc} activeProps={{ className: "text-midnight-foreground" }}>{t}</Link>)}
+        <nav className="hidden items-center gap-6 lg:flex">
+          {menus.map((m) => (
+            <button key={m.label} onMouseEnter={() => setMenu(m.label)} onClick={() => setMenu(menu === m.label ? null : m.label)} aria-expanded={menu === m.label} className={`${lc} flex items-center gap-1 ${menu === m.label ? "text-midnight-foreground" : ""}`}>
+              {m.label} <ChevronDown className={`h-3.5 w-3.5 transition ${menu === m.label ? "rotate-180" : ""}`} />
+            </button>
+          ))}
+          {links.map(([to, t]) => <Link key={to} to={to} onMouseEnter={() => setMenu(null)} className={lc} activeProps={{ className: "text-midnight-foreground" }}>{t}</Link>)}
         </nav>
         <div className="flex items-center gap-3">
           <Link to="/auth" className="hidden text-sm text-midnight-foreground/80 hover:text-midnight-foreground sm:block">Sign in</Link>
@@ -54,11 +66,40 @@ export function SiteHeader() {
           <button aria-label="Open menu" className="rounded-full border border-midnight-foreground/20 p-2 lg:hidden" onClick={() => setOpen((v) => !v)}>{open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}</button>
         </div>
       </div>
+      {active && (
+        <div className="absolute inset-x-0 top-full hidden lg:block">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="animate-rise grid grid-cols-[1fr_260px] gap-4 rounded-3xl border border-midnight-foreground/10 bg-midnight p-4 shadow-glow">
+              <div>
+                <div className={`grid gap-1 ${active.items.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}>
+                  {active.items.map((m) => <MenuLink key={m.t} m={m} onClick={close} />)}
+                </div>
+                {active.all && <Link to={active.all.to} onClick={close} className="ml-3 mt-2 inline-flex items-center gap-1 text-sm font-semibold text-aurora">{active.all.t} <ArrowRight className="h-4 w-4" /></Link>}
+              </div>
+              <Link to={active.promo[2]} onClick={close} className="relative overflow-hidden rounded-2xl bg-midnight-glow p-5">
+                <div className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-aurora opacity-30 blur-2xl animate-float" />
+                <Sparkles className="h-5 w-5 text-aurora" />
+                <p className="mt-3 font-display text-xl">{active.promo[0]}</p>
+                <p className="mt-1 text-sm text-midnight-foreground/70">{active.promo[1]}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-aurora">Explore <ArrowRight className="h-4 w-4" /></span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {open && (
-        <div className="animate-rise border-t border-midnight-foreground/10 px-6 pb-6 lg:hidden">
-          {solutions.map((s) => <Link key={s.to} to={s.to} onClick={() => setOpen(false)} className="flex items-center gap-3 py-3 text-sm"><s.icon className="h-4 w-4 text-aurora" />{s.t}</Link>)}
-          {links.map(([to, t]) => <Link key={to} to={to} onClick={() => setOpen(false)} className="block py-3 text-sm text-midnight-foreground/80">{t}</Link>)}
-          <Link to="/auth" onClick={() => setOpen(false)} className="block py-3 text-sm">Sign in</Link>
+        <div className="animate-rise max-h-[80vh] overflow-y-auto border-t border-midnight-foreground/10 px-6 pb-6 lg:hidden">
+          {menus.map((m) => (
+            <details key={m.label} className="border-b border-midnight-foreground/10 py-2">
+              <summary className="cursor-pointer py-2 text-sm font-semibold">{m.label}</summary>
+              {m.items.map((x) => <MenuLink key={x.t} m={x} onClick={close} compact />)}
+              {m.all && <Link to={m.all.to} onClick={close} className="block p-3 text-sm text-aurora">{m.all.t} →</Link>}
+            </details>
+          ))}
+          {links.map(([to, t]) => <Link key={to} to={to} onClick={close} className="block py-3 text-sm text-midnight-foreground/80">{t}</Link>)}
+          <Link to="/about" onClick={close} className="block py-3 text-sm text-midnight-foreground/80">About</Link>
+          <Link to="/contact" onClick={close} className="block py-3 text-sm text-midnight-foreground/80">Contact</Link>
+          <Link to="/auth" onClick={close} className="block py-3 text-sm">Sign in</Link>
         </div>
       )}
     </header>

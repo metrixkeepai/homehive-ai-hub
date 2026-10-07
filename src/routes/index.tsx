@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles, Receipt, Bell } from "lucide-react";
 import { SiteShell, Reveal } from "@/components/hv/Site";
 import { HeroPassport, MatrixNodes, Tick } from "@/components/hv/HeroPassport";
+import { MeetSera } from "@/components/hv/MeetSera";
 import tv from "@/assets/passport-tv.jpg";
 
 export const Route = createFileRoute("/")({
@@ -145,6 +146,8 @@ function Landing() {
           ))}
         </div>
       </section>
+
+      <MeetSera />
 
       <section id="features" className="mx-auto max-w-7xl px-6 py-28">
         <h2 className="max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">An AI team that does more than chat.</h2>
