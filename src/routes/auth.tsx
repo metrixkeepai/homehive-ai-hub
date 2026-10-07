@@ -30,8 +30,13 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<"individual" | "business">("individual");
+  const [kind, setKind] = useState<"individual" | "business" | "enterprise">("individual");
   const [org, setOrg] = useState("");
+  const [btype, setBtype] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [size, setSize] = useState("");
+  const [branches, setBranches] = useState("");
+  const [voucher, setVoucher] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -45,10 +50,12 @@ function AuthPage() {
     e.preventDefault();
     const p = schema.safeParse({ email, password });
     if (!p.success) { toast.error(p.error.issues[0]?.message); return; }
-    if (mode === "up" && kind === "business" && !org.trim()) { toast.error("Please enter your organisation name"); return; }
+    if (mode === "up" && kind !== "individual" && !org.trim()) { toast.error("Please enter your organisation name"); return; }
     setBusy(true);
     if (mode === "up") {
-      const { error } = await supabase.auth.signUp({ ...p.data, options: { emailRedirectTo: window.location.origin + "/app", data: { full_name: name.trim().slice(0, 100), account_type: kind, org_name: kind === "business" ? org.trim().slice(0, 200) : undefined } } });
+      if (voucher.trim()) localStorage.setItem("hv-voucher", voucher.trim().slice(0, 40));
+      const b = kind !== "individual";
+      const { error } = await supabase.auth.signUp({ ...p.data, options: { emailRedirectTo: window.location.origin + "/app/plans", data: { full_name: name.trim().slice(0, 100), account_type: kind, org_name: b ? org.trim().slice(0, 200) : undefined, business_type: b ? btype : undefined, sector: b ? industry : undefined, org_size: b ? size : undefined, branches: b && /^\d{1,5}$/.test(branches) ? branches : undefined } } });
       if (error) toast.error(error.message); else setSent(true);
     } else {
       const { error } = await supabase.auth.signInWithPassword(p.data);
@@ -78,16 +85,25 @@ function AuthPage() {
             <p className="my-5 text-center text-xs text-muted-foreground">or with email</p>
             <form onSubmit={submit} className="space-y-3">
               {mode === "up" && (
-                <div className="grid grid-cols-2 gap-2">
-                  {(["individual", "business"] as const).map((k) => (
-                    <button type="button" key={k} onClick={() => setKind(k)} className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${kind === k ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"}`}>{k === "individual" ? "For my home" : "For my business"}</button>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["individual", "business", "enterprise"] as const).map((k) => (
+                    <button type="button" key={k} onClick={() => setKind(k)} className={`rounded-xl border px-2 py-2.5 text-xs font-medium transition ${kind === k ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary"}`}>{k === "individual" ? "My home" : k === "business" ? "My business" : "Large organisation"}</button>
                   ))}
                 </div>
               )}
-              {mode === "up" && kind === "business" && <input value={org} onChange={(e) => setOrg(e.target.value)} placeholder="Organisation name" maxLength={200} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
+              {mode === "up" && kind !== "individual" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={btype} onChange={(e) => setBtype(e.target.value)} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"><option value="">Business type</option>{["Sole trader", "Partnership", "Limited company", "Charity", "Public sector", "Franchise"].map((x) => <option key={x}>{x}</option>)}</select>
+                  <select value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"><option value="">Industry</option>{["Retail", "Restaurant & hospitality", "Office & professional services", "School & education", "Clinic & healthcare", "Garage & automotive", "Construction", "Property management", "Warehouse & logistics", "Manufacturing", "Technology", "Charity", "Other"].map((x) => <option key={x}>{x}</option>)}</select>
+                  <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"><option value="">Organisation size</option>{["1–9", "10–49", "50–249", "250–999", "1,000+"].map((x) => <option key={x}>{x}</option>)}</select>
+                  <input value={branches} onChange={(e) => setBranches(e.target.value.replace(/\D/g, "").slice(0, 5))} inputMode="numeric" placeholder="Locations / branches" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                </div>
+              )}
+              {mode === "up" && kind !== "individual" && <input value={org} onChange={(e) => setOrg(e.target.value)} placeholder="Organisation name" maxLength={200} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
               {mode === "up" && <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              {mode === "up" && <input value={voucher} onChange={(e) => setVoucher(e.target.value)} placeholder="Voucher code (optional)" maxLength={40} className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring uppercase" />}
               <button disabled={busy} className="w-full rounded-full bg-aurora py-3 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60">{busy ? "Please wait…" : mode === "in" ? "Sign in" : "Create account"}</button>
             </form>
             <button onClick={() => setMode(mode === "in" ? "up" : "in")} className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground">
