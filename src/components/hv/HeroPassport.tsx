@@ -100,7 +100,7 @@ export function MatrixNodes() {
   return (
     <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100" aria-hidden>
       {pts.map((p, i) => {
-        const q = pts[(i + 3) % pts.length];
+        const q = pts[(i + 3) % pts.length]!;
         return <line key={`l${i}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke="currentColor" strokeWidth="0.05" className="text-aurora" />;
       })}
       {pts.map((p, i) => (
