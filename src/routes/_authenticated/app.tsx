@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Plus, Bell, Search, Camera, Receipt, Mic, Upload, Mail, X, DoorOpen, Menu } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { Sera } from "@/components/hv/Sera";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logo } from "@/components/hv/Logo";
 import { sections, homeNav } from "@/components/hv/data";
 import { StoreProvider, useStore } from "@/components/hv/store";
@@ -86,9 +88,8 @@ function AppLayout() {
               )}
             </div>
             <Link to="/app/$section" params={{ section: "notifications" }} aria-label="Notifications" className="relative rounded-full border p-2"><Bell className="h-4 w-4" /><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet" /></Link>
-            <Avatar />
-            <button onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }} className="hidden rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground sm:block">Sign out</button>
             <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Add anything</span></button>
+            <Avatar />
           </header>
           <Outlet />
         </main>
@@ -111,6 +112,7 @@ function AppLayout() {
             </div>
           </div>
         )}
+        <Sera />
         <Toaster />
       </div>
     </StoreProvider>
@@ -119,7 +121,25 @@ function AppLayout() {
 
 function Avatar() {
   const { profile, email } = useStore();
+  const navigate = useNavigate();
   const n = profile?.display_name || email;
   const ini = (n || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
-  return <Link to="/app/$section" params={{ section: "profile" }} aria-label="My profile" className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold">{ini}</Link>;
+  const go = (section: string) => navigate({ to: "/app/$section", params: { section } });
+  const links: [string, string][] = [["My profile", "profile"], ["Subscription & billing", "billing"], ["Security", "security"], ["Integrations", "integrations"], ["Notifications", "notifications"], ["Privacy", "privacy"], ["Settings", "settings"], ["Help", "help"]];
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger aria-label="Account menu" className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold outline-none focus:ring-2 focus:ring-ring">{ini}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel>
+          <p className="truncate font-semibold">{profile?.display_name || "Your account"}</p>
+          <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
+          <p className="mt-1 text-xs font-normal text-primary">{profile?.account_type === "business" ? (profile.org_name || "Business") + " · Business" : "Household · Individual"}</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {links.map(([l, s]) => <DropdownMenuItem key={s} onSelect={() => go(s)}>{l}</DropdownMenuItem>)}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="text-destructive" onSelect={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>Sign out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

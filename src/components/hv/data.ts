@@ -33,7 +33,7 @@ const tl = (...e: [string, string][]) => e;
 
 export const sections: Section[] = [
   {
-    slug: "my-home", title: "My Home", group: "main", icon: Building2,
+    slug: "my-home", title: "Property Profile", group: "main", icon: Building2,
     intro: "Your property profile — the foundation every agent works from.",
     kpis: [["Rooms", "9"], ["Built", "1932"], ["Floor area", "142 m²"], ["Home Health", "86"]],
     items: [
@@ -319,6 +319,6 @@ export const sections: Section[] = [
   },
 ];
 
-export const homeNav = { slug: "", title: "Home", icon: Home };
+export const homeNav = { slug: "", title: "Overview", icon: Home };
 export const getSection = (slug: string) => sections.find((s) => s.slug === slug);
 export const getItem = (slug: string, id: string) => getSection(slug)?.items.find((i) => i.id === id);

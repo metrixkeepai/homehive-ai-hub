@@ -37,15 +37,6 @@ const colors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--cha
 function Dashboard() {
   const { profile } = useStore();
   const [today, setToday] = useState(initialToday);
-  const [q, setQ] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-
-  const ask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!q.trim()) return;
-    setAnswer(`Demo answer: I found 2 records related to \u201c${q}\u201d. Your Samsung TV receipt (Currys, Mar 2024) and its warranty certificate are in Documents.`);
-    setQ("");
-  };
 
   return (
     <>
@@ -142,15 +133,6 @@ function Dashboard() {
             </section>
           </div>
 
-          {/* Ask */}
-          <section className="rounded-3xl border bg-card p-6 shadow-soft">
-            <h2 className="flex items-center gap-2 font-display text-2xl"><Sparkles className="h-5 w-5 text-violet" /> Ask HomeVault</h2>
-            <form onSubmit={ask} className="mt-4 flex gap-2">
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Where's the receipt for the TV?" className="flex-1 rounded-full border bg-background px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              <button className="grid h-11 w-11 place-items-center rounded-full bg-aurora text-primary-foreground"><Send className="h-4 w-4" /></button>
-            </form>
-            {answer && <p className="animate-rise mt-4 rounded-2xl bg-secondary p-4 text-sm">{answer}</p>}
-          </section>
         </div>
     </>
   );
