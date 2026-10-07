@@ -9,7 +9,7 @@ export function Logo({ light = false }: { light?: boolean }) {
         </svg>
       </span>
       <span className={`font-display text-lg font-semibold tracking-tight ${light ? "text-midnight-foreground" : "text-foreground"}`}>
-        HomeVault <span className="text-aurora">AI</span>
+        Matrix<span className="text-aurora">Keep</span>
       </span>
     </Link>
   );

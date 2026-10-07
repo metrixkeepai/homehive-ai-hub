@@ -10,10 +10,10 @@ import { Logo } from "@/components/hv/Logo";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — HomeVault AI" },
-      { name: "description", content: "Sign in or create your HomeVault AI account." },
-      { property: "og:title", content: "Sign in — HomeVault AI" },
-      { property: "og:description", content: "Sign in or create your HomeVault AI account." },
+      { title: "Sign in — MatrixKeep AI" },
+      { name: "description", content: "Sign in or create your MatrixKeep AI account." },
+      { property: "og:title", content: "Sign in — MatrixKeep AI" },
+      { property: "og:description", content: "Sign in or create your MatrixKeep AI account." },
     ],
   }),
   component: AuthPage,
@@ -76,11 +76,11 @@ function AuthPage() {
         {sent ? (
           <div className="mt-8 space-y-3">
             <h1 className="font-display text-3xl">Check your email</h1>
-            <p className="text-sm text-muted-foreground">We sent a confirmation link to {email}. Click it to open your HomeVault.</p>
+            <p className="text-sm text-muted-foreground">We sent a confirmation link to {email}. Click it to open your MatrixKeep.</p>
           </div>
         ) : (
           <>
-            <h1 className="mt-8 font-display text-3xl">{mode === "in" ? "Welcome back" : "Create your HomeVault"}</h1>
+            <h1 className="mt-8 font-display text-3xl">{mode === "in" ? "Welcome back" : "Create your MatrixKeep"}</h1>
             <button onClick={google} className="mt-6 w-full rounded-full border py-3 text-sm font-semibold transition hover:bg-secondary">Continue with Google</button>
             <p className="my-5 text-center text-xs text-muted-foreground">or with email</p>
             <form onSubmit={submit} className="space-y-3">

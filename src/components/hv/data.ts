@@ -169,7 +169,7 @@ export const sections: Section[] = [
   },
   {
     slug: "agents", title: "AI Agents", group: "main", icon: Bot,
-    intro: "Your HomeVault AI team, working quietly in the background.",
+    intro: "Your MatrixKeep AI team, working quietly in the background.",
     kpis: [["Agents", "6"], ["Actions this week", "142"], ["Hours saved", "11.5"], ["Needs approval", "3"]],
     items: [
       { id: "document-agent", title: "Document Agent", subtitle: "Reads and files your paperwork", status: ["Working", "success"],
@@ -225,7 +225,7 @@ export const sections: Section[] = [
   },
   {
     slug: "integrations", title: "Integrations", group: "main", icon: Plug,
-    intro: "Connect HomeVault to the places your home life already happens.",
+    intro: "Connect MatrixKeep to the places your home life already happens.",
     kpis: [["Connected", "2"], ["Available", "8"], ["Imported this month", "23"]],
     items: [
       { id: "gmail", title: "Gmail", subtitle: "Import receipts and warranties", status: ["Connected (demo)", "success"], fields: [["Account", "sarah@example.com"], ["Last sync", "4 min ago"], ["Imported", "214 documents"], ["Access", "Read-only, receipts only"]], links: [["agents", "document-agent"]], actions: ["Sync now", "Disconnect"] },

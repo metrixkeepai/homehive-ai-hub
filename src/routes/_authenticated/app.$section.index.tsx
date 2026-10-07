@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
   head: ({ params }) => {
     const s = getSection(params.section);
-    const t = `${s?.title ?? "Not found"} — HomeVault AI`;
+    const t = `${s?.title ?? "Not found"} — MatrixKeep AI`;
     return { meta: [{ title: t }, { name: "description", content: s?.intro ?? "" }, { property: "og:title", content: t }, { property: "og:description", content: s?.intro ?? "" }] };
   },
   component: SectionPage,
@@ -43,7 +43,7 @@ function SectionPage() {
     if (!title) { toast.error(`Please enter ${first.toLowerCase()}`); return; }
     const ok = await add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"] });
     if (!ok) { toast.error("Couldn't save — please try again"); return; }
-    toast.success(`${title} saved to your HomeVault`);
+    toast.success(`${title} saved to your MatrixKeep`);
     setForm({}); setOpen(false);
   };
 
