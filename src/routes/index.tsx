@@ -69,7 +69,7 @@ function AgentOrbit() {
       <div key={i} className="animate-rise absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-midnight-foreground/15 bg-midnight/90 px-4 py-2 text-sm text-midnight-foreground backdrop-blur">
         <span className="h-2 w-2 rounded-full bg-aurora" /> {events[i]}
       </div>
-    </SiteShell>
+    </div>
   );
 }
 
