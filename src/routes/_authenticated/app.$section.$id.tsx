@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 import { Evidence } from "@/components/hv/Evidence";
+import { TrackingDetail } from "@/components/hv/Tracking";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
     const i = getItem(params.section, params.id);
-    const t = `${i?.title ?? "Details"} — MatrixKeep AI`;
-    return { meta: [{ title: t }, { name: "description", content: i?.subtitle ?? "MatrixKeep record" }, { property: "og:title", content: t }, { property: "og:description", content: i?.subtitle ?? "MatrixKeep record" }] };
+    const t = `${i?.title ?? getSection(params.section)?.title ?? "Record"} details — MatrixKeep AI`;
+    return { meta: [{ title: t }, { name: "description", content: i?.subtitle ?? "Your saved MatrixKeep record and supporting evidence." }, { property: "og:title", content: t }, { property: "og:description", content: i?.subtitle ?? "Your saved MatrixKeep record and supporting evidence." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] };
   },
   component: Detail,
 });
@@ -36,6 +37,7 @@ function Detail() {
   }
 
   const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms");
+  if ((section === "warranties" || section === "renewals") && added[section]?.some((x) => x.id === id)) return <TrackingDetail section={section} item={item} />;
   const roomItems = section === "rooms" ? [
     ...(added["assets"] ?? []).filter((a) => a.fields.some(([k, v]) => k === "Room" && v.toLowerCase() === item.title.toLowerCase())).map((a) => ({ a, own: true })),
     ...(item.links ?? []).filter(([sl]) => sl === "assets").map(([, lid]) => getItem("assets", lid)).filter((a): a is NonNullable<typeof a> => !!a).map((a) => ({ a, own: false })),

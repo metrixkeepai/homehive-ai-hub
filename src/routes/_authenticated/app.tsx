@@ -1,6 +1,9 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon } from "lucide-react";
+import { Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon, PanelLeftClose, PanelLeftOpen, ChevronDown, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { accountNavigation } from "@/components/hv/navigation";
+import { useRouterState } from "@tanstack/react-router";
 import { AddAnything } from "@/components/hv/AddAnything";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -18,24 +21,24 @@ export const Route = createFileRoute("/_authenticated/app")({
 const linkCls = "flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-sm text-muted-foreground transition hover:bg-secondary/60 hover:text-foreground";
 const activeCls = { className: "bg-secondary font-semibold text-foreground" };
 
-function SideNav({ onPick }: { onPick?: () => void }) {
+function SideNav({ onPick, collapsed = false }: { onPick?: () => void; collapsed?: boolean }) {
   const { current } = useStore();
   const biz = current.type !== "individual";
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const [closed, setClosed] = useState<string[]>([]);
   return (
-    <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto">
-      <Link to="/app" activeOptions={{ exact: true }} activeProps={activeCls} className={linkCls} onClick={onPick}>
-        <homeNav.icon className="h-4 w-4" /> {homeNav.title}
+    <nav aria-label={biz ? "Business navigation" : "Individual navigation"} className="mt-6 flex-1 space-y-0.5 overflow-y-auto">
+      <Link to="/app" title={homeNav.title} activeOptions={{ exact: true }} activeProps={activeCls} className={linkCls} onClick={onPick}>
+        <homeNav.icon className="h-4 w-4 shrink-0" /> {!collapsed && homeNav.title}
       </Link>
-      {(["main", "account"] as const).map((g) => (
-        <div key={g}>
-          {g === "account" && <p className="mt-5 mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Account</p>}
-          {sections.filter((s) => s.group === g && (!s.only || biz)).map((s) => (
-            <Link key={s.slug} to="/app/$section" params={{ section: s.slug }} activeProps={activeCls} className={linkCls} onClick={onPick}>
-              <s.icon className="h-4 w-4" /> {s.title}
-            </Link>
-          ))}
-        </div>
-      ))}
+      {accountNavigation(biz).map((group) => {
+        const active = group.items.some(({ section }) => pathname === `/app/${section.slug}` || pathname.startsWith(`/app/${section.slug}/`));
+        const open = !closed.includes(group.label) || active;
+        return <div key={group.label} className={collapsed ? "border-t pt-2 mt-2" : "pt-4"}>
+          {!collapsed && <Button variant="ghost" aria-expanded={open} onClick={() => setClosed((c) => c.includes(group.label) ? c.filter((l) => l !== group.label) : [...c, group.label])} className="mb-1 h-8 w-full justify-between px-3 text-xs text-muted-foreground"><span>{group.label}</span><ChevronDown className={`transition ${open ? "" : "-rotate-90"}`} /></Button>}
+          {(open || collapsed) && group.items.map(({ section: s, label }) => <Link key={s.slug} title={label} to="/app/$section" params={{ section: s.slug }} activeProps={activeCls} className={linkCls} onClick={onPick}><s.icon className="h-4 w-4 shrink-0" />{!collapsed && label}</Link>)}
+        </div>;
+      })}
     </nav>
   );
 }
@@ -43,6 +46,7 @@ function SideNav({ onPick }: { onPick?: () => void }) {
 function AppLayout() {
   const [addOpen, setAddOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   const results = q.trim().length > 1
@@ -52,21 +56,22 @@ function AppLayout() {
   return (
     <StoreProvider>
       <div className="flex min-h-screen bg-background">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-card px-4 py-5 lg:flex">
-          <Logo />
-          <SideNav />
+        <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r bg-card py-5 lg:flex ${collapsed ? "w-16 px-2" : "w-64 px-4"}`}>
+          {collapsed ? <HomeIcon className="mx-auto h-7 w-7 text-primary" /> : <Logo />}
+          <SideNav collapsed={collapsed} />
         </aside>
         {menu && (
           <div className="fixed inset-0 z-40 bg-midnight/50 lg:hidden" onClick={() => setMenu(false)}>
             <aside className="flex h-full w-72 flex-col bg-card px-4 py-5" onClick={(e) => e.stopPropagation()}>
-              <Logo /><SideNav onPick={() => setMenu(false)} />
+              <div className="flex items-center justify-between"><Logo /><Button size="icon" variant="ghost" aria-label="Close menu" onClick={() => setMenu(false)}><X /></Button></div><SideNav onPick={() => setMenu(false)} />
             </aside>
           </div>
         )}
 
         <main className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur md:px-6">
-            <button aria-label="Open menu" className="rounded-full border p-2 lg:hidden" onClick={() => setMenu(true)}><Menu className="h-4 w-4" /></button>
+            <Button aria-label="Open menu" size="icon" variant="outline" className="shrink-0 lg:hidden" onClick={() => setMenu(true)}><Menu /></Button>
+            <Button aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} size="icon" variant="ghost" className="hidden shrink-0 lg:inline-flex" onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
             <WorkspaceSwitcher />
             <div className="relative flex-1">
               <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
@@ -113,7 +118,7 @@ function Avatar() {
         <DropdownMenuLabel>
           <p className="truncate font-semibold">{profile?.display_name || "Your account"}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>
-          <p className="mt-1 text-xs font-normal text-primary">{profile?.account_type === "business" ? (profile.org_name || "Business") + " · Business" : "Household · Individual"}</p>
+          <p className="mt-1 text-xs font-normal capitalize text-primary">{profile?.account_type !== "individual" ? (profile?.org_name || "Organisation") + ` · ${profile?.account_type ?? "individual"}` : "Household · Individual"}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {links.map(([l, s]) => <DropdownMenuItem key={s} onSelect={() => go(s)}>{l}</DropdownMenuItem>)}
