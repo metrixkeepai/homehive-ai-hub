@@ -62,7 +62,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
     if (!Ctor) { toast.error("Voice input isn't supported in this browser — please type instead."); return; }
     const r = new Ctor(); r.lang = "en-GB"; r.interimResults = false;
-    r.onresult = (e) => setText((t) => (t ? t + " " : "") + e.results[0][0].transcript);
+    r.onresult = (e) => setText((t) => (t ? t + " " : "") + (e.results[0]?.[0]?.transcript ?? ""));
     r.onend = () => setListening(false);
     setListening(true); r.start();
   };

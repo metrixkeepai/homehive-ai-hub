@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   component: Detail,
 });
 
-const tabs = ["Overview", "Evidence", "Related", "Activity", "AI insight"] as const;
+const tabs = ["Overview", "Items", "Evidence", "Related", "Activity", "AI insight"] as const;
 
 function Detail() {
   const { section, id } = Route.useParams();
@@ -25,6 +25,7 @@ function Detail() {
   const item = getItem(section, id) ?? added[section]?.find((x) => x.id === id);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [done, setDone] = useState<string[]>([]);
+  const [view, setView] = useState<"grid" | "table">("table");
   if (!s || !item) {
     return (
       <div className="mx-auto max-w-xl px-6 py-24 text-center">
@@ -34,6 +35,12 @@ function Detail() {
     );
   }
 
+  const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms");
+  const roomItems = section === "rooms" ? [
+    ...(added["assets"] ?? []).filter((a) => a.fields.some(([k, v]) => k === "Room" && v.toLowerCase() === item.title.toLowerCase())).map((a) => ({ a, own: true })),
+    ...(item.links ?? []).filter(([sl]) => sl === "assets").map(([, lid]) => getItem("assets", lid)).filter((a): a is NonNullable<typeof a> => !!a).map((a) => ({ a, own: false })),
+  ] : [];
+  const fv = (a: { fields: [string, string][] }, k: string) => a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
     setDone((d) => [...d, a]);
@@ -66,7 +73,7 @@ function Detail() {
       </section>
 
       <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
-        {tabs.map((t) => (
+        {shownTabs.map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === t ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground"}`}>{t}</button>
         ))}
       </div>
@@ -77,6 +84,31 @@ function Detail() {
             {item.fields.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}
           </dl>
         ) : <p className="text-sm text-muted-foreground">No details yet. Use the buttons above to get started.</p>)}
+
+        {tab === "Items" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{roomItems.length} item(s) recorded in {item.title}</p>
+              <div className="flex rounded-full border p-0.5 text-xs">{(["table", "grid"] as const).map((v) => <button key={v} onClick={() => setView(v)} className={`rounded-full px-3 py-1 capitalize ${view === v ? "bg-primary text-primary-foreground" : ""}`}>{v}</button>)}</div>
+            </div>
+            {roomItems.length === 0 && <p className="text-sm text-muted-foreground">No items yet. Use “Add anything → Scan room” and choose this room to fill it.</p>}
+            {view === "table" && roomItems.length > 0 && (
+              <div className="overflow-x-auto"><table className="w-full text-sm">
+                <thead><tr className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="py-2">Item</th><th>Brand</th><th>Value</th><th>Purchased</th><th>Source</th></tr></thead>
+                <tbody>{roomItems.map(({ a, own }) => (
+                  <tr key={a.id} className="border-b last:border-0 hover:bg-secondary/50">
+                    <td className="py-2"><Link to="/app/$section/$id" params={{ section: "assets", id: a.id }} className="font-medium text-primary hover:underline">{a.title}</Link></td>
+                    <td>{fv(a, "brand")}</td><td>{a.value ?? fv(a, "price")}</td><td>{fv(a, "purchase date")}</td><td className="text-xs text-muted-foreground">{own ? "Yours" : "Sample"}</td>
+                  </tr>))}</tbody>
+              </table></div>
+            )}
+            {view === "grid" && (
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">{roomItems.map(({ a }) => (
+                <Link key={a.id} to="/app/$section/$id" params={{ section: "assets", id: a.id }} className="rounded-2xl border p-4 hover:border-primary"><p className="font-semibold">{a.title}</p><p className="text-xs text-muted-foreground">{a.subtitle}</p></Link>
+              ))}</div>
+            )}
+          </div>
+        )}
 
         {tab === "Evidence" && (added[section]?.some((x) => x.id === id)
           ? <Evidence itemId={id} />
