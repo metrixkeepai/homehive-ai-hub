@@ -64,6 +64,7 @@ export type Database = {
           subtitle: string
           title: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
@@ -73,6 +74,7 @@ export type Database = {
           subtitle?: string
           title: string
           user_id?: string
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
@@ -82,14 +84,25 @@ export type Database = {
           subtitle?: string
           title?: string
           user_id?: string
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "home_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           account_type: string
           avatar_url: string | null
           bio: string | null
+          branches: number | null
+          business_type: string | null
           created_at: string
           currency: string
           display_name: string | null
@@ -98,7 +111,10 @@ export type Database = {
           job_title: string | null
           language: string
           org_name: string | null
+          org_size: string | null
           phone: string | null
+          plan: string
+          plan_source: string | null
           sector: string | null
           timezone: string
           updated_at: string
@@ -107,6 +123,8 @@ export type Database = {
           account_type?: string
           avatar_url?: string | null
           bio?: string | null
+          branches?: number | null
+          business_type?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
@@ -115,7 +133,10 @@ export type Database = {
           job_title?: string | null
           language?: string
           org_name?: string | null
+          org_size?: string | null
           phone?: string | null
+          plan?: string
+          plan_source?: string | null
           sector?: string | null
           timezone?: string
           updated_at?: string
@@ -124,6 +145,8 @@ export type Database = {
           account_type?: string
           avatar_url?: string | null
           bio?: string | null
+          branches?: number | null
+          business_type?: string | null
           created_at?: string
           currency?: string
           display_name?: string | null
@@ -132,10 +155,64 @@ export type Database = {
           job_title?: string | null
           language?: string
           org_name?: string | null
+          org_size?: string | null
           phone?: string | null
+          plan?: string
+          plan_source?: string | null
           sector?: string | null
           timezone?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      vouchers: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          max_uses: number
+          plan: string
+          uses: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          max_uses?: number
+          plan: string
+          uses?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          max_uses?: number
+          plan?: string
+          uses?: number
+        }
+        Relationships: []
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          type?: string
         }
         Relationships: []
       }
@@ -144,7 +221,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      redeem_voucher: { Args: { _code: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

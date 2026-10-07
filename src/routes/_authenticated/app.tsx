@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Bell, Search, Camera, Receipt, Mic, Upload, Mail, X, DoorOpen, Menu } from "lucide-react";
+import { Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon } from "lucide-react";
+import { AddAnything } from "@/components/hv/AddAnything";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Sera } from "@/components/hv/Sera";
@@ -18,8 +19,8 @@ const linkCls = "flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-sm t
 const activeCls = { className: "bg-secondary font-semibold text-foreground" };
 
 function SideNav({ onPick }: { onPick?: () => void }) {
-  const { profile } = useStore();
-  const biz = profile?.account_type === "business";
+  const { current } = useStore();
+  const biz = current.type !== "individual";
   return (
     <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto">
       <Link to="/app" activeOptions={{ exact: true }} activeProps={activeCls} className={linkCls} onClick={onPick}>
@@ -48,11 +49,6 @@ function AppLayout() {
     ? sections.flatMap((s) => s.items.filter((i) => (i.title + i.subtitle).toLowerCase().includes(q.toLowerCase())).map((i) => ({ s, i }))).slice(0, 8)
     : [];
 
-  const addTargets: [typeof Camera, string, string][] = [
-    [Camera, "Take photo", "assets"], [DoorOpen, "Scan room", "rooms"], [Receipt, "Scan receipt", "documents"],
-    [Upload, "Upload document", "documents"], [Mic, "Speak", "tasks"], [Mail, "Import email", "integrations"],
-  ];
-
   return (
     <StoreProvider>
       <div className="flex min-h-screen bg-background">
@@ -71,6 +67,7 @@ function AppLayout() {
         <main className="min-w-0 flex-1">
           <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur md:px-6">
             <button aria-label="Open menu" className="rounded-full border p-2 lg:hidden" onClick={() => setMenu(true)}><Menu className="h-4 w-4" /></button>
+            <WorkspaceSwitcher />
             <div className="relative flex-1">
               <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
                 <Search className="h-4 w-4 text-muted-foreground" />
@@ -94,24 +91,7 @@ function AppLayout() {
           <Outlet />
         </main>
 
-        {addOpen && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm" onClick={() => setAddOpen(false)}>
-            <div className="animate-rise w-full max-w-lg rounded-3xl bg-card p-7 shadow-glow" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-2xl">Add anything</h3>
-                <button aria-label="Close" onClick={() => setAddOpen(false)}><X className="h-5 w-5" /></button>
-              </div>
-              <div className="mt-6 grid grid-cols-3 gap-3">
-                {addTargets.map(([Icon, l, slug]) => (
-                  <button key={l} onClick={() => { setAddOpen(false); toast(`${l}: opening ${slug}`, { description: "Camera, voice and email capture are demo-only for now." }); navigate({ to: "/app/$section", params: { section: slug }, search: { add: 1 } as never }); }}
-                    className="flex flex-col items-center gap-2 rounded-2xl border p-4 text-xs font-medium transition hover:border-primary hover:bg-secondary">
-                    <Icon className="h-5 w-5 text-primary" />{l}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {addOpen && <AddAnything onClose={() => setAddOpen(false)} />}
         <Sera />
         <Toaster />
       </div>
@@ -124,8 +104,8 @@ function Avatar() {
   const navigate = useNavigate();
   const n = profile?.display_name || email;
   const ini = (n || "?").split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
-  const go = (section: string) => navigate({ to: "/app/$section", params: { section } });
-  const links: [string, string][] = [["My profile", "profile"], ["Subscription & billing", "billing"], ["Security", "security"], ["Integrations", "integrations"], ["Notifications", "notifications"], ["Privacy", "privacy"], ["Settings", "settings"], ["Help", "help"]];
+  const go = (section: string) => section === "__plans" ? navigate({ to: "/app/plans" }) : navigate({ to: "/app/$section", params: { section } });
+  const links: [string, string][] = [["My profile", "profile"], ["Plans & vouchers", "__plans"], ["Subscription & billing", "billing"], ["Security", "security"], ["Integrations", "integrations"], ["Notifications", "notifications"], ["Privacy", "privacy"], ["Settings", "settings"], ["Help", "help"]];
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label="Account menu" className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold outline-none focus:ring-2 focus:ring-ring">{ini}</DropdownMenuTrigger>
@@ -141,5 +121,47 @@ function Avatar() {
         <DropdownMenuItem className="text-destructive" onSelect={async () => { await supabase.auth.signOut(); navigate({ to: "/auth", replace: true }); }}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function WorkspaceSwitcher() {
+  const { workspaces, current, switchWorkspace, createWorkspace } = useStore();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"individual" | "business" | "enterprise">("business");
+  const Icon = current.type === "individual" ? HomeIcon : Building2;
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex max-w-48 items-center gap-2 rounded-full border bg-card px-3 py-2 text-sm font-medium outline-none">
+          <Icon className="h-4 w-4 text-primary" /><span className="truncate">{current.name}</span><ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64">
+          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+          {workspaces.map((w) => (
+            <DropdownMenuItem key={w.id ?? "personal"} onSelect={() => switchWorkspace(w.id)}>
+              <span className="flex-1 truncate">{w.name}<span className="ml-2 text-xs capitalize text-muted-foreground">{w.type}</span></span>
+              {w.id === current.id && <Check className="h-4 w-4" />}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setCreating(true)}><Plus className="h-4 w-4" /> New workspace</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {creating && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4" onClick={() => setCreating(false)}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={async (e) => { e.preventDefault(); if (!name.trim()) { toast.error("Enter a name"); return; } if (await createWorkspace(name.trim(), type)) { toast.success(`Switched to ${name}`); setCreating(false); setName(""); } else toast.error("Couldn't create workspace"); }}
+            className="w-full max-w-sm space-y-3 rounded-3xl bg-card p-6 shadow-glow">
+            <h3 className="font-display text-2xl">New workspace</h3>
+            <p className="text-sm text-muted-foreground">Keep a second home, a business or an organisation separate. Each workspace has its own records.</p>
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} placeholder="e.g. Smile Dental Clinic" className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm" />
+            <div className="grid grid-cols-3 gap-2">
+              {(["individual", "business", "enterprise"] as const).map((t) => <button type="button" key={t} onClick={() => setType(t)} className={`rounded-xl border px-2 py-2 text-xs capitalize ${type === t ? "border-primary bg-primary/10 text-primary" : ""}`}>{t === "individual" ? "Home" : t}</button>)}
+            </div>
+            <button className="w-full rounded-full bg-aurora py-2.5 text-sm font-semibold text-primary-foreground">Create and switch</button>
+          </form>
+        </div>
+      )}
+    </>
   );
 }
