@@ -158,3 +158,6 @@
   .animate-rise, .animate-float, .animate-marquee { animation: none; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
+
+@keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(520px); } }
+@utility animate-scan { animation: scan 3.2s ease-in-out infinite alternate; }

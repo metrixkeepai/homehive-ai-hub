@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles } from "lucide-react";
+import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles, Receipt, Bell } from "lucide-react";
 import { SiteShell, Reveal } from "@/components/hv/Site";
+import { HeroPassport, MatrixNodes, Tick } from "@/components/hv/HeroPassport";
+import tv from "@/assets/passport-tv.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,62 +17,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
-
-const agents = [
-  { name: "Vision", icon: Eye },
-  { name: "Asset", icon: Package },
-  { name: "Document", icon: FileText },
-  { name: "Warranty", icon: ShieldCheck },
-  { name: "Maintenance", icon: Wrench },
-  { name: "Insurance", icon: Umbrella },
-];
-const events = [
-  "Kitchen scan completed",
-  "12 assets identified",
-  "Amazon receipt matched",
-  "Boiler service due next month",
-  "TV warranty expires in 26 days",
-];
-
-function AgentOrbit() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % events.length), 2400);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="relative mx-auto aspect-square w-full max-w-[460px]">
-      <div className="absolute inset-[8%] rounded-full border border-midnight-foreground/10" />
-      <div className="absolute inset-[24%] rounded-full border border-midnight-foreground/10" />
-      <div className="absolute inset-0 animate-orbit">
-        {agents.map((a, idx) => {
-          const ang = (idx / agents.length) * Math.PI * 2;
-          const x = 50 + 42 * Math.cos(ang);
-          const y = 50 + 42 * Math.sin(ang);
-          return (
-            <div key={a.name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-              <div className="animate-counter-orbit flex flex-col items-center gap-1">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl border border-midnight-foreground/15 bg-midnight/80 backdrop-blur">
-                  <a.icon className="h-5 w-5 text-aurora" />
-                </span>
-                <span className="text-[11px] font-medium text-midnight-foreground/70">{a.name}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <span className="absolute inset-0 rounded-3xl bg-aurora animate-pulse-ring" />
-        <div className="relative grid h-28 w-28 place-items-center rounded-3xl bg-aurora shadow-glow">
-          <Home className="h-12 w-12 text-primary-foreground" strokeWidth={1.5} />
-        </div>
-      </div>
-      <div key={i} className="animate-rise absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-midnight-foreground/15 bg-midnight/90 px-4 py-2 text-sm text-midnight-foreground backdrop-blur">
-        <span className="h-2 w-2 rounded-full bg-aurora" /> {events[i]}
-      </div>
-    </div>
-  );
-}
 
 const features = [
   { icon: Eye, t: "Scan your home", d: "Walk through with your phone. Vision Agent identifies rooms and everything in them." },
@@ -92,24 +37,97 @@ const plans = [
 function Landing() {
   return (
     <SiteShell>
-      <section className="bg-midnight-glow text-midnight-foreground">
-        <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 pb-28 pt-16 lg:grid-cols-2">
+      <section className="relative overflow-hidden bg-midnight-glow text-midnight-foreground">
+        <MatrixNodes />
+        <div className="relative mx-auto grid min-h-[92vh] max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.05fr_1fr]">
           <div className="animate-rise">
-            <span className="inline-flex items-center gap-2 rounded-full border border-midnight-foreground/15 px-3 py-1 text-xs text-midnight-foreground/80">
-              <Sparkles className="h-3.5 w-3.5 text-aurora" /> For homes, businesses &amp; enterprises
+            <span className="inline-flex items-center gap-2 rounded-full border border-midnight-foreground/15 px-3 py-1 text-[11px] font-semibold tracking-widest text-midnight-foreground/80">
+              <Sparkles className="h-3.5 w-3.5 text-aurora" /> AGENTIC AI • DIGITAL PASSPORT • RENEWAL INTELLIGENCE
             </span>
-            <h1 className="mt-6 font-display text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
-              Keep what matters. <em className="text-aurora not-italic">Know what’s next.</em>
+            <h1 className="mt-6 font-display text-5xl font-medium leading-[1.02] tracking-tight md:text-7xl">
+              Keep What Matters.<br /><span className="inline-block animate-rise text-aurora [animation-delay:400ms]">Know What’s Next.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-midnight-foreground/70">
-              The AI Digital Passport for everything you own, operate and need to remember. Capture it once — MatrixKeep organises it, remembers it and watches what happens next.
+              MatrixKeep creates a living AI-powered digital passport for your assets, receipts, warranties, documents and renewals — then continuously monitors what matters so you never lose track of what happens next.
             </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/auth" className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]">Start free</Link>
-              <a href="#how" className="rounded-full border border-midnight-foreground/20 px-7 py-3.5 font-semibold transition hover:bg-midnight-foreground/5">See how it works</a>
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Link to="/auth" className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]">Start Free</Link>
+              <a href="#story" className="rounded-full border border-midnight-foreground/20 px-7 py-3.5 font-semibold transition hover:bg-midnight-foreground/5">Watch How It Works</a>
+              <Link to="/business" className="px-3 py-3.5 font-semibold text-aurora transition hover:translate-x-1">Explore for Business →</Link>
             </div>
           </div>
-          <AgentOrbit />
+          <HeroPassport />
+        </div>
+      </section>
+
+      <section className="border-b bg-card">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-3 px-6 py-6 text-sm text-muted-foreground">
+          {["Homeowners", "Renters", "Families", "Landlords", "Retailers", "Restaurants", "Clinics", "Schools", "Multi-site operators"].map((x) => <span key={x}>{x}</span>)}
+        </div>
+      </section>
+
+      <section id="story" className="mx-auto max-w-7xl px-6 py-28">
+        <Reveal>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">The problem</p>
+          <h2 className="mt-3 max-w-3xl font-display text-4xl font-medium tracking-tight md:text-5xl">Receipts in inboxes. Warranties in drawers. Renewals in someone’s head.</h2>
+        </Reveal>
+        <div className="mt-14 grid gap-5 md:grid-cols-4">
+          {([[Receipt, "Lost receipts", "Proof of purchase vanishes when you need it most."], [ShieldCheck, "Missed warranties", "Cover quietly ends before anyone notices."], [Bell, "Surprise renewals", "Insurance, MOT and contracts auto-renew at worse prices."], [Umbrella, "Weak claims", "No photos, no values, no evidence."]] as const).map(([I, t, d], i) => (
+            <Reveal key={t} delay={i * 90}>
+              <div className="h-full rounded-3xl border bg-card p-7 shadow-soft transition hover:-translate-y-1">
+                <I className="h-6 w-6 text-primary" />
+                <h3 className="mt-4 font-semibold">{t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{d}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-midnight-glow text-midnight-foreground">
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-28 lg:grid-cols-2 lg:items-center">
+          <Reveal>
+            <p className="text-xs font-semibold uppercase tracking-widest text-aurora">Give MatrixKeep anything</p>
+            <h2 className="mt-3 font-display text-4xl font-medium md:text-5xl">Capture it once. MatrixKeep remembers what happens next.</h2>
+            <ul className="mt-8 space-y-3 text-midnight-foreground/80">
+              <Tick>Snap a photo — the AI names the item, brand and room.</Tick>
+              <Tick>Scan a receipt — price, retailer and purchase date are read for you.</Tick>
+              <Tick>Upload a document — warranty length and expiry are calculated.</Tick>
+              <Tick>Speak or forward an email — it becomes a linked record.</Tick>
+            </ul>
+          </Reveal>
+          <Reveal delay={150}>
+            <div className="relative overflow-hidden rounded-[2rem] border border-midnight-foreground/10">
+              <img src={tv} alt="Living room with a television being recorded" loading="lazy" width={1024} height={768} className="h-full w-full object-cover" />
+              <div className="absolute inset-x-4 bottom-4 rounded-2xl bg-midnight/85 p-4 text-sm backdrop-blur">
+                <p className="text-aurora">AI understood</p>
+                <p className="mt-1">Samsung QLED 65” · Living Room · £1,299 · Warranty to 12 Mar 2028</p>
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 animate-scan bg-aurora/70 shadow-glow" />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-28">
+        <Reveal>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">Warranty &amp; renewal intelligence</p>
+          <h2 className="mt-3 max-w-3xl font-display text-4xl font-medium tracking-tight md:text-5xl">A timeline that watches the future for you.</h2>
+        </Reveal>
+        <div className="relative mt-16">
+          <div className="absolute left-0 right-0 top-5 h-px bg-border" />
+          <div className="grid gap-8 md:grid-cols-5">
+            {[["Mar 2026", "TV purchased", "Receipt + photo saved"], ["Sep 2026", "Boiler service", "Reminder sent 2 weeks before"], ["Jan 2027", "Home insurance renewal", "Compare before it auto-renews"], ["Feb 2028", "Warranty ends in 30 days", "Sera suggests a check-up"], ["Mar 2028", "Warranty expired", "Evidence kept for insurance"]].map(([d, t, n], i) => (
+              <Reveal key={t} delay={i * 110}>
+                <div className="relative">
+                  <span className="relative z-10 grid h-10 w-10 place-items-center rounded-full bg-aurora text-primary-foreground shadow-glow"><Bell className="h-4 w-4" /></span>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-primary">{d}</p>
+                  <h3 className="mt-1 font-semibold">{t}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{n}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
