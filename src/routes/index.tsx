@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles } from "lucide-react";
-import { Logo } from "@/components/hv/Logo";
+import { SiteShell, Reveal } from "@/components/hv/Site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,21 +91,8 @@ const plans = [
 
 function Landing() {
   return (
-    <div className="min-h-screen">
+    <SiteShell>
       <section className="bg-midnight-glow text-midnight-foreground">
-        <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Logo light />
-          <nav className="hidden gap-8 text-sm text-midnight-foreground/70 md:flex">
-            <a href="#features" className="hover:text-midnight-foreground">Features</a>
-            <a href="#how" className="hover:text-midnight-foreground">How it works</a>
-            <a href="#pricing" className="hover:text-midnight-foreground">Pricing</a>
-            <a href="#security" className="hover:text-midnight-foreground">Security</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link to="/auth" className="text-sm text-midnight-foreground/80 hover:text-midnight-foreground">Sign in</Link>
-            <Link to="/app" className="rounded-full bg-midnight-foreground px-5 py-2 text-sm font-semibold text-midnight transition hover:opacity-90">Start free</Link>
-          </div>
-        </header>
         <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 pb-28 pt-16 lg:grid-cols-2">
           <div className="animate-rise">
             <span className="inline-flex items-center gap-2 rounded-full border border-midnight-foreground/15 px-3 py-1 text-xs text-midnight-foreground/80">
@@ -118,11 +105,26 @@ function Landing() {
               The AI Digital Passport for everything you own, operate and need to remember. Capture it once — MatrixKeep organises it, remembers it and watches what happens next.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/app" className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]">Start free</Link>
+              <Link to="/auth" className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]">Start free</Link>
               <a href="#how" className="rounded-full border border-midnight-foreground/20 px-7 py-3.5 font-semibold transition hover:bg-midnight-foreground/5">See how it works</a>
             </div>
           </div>
           <AgentOrbit />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pt-24">
+        <div className="grid gap-5 md:grid-cols-3">
+          {([["/individual", "Individual", "Your home, belongings, receipts, warranties and important dates — remembered by AI."], ["/business", "Business", "Every asset, document, warranty, contract and renewal across every location — under control."], ["/enterprise", "Enterprise", "Agentic asset, evidence and renewal intelligence at enterprise scale."]] as const).map(([to, t, d], i) => (
+            <Reveal key={to} delay={i * 100}>
+              <Link to={to} className="group block h-full rounded-3xl border bg-card p-8 shadow-soft transition hover:-translate-y-1 hover:shadow-glow">
+                <p className="text-xs font-semibold uppercase tracking-wider text-primary">MatrixKeep for</p>
+                <h3 className="mt-2 font-display text-3xl">{t}</h3>
+                <p className="mt-3 text-sm text-muted-foreground">{d}</p>
+                <span className="mt-6 inline-block text-sm font-semibold text-primary transition group-hover:translate-x-1">Explore {t} →</span>
+              </Link>
+            </Reveal>
+          ))}
         </div>
       </section>
 
@@ -163,7 +165,7 @@ function Landing() {
               <ul className="mt-6 space-y-2 text-sm">
                 {p.f.map((x) => <li key={x} className="flex gap-2"><Check className="h-4 w-4 text-aurora" />{x}</li>)}
               </ul>
-              <Link to="/app" className={`mt-8 block rounded-full py-2.5 text-center text-sm font-semibold ${p.hi ? "bg-aurora text-primary-foreground" : "border hover:bg-secondary"}`}>Choose {p.n}</Link>
+              <Link to="/auth" className={`mt-8 block rounded-full py-2.5 text-center text-sm font-semibold ${p.hi ? "bg-aurora text-primary-foreground" : "border hover:bg-secondary"}`}>Choose {p.n}</Link>
             </div>
           ))}
         </div>
@@ -174,16 +176,10 @@ function Landing() {
           <Lock className="h-8 w-8 text-aurora" />
           <h2 className="mt-6 max-w-2xl font-display text-4xl font-medium">Private by design. Yours alone.</h2>
           <p className="mt-4 max-w-xl text-midnight-foreground/70">Encrypted storage, granular household permissions and secure, time-limited sharing for insurers or tradespeople.</p>
-          <Link to="/app" className="mt-8 inline-block rounded-full bg-midnight-foreground px-7 py-3.5 font-semibold text-midnight">Give your home a memory</Link>
+          <Link to="/auth" className="mt-8 inline-block rounded-full bg-midnight-foreground px-7 py-3.5 font-semibold text-midnight">Give your home a memory</Link>
         </div>
       </section>
 
-      <footer className="border-t">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground">
-          <Logo />
-          <span>© 2026 MatrixKeep</span>
-        </div>
-      </footer>
-    </div>
+    </SiteShell>
   );
 }
