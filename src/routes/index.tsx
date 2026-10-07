@@ -6,10 +6,10 @@ import { Logo } from "@/components/hv/Logo";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "HomeVault AI — Your Home Has a Memory" },
-      { name: "description", content: "An AI team that understands your home, possessions, documents, warranties, maintenance and vehicles — and takes care of them for you." },
-      { property: "og:title", content: "HomeVault AI — Your Home Has a Memory" },
-      { property: "og:description", content: "The AI operating system for your home, property and everything you own." },
+      { title: "MatrixKeep — Keep What Matters. Know What’s Next." },
+      { name: "description", content: "The AI Digital Passport for everything you own, operate and need to remember." },
+      { property: "og:title", content: "MatrixKeep — Keep What Matters. Know What’s Next." },
+      { property: "og:description", content: "Capture it once. MatrixKeep organises it, remembers it and watches what happens next." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -109,13 +109,13 @@ function Landing() {
         <div className="mx-auto grid max-w-7xl items-center gap-16 px-6 pb-28 pt-16 lg:grid-cols-2">
           <div className="animate-rise">
             <span className="inline-flex items-center gap-2 rounded-full border border-midnight-foreground/15 px-3 py-1 text-xs text-midnight-foreground/80">
-              <Sparkles className="h-3.5 w-3.5 text-aurora" /> Your AI household team
+              <Sparkles className="h-3.5 w-3.5 text-aurora" /> For homes, businesses &amp; enterprises
             </span>
             <h1 className="mt-6 font-display text-5xl font-medium leading-[1.05] tracking-tight md:text-7xl">
-              Your home has a <em className="text-aurora not-italic">memory.</em>
+              Keep what matters. <em className="text-aurora not-italic">Know what’s next.</em>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-midnight-foreground/70">
-              HomeVault AI automatically understands your home, possessions, documents, warranties, maintenance and vehicles — and helps take care of them for you.
+              The AI Digital Passport for everything you own, operate and need to remember. Capture it once — MatrixKeep organises it, remembers it and watches what happens next.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Link to="/app" className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.02]">Start free</Link>
@@ -181,7 +181,7 @@ function Landing() {
       <footer className="border-t">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground">
           <Logo />
-          <span>© 2026 HomeVault AI</span>
+          <span>© 2026 MatrixKeep</span>
         </div>
       </footer>
     </div>

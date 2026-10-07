@@ -8,9 +8,9 @@ import { useStore } from "@/components/hv/store";
 export const Route = createFileRoute("/_authenticated/app/plans")({
   head: () => ({
     meta: [
-      { title: "Choose your plan — HomeVault AI" },
-      { name: "description", content: "Pick the HomeVault AI plan for your home, business or organisation, or redeem a voucher." },
-      { property: "og:title", content: "Choose your plan — HomeVault AI" },
+      { title: "Choose your plan — MatrixKeep AI" },
+      { name: "description", content: "Pick the MatrixKeep AI plan for your home, business or organisation, or redeem a voucher." },
+      { property: "og:title", content: "Choose your plan — MatrixKeep AI" },
       { property: "og:description", content: "Plans for homes, businesses, enterprises and white-label partners." },
     ],
   }),
@@ -32,7 +32,7 @@ const groups: Record<"individual" | "business" | "enterprise", Plan[]> = {
   ],
   enterprise: [
     { key: "enterprise", n: "Enterprise", p: "Custom", d: "Large organisations", f: ["Unlimited locations", "SSO & advanced roles", "Dedicated success manager", "Custom data retention"] },
-    { key: "whitelabel", n: "White-label", p: "Custom", d: "Offer HomeVault under your brand", f: ["Your branding & domain", "Customer licensing", "Partner dashboard", "API access"] },
+    { key: "whitelabel", n: "White-label", p: "Custom", d: "Offer MatrixKeep under your brand", f: ["Your branding & domain", "Customer licensing", "Partner dashboard", "API access"] },
   ],
 };
 const names: Record<string, string> = Object.fromEntries(Object.values(groups).flat().map((p) => [p.key, p.n]));
@@ -93,7 +93,7 @@ function Plans() {
         })}
       </div>
       <p className="text-xs text-muted-foreground">Prices shown are draft prices. Card payments aren't connected yet.</p>
-      <Link to="/app" className="inline-block rounded-full border px-5 py-2 text-sm font-semibold">Continue to my HomeVault</Link>
+      <Link to="/app" className="inline-block rounded-full border px-5 py-2 text-sm font-semibold">Continue to my MatrixKeep</Link>
     </div>
   );
 }

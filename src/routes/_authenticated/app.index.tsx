@@ -7,9 +7,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
     meta: [
-      { title: "Home — HomeVault AI" },
+      { title: "Home — MatrixKeep AI" },
       { name: "description", content: "Your home at a glance: health, AI team activity and what needs you today." },
-      { property: "og:title", content: "Home — HomeVault AI" },
+      { property: "og:title", content: "Home — MatrixKeep AI" },
       { property: "og:description", content: "Your AI household team has checked everything." },
     ],
   }),

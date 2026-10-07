@@ -9,8 +9,8 @@ import { Evidence } from "@/components/hv/Evidence";
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
     const i = getItem(params.section, params.id);
-    const t = `${i?.title ?? "Details"} — HomeVault AI`;
-    return { meta: [{ title: t }, { name: "description", content: i?.subtitle ?? "HomeVault record" }, { property: "og:title", content: t }, { property: "og:description", content: i?.subtitle ?? "HomeVault record" }] };
+    const t = `${i?.title ?? "Details"} — MatrixKeep AI`;
+    return { meta: [{ title: t }, { name: "description", content: i?.subtitle ?? "MatrixKeep record" }, { property: "og:title", content: t }, { property: "og:description", content: i?.subtitle ?? "MatrixKeep record" }] };
   },
   component: Detail,
 });
