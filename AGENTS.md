@@ -17,3 +17,4 @@
 - Account navigation is grouped through one shared workspace-aware navigation definition so individual and organisation menus cannot diverge across screen sizes.
 - Warranty and renewal records use home_items fields with ISO calendar dates; tracking pages show only saved workspace records and calculate statuses from dates, not sample counts.
 - Calendar reminders are downloadable ICS files, not claims of connected email or push notification delivery.
+- Plans, prices and capacities come from one shared plan list (src/lib/plans.ts) so public pricing, in-app plans and billing never disagree.
