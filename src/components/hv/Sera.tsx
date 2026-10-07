@@ -29,7 +29,7 @@ export function Sera() {
   return (
     <>
       {!open && (
-        <button onClick={() => setOpen(true)} aria-label="Ask Sera" className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-aurora px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow">
+        <button onClick={() => setOpen(true)} aria-label="Ask Sera" className="fixed bottom-24 right-4 z-40 lg:bottom-6 lg:right-6 flex items-center gap-2 rounded-full bg-aurora px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow">
           <Sparkles className="h-4 w-4" /> Ask Sera
         </button>
       )}

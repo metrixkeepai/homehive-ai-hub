@@ -29,6 +29,13 @@
       "when": 1791332621768,
       "tag": "0003_workspaces_plans_vouchers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791403615505,
+      "tag": "0004_business_trial",
+      "breakpoints": true
     }
   ]
 }

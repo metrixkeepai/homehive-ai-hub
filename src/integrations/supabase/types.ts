@@ -117,6 +117,7 @@ export type Database = {
           plan_source: string | null
           sector: string | null
           timezone: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
@@ -139,6 +140,7 @@ export type Database = {
           plan_source?: string | null
           sector?: string | null
           timezone?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -161,6 +163,7 @@ export type Database = {
           plan_source?: string | null
           sector?: string | null
           timezone?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -222,6 +225,7 @@ export type Database = {
     }
     Functions: {
       redeem_voucher: { Args: { _code: string }; Returns: string }
+      start_business_trial: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

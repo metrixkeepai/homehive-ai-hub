@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon, PanelLeftClose, PanelLeftOpen, ChevronDown, X } from "lucide-react";
+import { LayoutGrid, Package, ListChecks, MoreHorizontal, Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon, PanelLeftClose, PanelLeftOpen, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { accountNavigation } from "@/components/hv/navigation";
 import { useRouterState } from "@tanstack/react-router";
@@ -68,7 +68,7 @@ function AppLayout() {
           </div>
         )}
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 pb-24 lg:pb-0">
           <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur md:px-6">
             <Button aria-label="Open menu" size="icon" variant="outline" className="shrink-0 lg:hidden" onClick={() => setMenu(true)}><Menu /></Button>
             <Button aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"} size="icon" variant="ghost" className="hidden shrink-0 lg:inline-flex" onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
@@ -90,11 +90,12 @@ function AppLayout() {
               )}
             </div>
             <Link to="/app/$section" params={{ section: "notifications" }} aria-label="Notifications" className="relative rounded-full border p-2"><Bell className="h-4 w-4" /><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet" /></Link>
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Add anything</span></button>
+            <button onClick={() => setAddOpen(true)} className="hidden items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow lg:flex"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Add anything</span></button>
             <Avatar />
           </header>
           <Outlet />
         </main>
+        <BottomNav onAdd={() => setAddOpen(true)} onMore={() => setMenu(true)} />
 
         {addOpen && <AddAnything onClose={() => setAddOpen(false)} />}
         <Sera />
@@ -168,5 +169,19 @@ function WorkspaceSwitcher() {
         </div>
       )}
     </>
+  );
+}
+
+function BottomNav({ onAdd, onMore }: { onAdd: () => void; onMore: () => void }) {
+  const item = "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] text-muted-foreground";
+  const act = { className: "text-primary font-semibold" };
+  return (
+    <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-40 flex items-end border-t bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <Link to="/app" activeOptions={{ exact: true }} activeProps={act} className={item}><LayoutGrid className="h-5 w-5" />Overview</Link>
+      <Link to="/app/$section" params={{ section: "assets" }} activeProps={act} className={item}><Package className="h-5 w-5" />Assets</Link>
+      <button onClick={onAdd} aria-label="Add anything" className="flex flex-1 flex-col items-center pb-2"><span className="-mt-6 grid h-14 w-14 place-items-center rounded-full bg-aurora text-primary-foreground shadow-glow"><Plus className="h-6 w-6" /></span><span className="mt-0.5 text-[11px] font-semibold">Add</span></button>
+      <Link to="/app/$section" params={{ section: "tasks" }} activeProps={act} className={item}><ListChecks className="h-5 w-5" />Tasks</Link>
+      <button onClick={onMore} className={item}><MoreHorizontal className="h-5 w-5" />More</button>
+    </nav>
   );
 }
