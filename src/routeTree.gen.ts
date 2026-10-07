@@ -11,7 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BusinessRouteImport } from './routes/business'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as EnterpriseRouteImport } from './routes/enterprise'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as IndividualRouteImport } from './routes/individual'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as SecurityRouteImport } from './routes/security'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
@@ -27,9 +35,49 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnterpriseRoute = EnterpriseRouteImport.update({
+  id: '/enterprise',
+  path: '/enterprise',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndividualRoute = IndividualRouteImport.update({
+  id: '/individual',
+  path: '/individual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
@@ -62,7 +110,15 @@ const AuthenticatedAppSectionIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/business': typeof BusinessRoute
+  '/contact': typeof ContactRoute
+  '/enterprise': typeof EnterpriseRoute
+  '/features': typeof FeaturesRoute
+  '/individual': typeof IndividualRoute
+  '/pricing': typeof PricingRoute
+  '/security': typeof SecurityRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app/': typeof AuthenticatedAppIndexRoute
@@ -71,7 +127,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/business': typeof BusinessRoute
+  '/contact': typeof ContactRoute
+  '/enterprise': typeof EnterpriseRoute
+  '/features': typeof FeaturesRoute
+  '/individual': typeof IndividualRoute
+  '/pricing': typeof PricingRoute
+  '/security': typeof SecurityRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
@@ -81,7 +145,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/business': typeof BusinessRoute
+  '/contact': typeof ContactRoute
+  '/enterprise': typeof EnterpriseRoute
+  '/features': typeof FeaturesRoute
+  '/individual': typeof IndividualRoute
+  '/pricing': typeof PricingRoute
+  '/security': typeof SecurityRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
@@ -92,7 +164,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth'
+    | '/business'
+    | '/contact'
+    | '/enterprise'
+    | '/features'
+    | '/individual'
+    | '/pricing'
+    | '/security'
     | '/app'
     | '/app/plans'
     | '/app/'
@@ -101,7 +181,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
+    | '/business'
+    | '/contact'
+    | '/enterprise'
+    | '/features'
+    | '/individual'
+    | '/pricing'
+    | '/security'
     | '/app/plans'
     | '/app'
     | '/app/$section/$id'
@@ -110,7 +198,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
     | '/auth'
+    | '/business'
+    | '/contact'
+    | '/enterprise'
+    | '/features'
+    | '/individual'
+    | '/pricing'
+    | '/security'
     | '/_authenticated/app'
     | '/_authenticated/app/plans'
     | '/_authenticated/app/'
@@ -121,7 +217,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  BusinessRoute: typeof BusinessRoute
+  ContactRoute: typeof ContactRoute
+  EnterpriseRoute: typeof EnterpriseRoute
+  FeaturesRoute: typeof FeaturesRoute
+  IndividualRoute: typeof IndividualRoute
+  PricingRoute: typeof PricingRoute
+  SecurityRoute: typeof SecurityRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -140,11 +244,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enterprise': {
+      id: '/enterprise'
+      path: '/enterprise'
+      fullPath: '/enterprise'
+      preLoaderRoute: typeof EnterpriseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/individual': {
+      id: '/individual'
+      path: '/individual'
+      fullPath: '/individual'
+      preLoaderRoute: typeof IndividualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
@@ -216,7 +376,15 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  BusinessRoute: BusinessRoute,
+  ContactRoute: ContactRoute,
+  EnterpriseRoute: EnterpriseRoute,
+  FeaturesRoute: FeaturesRoute,
+  IndividualRoute: IndividualRoute,
+  PricingRoute: PricingRoute,
+  SecurityRoute: SecurityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
