@@ -17,10 +17,15 @@ import { Route as BusinessRouteImport } from './routes/business'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as EnterpriseRouteImport } from './routes/enterprise'
 import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as IndividualRouteImport } from './routes/individual'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
+import { Route as IndustriesIndexRouteImport } from './routes/industries.index'
+import { Route as IndustriesSlugRouteImport } from './routes/industries.$slug'
+import { Route as UseCasesIndexRouteImport } from './routes/use-cases.index'
+import { Route as UseCasesSlugRouteImport } from './routes/use-cases.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
@@ -65,6 +70,11 @@ const FeaturesRoute = FeaturesRouteImport.update({
   path: '/features',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndividualRoute = IndividualRouteImport.update({
   id: '/individual',
   path: '/individual',
@@ -84,6 +94,26 @@ const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const IndustriesIndexRoute = IndustriesIndexRouteImport.update({
+  id: '/industries/',
+  path: '/industries/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndustriesSlugRoute = IndustriesSlugRouteImport.update({
+  id: '/industries/$slug',
+  path: '/industries/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UseCasesIndexRoute = UseCasesIndexRouteImport.update({
+  id: '/use-cases/',
+  path: '/use-cases/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UseCasesSlugRoute = UseCasesSlugRouteImport.update({
+  id: '/use-cases/$slug',
+  path: '/use-cases/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   id: '/',
@@ -116,10 +146,15 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
+  '/industries/$slug': typeof IndustriesSlugRoute
+  '/use-cases/$slug': typeof UseCasesSlugRoute
+  '/industries/': typeof IndustriesIndexRoute
+  '/use-cases/': typeof UseCasesIndexRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
@@ -133,9 +168,14 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
+  '/industries/$slug': typeof IndustriesSlugRoute
+  '/use-cases/$slug': typeof UseCasesSlugRoute
+  '/industries': typeof IndustriesIndexRoute
+  '/use-cases': typeof UseCasesIndexRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
@@ -151,10 +191,15 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
+  '/industries/$slug': typeof IndustriesSlugRoute
+  '/use-cases/$slug': typeof UseCasesSlugRoute
+  '/industries/': typeof IndustriesIndexRoute
+  '/use-cases/': typeof UseCasesIndexRoute
   '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
@@ -170,10 +215,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/features'
+    | '/how-it-works'
     | '/individual'
     | '/pricing'
     | '/security'
     | '/app'
+    | '/industries/$slug'
+    | '/use-cases/$slug'
+    | '/industries/'
+    | '/use-cases/'
     | '/app/plans'
     | '/app/'
     | '/app/$section/$id'
@@ -187,9 +237,14 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/features'
+    | '/how-it-works'
     | '/individual'
     | '/pricing'
     | '/security'
+    | '/industries/$slug'
+    | '/use-cases/$slug'
+    | '/industries'
+    | '/use-cases'
     | '/app/plans'
     | '/app'
     | '/app/$section/$id'
@@ -204,10 +259,15 @@ export interface FileRouteTypes {
     | '/contact'
     | '/enterprise'
     | '/features'
+    | '/how-it-works'
     | '/individual'
     | '/pricing'
     | '/security'
     | '/_authenticated/app'
+    | '/industries/$slug'
+    | '/use-cases/$slug'
+    | '/industries/'
+    | '/use-cases/'
     | '/_authenticated/app/plans'
     | '/_authenticated/app/'
     | '/_authenticated/app/$section/$id'
@@ -223,9 +283,14 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   EnterpriseRoute: typeof EnterpriseRoute
   FeaturesRoute: typeof FeaturesRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   IndividualRoute: typeof IndividualRoute
   PricingRoute: typeof PricingRoute
   SecurityRoute: typeof SecurityRoute
+  IndustriesSlugRoute: typeof IndustriesSlugRoute
+  UseCasesSlugRoute: typeof UseCasesSlugRoute
+  IndustriesIndexRoute: typeof IndustriesIndexRoute
+  UseCasesIndexRoute: typeof UseCasesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -286,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/individual': {
       id: '/individual'
       path: '/individual'
@@ -313,6 +385,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/app'
       preLoaderRoute: typeof AuthenticatedAppRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/industries/': {
+      id: '/industries/'
+      path: '/industries'
+      fullPath: '/industries/'
+      preLoaderRoute: typeof IndustriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/industries/$slug': {
+      id: '/industries/$slug'
+      path: '/industries/$slug'
+      fullPath: '/industries/$slug'
+      preLoaderRoute: typeof IndustriesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/use-cases/': {
+      id: '/use-cases/'
+      path: '/use-cases'
+      fullPath: '/use-cases/'
+      preLoaderRoute: typeof UseCasesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/use-cases/$slug': {
+      id: '/use-cases/$slug'
+      path: '/use-cases/$slug'
+      fullPath: '/use-cases/$slug'
+      preLoaderRoute: typeof UseCasesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app/': {
       id: '/_authenticated/app/'
@@ -382,9 +482,14 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   EnterpriseRoute: EnterpriseRoute,
   FeaturesRoute: FeaturesRoute,
+  HowItWorksRoute: HowItWorksRoute,
   IndividualRoute: IndividualRoute,
   PricingRoute: PricingRoute,
   SecurityRoute: SecurityRoute,
+  IndustriesSlugRoute: IndustriesSlugRoute,
+  UseCasesSlugRoute: UseCasesSlugRoute,
+  IndustriesIndexRoute: IndustriesIndexRoute,
+  UseCasesIndexRoute: UseCasesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

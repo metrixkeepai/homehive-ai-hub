@@ -1,0 +1,17 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { StoryIndex } from "@/components/hv/StoryPage";
+import { useCases } from "@/components/hv/siteContent";
+
+export const Route = createFileRoute("/use-cases/")({
+  head: () => ({
+    meta: [
+      { title: "Use cases — MatrixKeep" },
+      { name: "description", content: "Home inventory, warranty and renewal tracking, insurance claims, passport transfer, multi-location assets and more." },
+      { property: "og:title", content: "Use cases — MatrixKeep" },
+      { property: "og:description", content: "See what you can do with MatrixKeep." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: () => <StoryIndex kind="use-cases" title="One memory. Many jobs." lead="From a single TV warranty to hundreds of assets across sites, here's how people use MatrixKeep." items={useCases} />,
+});
