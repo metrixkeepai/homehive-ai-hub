@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles } from "lucide-react";
+import { Eye, Package, FileText, ShieldCheck, Wrench, Umbrella, Home, Check, Lock, Car, Sparkles, Receipt, Bell } from "lucide-react";
 import { SiteShell, Reveal } from "@/components/hv/Site";
+import { HeroPassport, MatrixNodes, Tick } from "@/components/hv/HeroPassport";
+import tv from "@/assets/passport-tv.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,62 +17,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
-
-const agents = [
-  { name: "Vision", icon: Eye },
-  { name: "Asset", icon: Package },
-  { name: "Document", icon: FileText },
-  { name: "Warranty", icon: ShieldCheck },
-  { name: "Maintenance", icon: Wrench },
-  { name: "Insurance", icon: Umbrella },
-];
-const events = [
-  "Kitchen scan completed",
-  "12 assets identified",
-  "Amazon receipt matched",
-  "Boiler service due next month",
-  "TV warranty expires in 26 days",
-];
-
-function AgentOrbit() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % events.length), 2400);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="relative mx-auto aspect-square w-full max-w-[460px]">
-      <div className="absolute inset-[8%] rounded-full border border-midnight-foreground/10" />
-      <div className="absolute inset-[24%] rounded-full border border-midnight-foreground/10" />
-      <div className="absolute inset-0 animate-orbit">
-        {agents.map((a, idx) => {
-          const ang = (idx / agents.length) * Math.PI * 2;
-          const x = 50 + 42 * Math.cos(ang);
-          const y = 50 + 42 * Math.sin(ang);
-          return (
-            <div key={a.name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
-              <div className="animate-counter-orbit flex flex-col items-center gap-1">
-                <span className="grid h-12 w-12 place-items-center rounded-2xl border border-midnight-foreground/15 bg-midnight/80 backdrop-blur">
-                  <a.icon className="h-5 w-5 text-aurora" />
-                </span>
-                <span className="text-[11px] font-medium text-midnight-foreground/70">{a.name}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <span className="absolute inset-0 rounded-3xl bg-aurora animate-pulse-ring" />
-        <div className="relative grid h-28 w-28 place-items-center rounded-3xl bg-aurora shadow-glow">
-          <Home className="h-12 w-12 text-primary-foreground" strokeWidth={1.5} />
-        </div>
-      </div>
-      <div key={i} className="animate-rise absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border border-midnight-foreground/15 bg-midnight/90 px-4 py-2 text-sm text-midnight-foreground backdrop-blur">
-        <span className="h-2 w-2 rounded-full bg-aurora" /> {events[i]}
-      </div>
-    </div>
-  );
-}
 
 const features = [
   { icon: Eye, t: "Scan your home", d: "Walk through with your phone. Vision Agent identifies rooms and everything in them." },
