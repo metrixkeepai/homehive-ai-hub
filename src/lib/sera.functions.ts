@@ -16,7 +16,7 @@ export const askSera = createServerFn({ method: "POST" })
     const system = `You are Sera, the friendly AI household manager inside HomeVault AI. Answer briefly and practically in British English. Use ONLY the user's saved records below for facts about their home/business; if something isn't recorded, say so and suggest adding it with "Add anything". Never invent records.\n\nSaved records:\n${records || "(none yet)"}`;
     const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
-      headers: { "Lovable-API-Key": process.env.LOVABLE_API_KEY ?? "", "X-Lovable-AIG-SDK": "fetch", "Content-Type": "application/json" },
+      headers: { "Lovable-API-Key": process.env['LOVABLE_API_KEY'] ?? "", "X-Lovable-AIG-SDK": "fetch", "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "openai/gpt-6-astra", stream: true, store: false, reasoning: { effort: "low" },
         instructions: system,
