@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
 import { TrackingPage } from "@/components/hv/Tracking";
+import { BillingPage } from "@/components/hv/Billing";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
@@ -34,6 +35,7 @@ function SectionPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   if (!s) return <Missing />;
+  if (section === "billing") return <BillingPage />;
   if (section === "warranties" || section === "renewals") return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
   const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
 
