@@ -43,7 +43,7 @@ export const plans: PlanDef[] = [
     benefits: ["Your logo, colours & domain", "Branded login & customer portal", "Branded emails & vouchers", "Bulk customer invitations", "Programme analytics", "Dedicated onboarding"], agents: ["All agents"], support: "Enterprise SLA" },
 ];
 
-export const planByKey = (k?: string | null) => plans.find((p) => p.key === k) ?? plans[0];
+export const planByKey = (k?: string | null): PlanDef => plans.find((p) => p.key === k) ?? plans[0]!;
 export const plansFor = (a: Audience) => a === "individual" ? plans.filter((p) => p.audience === "individual") : plans.filter((p) => p.audience !== "individual");
 export const gbp = (n: number) => `£${n % 1 ? n.toFixed(2) : n.toLocaleString("en-GB")}`;
 export const priceLabel = (p: PlanDef, yearly: boolean) => p.monthly === null ? "Custom" : p.monthly === 0 ? "£0" : yearly ? gbp(p.yearly!) : gbp(p.monthly);
