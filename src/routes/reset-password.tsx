@@ -31,6 +31,7 @@ function Reset() {
 
   useEffect(() => {
     if (window.location.hash.includes("type=recovery")) setRecovery(true);
+    supabase.auth.getUser().then(({ data: u }) => { if (u.user?.user_metadata?.["must_change_password"]) setRecovery(true); });
     const { data } = supabase.auth.onAuthStateChange((e) => { if (e === "PASSWORD_RECOVERY") setRecovery(true); });
     return () => data.subscription.unsubscribe();
   }, []);
