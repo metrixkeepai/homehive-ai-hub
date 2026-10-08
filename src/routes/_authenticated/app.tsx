@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LayoutGrid, Package, ListChecks, MoreHorizontal, Plus, Bell, Search, Menu, ChevronsUpDown, Check, Building2, Home as HomeIcon, PanelLeftClose, PanelLeftOpen, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { accountNavigation } from "@/components/hv/navigation";
@@ -44,6 +44,7 @@ function SideNav({ onPick, collapsed = false }: { onPick?: () => void; collapsed
 }
 
 function AppLayout() {
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user?.user_metadata?.["must_change_password"]) window.location.assign("/reset-password"); }); }, []);
   const [addOpen, setAddOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
