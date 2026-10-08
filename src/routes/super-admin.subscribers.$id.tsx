@@ -17,7 +17,7 @@ function Detail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const get = useServerFn(getSubscriber);
-  const { data, isLoading, error } = useQuery({ queryKey: ["admin", "sub", id], queryFn: () => get({ data: { id } }) });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["admin", "sub", id], queryFn: () => get({ data: { id } }), retry: 2 });
   const ov = useServerFn(overridePlan), sus = useServerFn(setSuspended), ext = useServerFn(extendTrial);
   const [plan, setPlan] = useState("");
   const [days, setDays] = useState(7);
@@ -29,7 +29,15 @@ function Detail() {
   const trialM = useMutation({ mutationFn: () => ext({ data: { id, days, reason } }), onSuccess: done("Trial extended"), onError: fail });
 
   if (isLoading) return <p className="text-muted-foreground">Loading account…</p>;
-  if (error || !data) return <p className="text-destructive">{(error as Error)?.message}</p>;
+  if (error || !data) {
+    const msg = (error as Error)?.message ?? "";
+    return (
+      <div className="space-y-3">
+        <p className="text-destructive">{/fetch/i.test(msg) ? "Couldn't reach the server. Check your connection and try again." : msg || "Account not found."}</p>
+        <Button variant="outline" onClick={() => refetch()}>Try again</Button>
+      </div>
+    );
+  }
   const p = data.profile as any;
   return (
     <div className="space-y-6">
