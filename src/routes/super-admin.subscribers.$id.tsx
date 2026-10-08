@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
-import { getSubscriber, overridePlan, setSuspended, extendTrial } from "@/lib/admin.functions";
+import { getSubscriber, overridePlan, setSuspended, extendTrial, passwordAction } from "@/lib/admin.functions";
 import { plans, planByKey } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,9 @@ function Detail() {
   const fail = (e: Error) => toast.error(e.message.includes("reason") || e.message.includes("[") ? "Give a reason of at least 3 characters" : e.message);
   const planM = useMutation({ mutationFn: () => ov({ data: { id, plan, reason } }), onSuccess: done("Plan changed"), onError: fail });
   const susM = useMutation({ mutationFn: (s: boolean) => sus({ data: { id, suspended: s, reason } }), onSuccess: done("Account updated"), onError: fail });
+  const pwFn = useServerFn(passwordAction);
+  const [tempPw, setTempPw] = useState<string | null>(null);
+  const pwM = useMutation({ mutationFn: (action: "email" | "temp") => pwFn({ data: { id, action, reason, origin: window.location.origin } }), onSuccess: (r) => { setTempPw(r.password); done(r.password ? "Temporary password set" : "Reset email sent")(); }, onError: fail });
   const trialM = useMutation({ mutationFn: () => ext({ data: { id, days, reason } }), onSuccess: done("Trial extended"), onError: fail });
 
   if (isLoading) return <p className="text-muted-foreground">Loading account…</p>;
@@ -71,7 +74,12 @@ function Detail() {
             <Button variant="outline" disabled={trialM.isPending} onClick={() => trialM.mutate()}>Extend Business Starter trial by days</Button>
           </div>
           <Button variant={p.suspended ? "outline" : "destructive"} disabled={susM.isPending} onClick={() => susM.mutate(!p.suspended)}>{p.suspended ? "Restore account" : "Suspend account (blocks sign in)"}</Button>
-          <p className="text-xs text-muted-foreground">Accounts are never deleted from here; suspension is reversible.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" disabled={pwM.isPending} onClick={() => pwM.mutate("email")}>Send password reset email</Button>
+            <Button variant="outline" disabled={pwM.isPending} onClick={() => pwM.mutate("temp")}>Set temporary password</Button>
+          </div>
+          {tempPw && <p className="rounded-md border bg-muted p-2 text-xs">Temporary password (shown once, must be changed at next sign-in): <span className="font-mono">{tempPw}</span></p>}
+          <p className="text-xs text-muted-foreground">Existing passwords can never be viewed. Accounts are never deleted from here; suspension is reversible.</p>
         </section>
       </div>
       <section className="rounded-xl border bg-card p-5 text-sm">
