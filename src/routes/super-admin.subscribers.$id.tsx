@@ -8,7 +8,8 @@ import { getSubscriber, overridePlan, setSuspended, extendTrial } from "@/lib/ad
 import { plans, planByKey } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Kpi } from "./super-admin.index";
+import { Kpi } from "@/components/hv/AdminKpi";
+import { Fragment } from "react";
 
 export const Route = createFileRoute("/super-admin/subscribers/$id")({ component: Detail });
 
@@ -47,7 +48,7 @@ function Detail() {
         <section className="rounded-xl border bg-card p-5 text-sm">
           <h2 className="font-semibold text-foreground">Profile</h2>
           <dl className="mt-3 grid grid-cols-2 gap-y-2">
-            {[["Name", p.display_name], ["Phone", p.phone], ["Organisation", p.org_name], ["Sector", p.sector], ["Business type", p.business_type], ["Size", p.org_size], ["Locations", p.branches], ["Trial ends", p.trial_ends_at && new Date(p.trial_ends_at).toLocaleDateString("en-GB")], ["Joined", new Date(p.created_at).toLocaleDateString("en-GB")], ["Workspaces", data.workspaces.map((w: any) => w.name).join(", ")]].map(([k, v]) => <><dt className="text-muted-foreground">{k}</dt><dd>{v || "—"}</dd></>)}
+            {[["Name", p.display_name], ["Phone", p.phone], ["Organisation", p.org_name], ["Sector", p.sector], ["Business type", p.business_type], ["Size", p.org_size], ["Locations", p.branches], ["Trial ends", p.trial_ends_at && new Date(p.trial_ends_at).toLocaleDateString("en-GB")], ["Joined", new Date(p.created_at).toLocaleDateString("en-GB")], ["Workspaces", data.workspaces.map((w: any) => w.name).join(", ")]].map(([k, v]) => <Fragment key={String(k)}><dt className="text-muted-foreground">{k}</dt><dd>{v || "—"}</dd></Fragment>)}
           </dl>
         </section>
         <section className="space-y-4 rounded-xl border bg-card p-5 text-sm">
