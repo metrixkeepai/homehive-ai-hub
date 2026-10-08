@@ -20,6 +20,7 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as IndividualRouteImport } from './routes/individual'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -103,6 +104,11 @@ const IndividualRoute = IndividualRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SecurityRoute = SecurityRouteImport.update({
@@ -271,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/app': typeof AuthenticatedAppRouteWithChildren
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/industries/$slug': typeof IndustriesSlugRoute
   '/super-admin/ai': typeof SuperAdminAiRoute
@@ -355,6 +363,7 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
@@ -399,6 +408,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/reset-password'
     | '/security'
     | '/super-admin'
     | '/app'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/reset-password'
     | '/security'
     | '/industries/$slug'
     | '/super-admin/ai'
@@ -482,6 +493,7 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/reset-password'
     | '/security'
     | '/super-admin'
     | '/_authenticated/app'
@@ -526,6 +538,7 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   IndividualRoute: typeof IndividualRoute
   PricingRoute: typeof PricingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SecurityRoute: typeof SecurityRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   IndustriesSlugRoute: typeof IndustriesSlugRoute
@@ -612,6 +625,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/security': {
@@ -913,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   IndividualRoute: IndividualRoute,
   PricingRoute: PricingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SecurityRoute: SecurityRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   IndustriesSlugRoute: IndustriesSlugRoute,

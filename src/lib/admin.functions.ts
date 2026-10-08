@@ -200,3 +200,70 @@ export const completePasswordChange = createServerFn({ method: "POST" })
     await audit(db, context.userId, "admin_password_changed", context.userId, "First sign-in password change");
     return { ok: true };
   });
+
+const planKeys = plans.map((p) => p.key) as [string, ...string[]];
+
+function tempPassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const b = new Uint32Array(14); crypto.getRandomValues(b);
+  return Array.from(b, (n) => chars[n % chars.length]).join("") + "A7!";
+}
+
+export const createAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    email: z.string().trim().email().max(255),
+    name: z.string().trim().min(1).max(120),
+    account_type: z.enum(["individual", "business", "enterprise"]),
+    org_name: z.string().trim().max(200).optional(),
+    phone: z.string().trim().max(40).optional(),
+    sector: z.string().trim().max(100).optional(),
+    plan: z.enum(planKeys),
+    method: z.enum(["temp", "invite"]),
+    origin: z.string().url(),
+  }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    if (data.account_type !== "individual" && !data.org_name) throw new Error("Organisation name is required");
+    const meta = { full_name: data.name, account_type: data.account_type, org_name: data.org_name, sector: data.sector };
+    let id: string, password: string | null = null;
+    if (data.method === "invite") {
+      const { data: r, error } = await db.auth.admin.inviteUserByEmail(data.email, { data: meta, redirectTo: `${data.origin}/reset-password` });
+      if (error) throw new Error(error.message);
+      id = r.user.id;
+    } else {
+      password = tempPassword();
+      const { data: r, error } = await db.auth.admin.createUser({ email: data.email, password, email_confirm: true, user_metadata: { ...meta, must_change_password: true } });
+      if (error) throw new Error(error.message);
+      id = r.user.id;
+    }
+    await db.from("profiles").update({ plan: data.plan, plan_source: "admin", phone: data.phone || null, org_name: data.org_name || null, sector: data.sector || null }).eq("id", id);
+    await audit(db, context.userId, "account_created", id, "Created by Super Admin", { email: data.email, type: data.account_type, plan: data.plan, method: data.method });
+    // Temporary password is returned once for the admin to hand over; it is never stored.
+    return { id, password };
+  });
+
+export const passwordAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), action: z.enum(["email", "temp", "revoke"]), reason, origin: z.string().url() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { data: u } = await db.auth.admin.getUserById(data.id);
+    const email = u?.user?.email;
+    if (!email) throw new Error("Account has no email");
+    let password: string | null = null;
+    if (data.action === "email") {
+      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: `${data.origin}/reset-password` });
+      if (error) throw new Error(error.message);
+    } else if (data.action === "temp") {
+      password = tempPassword();
+      const { error } = await db.auth.admin.updateUserById(data.id, { password, user_metadata: { ...(u.user.user_metadata ?? {}), must_change_password: true } });
+      if (error) throw new Error(error.message);
+    } else {
+      // Rotating to an unknown random password and banning briefly ends active sessions.
+      await db.auth.admin.updateUserById(data.id, { ban_duration: "1s" });
+      await db.auth.admin.updateUserById(data.id, { ban_duration: "none" });
+    }
+    await audit(db, context.userId, data.action === "email" ? "password_reset_email" : data.action === "temp" ? "temporary_password_set" : "sessions_revoked", data.id, data.reason);
+    return { ok: true, password };
+  });
