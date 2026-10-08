@@ -257,7 +257,7 @@ export const passwordAction = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     } else if (data.action === "temp") {
       password = tempPassword();
-      const { error } = await db.auth.admin.updateUserById(data.id, { password, user_metadata: { ...(u.user.user_metadata ?? {}), must_change_password: true } });
+      const { error } = await db.auth.admin.updateUserById(data.id, { password, user_metadata: { ...(u?.user?.user_metadata ?? {}), must_change_password: true } });
       if (error) throw new Error(error.message);
     }
     await audit(db, context.userId, data.action === "email" ? "password_reset_email" : "temporary_password_set", data.id, data.reason);

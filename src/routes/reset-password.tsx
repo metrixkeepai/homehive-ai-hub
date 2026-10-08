@@ -40,16 +40,16 @@ function Reset() {
     e.preventDefault(); setBusy(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setSent(true);
   };
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!strong(pw)) return toast.error("Use 12+ characters with a capital, a number and a symbol");
+    if (!strong(pw)) { toast.error("Use 12+ characters with a capital, a number and a symbol"); return; }
     setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw, data: { must_change_password: false } });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Password updated");
     nav({ to: "/app" });
   };
