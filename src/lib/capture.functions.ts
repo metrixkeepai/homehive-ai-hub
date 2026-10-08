@@ -35,10 +35,12 @@ const schema = {
 export const extractRecords = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => Input.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const instructions = `You are MatrixKeep's capture agent. The user used "${data.mode}". Extract every distinct real-world record (items/assets, rooms, receipts/documents, warranties, vehicles, maintenance jobs, tasks, insurance policies) you can see or read. For a room photo list each visible item as an asset with a "Room" field. For a receipt create a document record AND one asset per purchased product with Brand, Model, Price, Purchase date, Retailer where known, plus a warranty record if a warranty term is stated. Use British English and £. Never invent values you cannot see — omit those fields. Keep titles short. Maximum 15 records. Return JSON.`;
     const content: unknown[] = [{ type: "input_text", text: (data.text || "(no text provided)") + (data.fileName ? `\nFile name: ${data.fileName}` : "") }];
     if (data.image) content.push({ type: "input_image", image_url: data.image });
+    const { logAiUsage } = await import("./ai-usage.server");
+    const t0 = Date.now();
     const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
       headers: { "Lovable-API-Key": process.env["LOVABLE_API_KEY"] ?? "", "X-Lovable-AIG-SDK": "fetch", "Content-Type": "application/json" },
@@ -48,12 +50,14 @@ export const extractRecords = createServerFn({ method: "POST" })
         text: { format: { type: "json_schema", name: "records", strict: true, schema } },
       }),
     });
+    const uid = (context as { userId?: string }).userId ?? null;
+    if (!res.ok || !res.body) void logAiUsage({ userId: uid, feature: "capture", model: "openai/gpt-6-astra", input: 0, output: 0, latencyMs: Date.now() - t0, ok: false, error: `HTTP ${res.status}` });
     if (res.status === 429) return { error: "The AI is busy. Please try again in a moment." };
     if (res.status === 402) return { error: "AI credits have run out for this workspace." };
     if (!res.ok || !res.body) return { error: "The AI couldn't read that. Please try again." };
     const reader = res.body.getReader();
     const dec = new TextDecoder();
-    let buf = "", out = "";
+    let buf = "", out = "", usage = { input_tokens: 0, output_tokens: 0 };
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -63,11 +67,13 @@ export const extractRecords = createServerFn({ method: "POST" })
       for (const l of lines) {
         if (!l.startsWith("data:")) continue;
         try {
-          const ev = JSON.parse(l.slice(5).trim()) as { type?: string; delta?: string };
+          const ev = JSON.parse(l.slice(5).trim()) as { type?: string; delta?: string; response?: { usage?: { input_tokens: number; output_tokens: number } } };
+          if (ev.type === "response.completed" && ev.response?.usage) usage = ev.response.usage;
           if (ev.type === "response.output_text.delta" && ev.delta) out += ev.delta;
         } catch { /* keepalive */ }
       }
     }
+    await logAiUsage({ userId: uid, feature: "capture", model: "openai/gpt-6-astra", input: usage.input_tokens, output: usage.output_tokens, latencyMs: Date.now() - t0, ok: true });
     try {
       const j = JSON.parse(out) as { summary: string; records: Extracted[] };
       return { summary: j.summary, records: j.records.slice(0, 15) };

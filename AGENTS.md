@@ -18,3 +18,5 @@
 - Warranty and renewal records use home_items fields with ISO calendar dates; tracking pages show only saved workspace records and calculate statuses from dates, not sample counts.
 - Calendar reminders are downloadable ICS files, not claims of connected email or push notification delivery.
 - Plans, prices and capacities come from one shared plan list (src/lib/plans.ts) so public pricing, in-app plans and billing never disagree.
+- Super Admin portal lives at /super-admin/* (own layout, own login); every admin server function re-checks has_role(super_admin) before using the privileged client, and every change writes admin_audit_log.
+- Provider-backed admin figures (Stripe, AWS, Azure) load only when their secrets exist; otherwise the UI shows a Setup Required state instead of estimates.

@@ -44,6 +44,72 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_model_rates: {
+        Row: {
+          input_per_million_usd: number
+          model: string
+          output_per_million_usd: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          input_per_million_usd?: number
+          model: string
+          output_per_million_usd?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          input_per_million_usd?: number
+          model?: string
+          output_per_million_usd?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ai_usage_log: {
+        Row: {
+          cost_usd: number
+          created_at: string
+          error: string | null
+          feature: string
+          id: string
+          input_tokens: number
+          latency_ms: number | null
+          model: string
+          ok: boolean
+          output_tokens: number
+          user_id: string | null
+        }
+        Insert: {
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          feature: string
+          id?: string
+          input_tokens?: number
+          latency_ms?: number | null
+          model: string
+          ok?: boolean
+          output_tokens?: number
+          user_id?: string | null
+        }
+        Update: {
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          feature?: string
+          id?: string
+          input_tokens?: number
+          latency_ms?: number | null
+          model?: string
+          ok?: boolean
+          output_tokens?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       evidence_files: {
         Row: {
           created_at: string
@@ -85,6 +151,69 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          audiences: string[]
+          created_at: string
+          description: string
+          enabled: boolean
+          key: string
+          name: string
+          rollout: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audiences?: string[]
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          key: string
+          name: string
+          rollout?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audiences?: string[]
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          key?: string
+          name?: string
+          rollout?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      health_checks: {
+        Row: {
+          created_at: string
+          detail: string | null
+          id: string
+          latency_ms: number | null
+          ok: boolean
+          service: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          latency_ms?: number | null
+          ok: boolean
+          service: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          id?: string
+          latency_ms?: number | null
+          ok?: boolean
+          service?: string
+        }
+        Relationships: []
+      }
       home_items: {
         Row: {
           created_at: string
@@ -125,6 +254,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      infra_costs: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string
+          id: string
+          period_month: string
+          provider: string
+          source: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          id?: string
+          period_month: string
+          provider: string
+          source?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          id?: string
+          period_month?: string
+          provider?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      plan_versions: {
+        Row: {
+          audience: string
+          benefits: string[]
+          capacity: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          monthly: number | null
+          name: string
+          notes: string | null
+          plan_key: string
+          status: string
+          version: number
+          yearly: number | null
+        }
+        Insert: {
+          audience: string
+          benefits?: string[]
+          capacity?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          monthly?: number | null
+          name: string
+          notes?: string | null
+          plan_key: string
+          status?: string
+          version: number
+          yearly?: number | null
+        }
+        Update: {
+          audience?: string
+          benefits?: string[]
+          capacity?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          monthly?: number | null
+          name?: string
+          notes?: string | null
+          plan_key?: string
+          status?: string
+          version?: number
+          yearly?: number | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -198,6 +414,36 @@ export type Database = {
           timezone?: string
           trial_ends_at?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_connections: {
+        Row: {
+          last_checked_at: string | null
+          last_result: string | null
+          notes: string | null
+          provider: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          last_checked_at?: string | null
+          last_result?: string | null
+          notes?: string | null
+          provider: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          last_checked_at?: string | null
+          last_result?: string | null
+          notes?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
