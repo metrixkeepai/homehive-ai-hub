@@ -30,6 +30,7 @@ const groups = [
   ["Money", [{ to: "/super-admin/revenue", label: "Revenue", icon: PoundSterling }, { to: "/super-admin/payments", label: "Stripe & payments", icon: CreditCard }]],
   ["Costs & usage", [{ to: "/super-admin/ai", label: "AI usage & cost", icon: Bot }, { to: "/super-admin/infrastructure", label: "Infrastructure", icon: Server }, { to: "/super-admin/api", label: "API usage", icon: Activity }]],
   ["Platform", [{ to: "/super-admin/health", label: "Health", icon: HeartPulse }, { to: "/super-admin/integrations", label: "Integrations", icon: Plug }, { to: "/super-admin/flags", label: "Feature switches", icon: ToggleLeft }, { to: "/super-admin/audit", label: "Audit log", icon: ScrollText }]],
+  ["Reporting & intelligence", [{ to: "/super-admin/reports", label: "Reports", icon: ScrollText }]],
 ] as const;
 const nav = groups.flatMap(([, items]) => items as readonly { to: string; label: string; icon: typeof Users; exact?: boolean }[]);
 
