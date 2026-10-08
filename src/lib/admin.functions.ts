@@ -3,17 +3,17 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { plans } from "@/lib/plans";
 
-type Ctx = { supabase: any; userId: string };
+export type Ctx = { supabase: any; userId: string };
 
 // Every admin function re-checks the role on the server; the page guard is only for display.
-async function adminClient(ctx: Ctx) {
+export async function adminClient(ctx: Ctx) {
   const { data: ok } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "super_admin" });
   if (!ok) throw new Error("Forbidden: Super Admin access required");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
 }
 
-async function audit(db: any, adminId: string, action: string, target: string | null, reason: string | null, details: object = {}) {
+export async function audit(db: any, adminId: string, action: string, target: string | null, reason: string | null, details: object = {}) {
   await db.from("admin_audit_log").insert({ admin_id: adminId, action, target, reason, details });
 }
 
@@ -32,7 +32,10 @@ export const checkSuperAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "super_admin" });
-    return { isSuperAdmin: !!data };
+    if (!data) return { isSuperAdmin: false, mustChangePassword: false };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    return { isSuperAdmin: true, mustChangePassword: !!u?.user?.app_metadata?.["must_change_password"] };
   });
 
 export const adminOverview = createServerFn({ method: "GET" })
@@ -186,4 +189,14 @@ export const listAudit = createServerFn({ method: "GET" })
     const db = await adminClient(context as Ctx);
     const [{ data }, emails] = await Promise.all([db.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(300), allEmails(db)]);
     return (data ?? []).map((r: any) => ({ ...r, admin_email: emails.get(r.admin_id)?.email ?? "" }));
+  });
+
+export const completePasswordChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const db = await adminClient(context as Ctx);
+    const { data: u } = await db.auth.admin.getUserById(context.userId);
+    await db.auth.admin.updateUserById(context.userId, { app_metadata: { ...(u?.user?.app_metadata ?? {}), must_change_password: false } });
+    await audit(db, context.userId, "admin_password_changed", context.userId, "First sign-in password change");
+    return { ok: true };
   });

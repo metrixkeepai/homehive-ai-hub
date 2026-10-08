@@ -26,13 +26,24 @@ import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/ap
 import { Route as IndustriesIndexRouteImport } from './routes/industries.index'
 import { Route as IndustriesSlugRouteImport } from './routes/industries.$slug'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
+import { Route as SuperAdminAiRouteImport } from './routes/super-admin.ai'
+import { Route as SuperAdminApiRouteImport } from './routes/super-admin.api'
 import { Route as SuperAdminAuditRouteImport } from './routes/super-admin.audit'
+import { Route as SuperAdminFlagsRouteImport } from './routes/super-admin.flags'
+import { Route as SuperAdminHealthRouteImport } from './routes/super-admin.health'
+import { Route as SuperAdminInfrastructureRouteImport } from './routes/super-admin.infrastructure'
+import { Route as SuperAdminIntegrationsRouteImport } from './routes/super-admin.integrations'
+import { Route as SuperAdminPaymentsRouteImport } from './routes/super-admin.payments'
+import { Route as SuperAdminRevenueRouteImport } from './routes/super-admin.revenue'
+import { Route as SuperAdminSubscriptionsRouteImport } from './routes/super-admin.subscriptions'
 import { Route as SuperAdminVouchersRouteImport } from './routes/super-admin.vouchers'
 import { Route as SuperAdminLoginRouteImport } from './routes/super-admin_.login'
 import { Route as UseCasesIndexRouteImport } from './routes/use-cases.index'
 import { Route as UseCasesSlugRouteImport } from './routes/use-cases.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
+import { Route as SuperAdminPlansIndexRouteImport } from './routes/super-admin.plans.index'
+import { Route as SuperAdminPlansKeyRouteImport } from './routes/super-admin.plans.$key'
 import { Route as SuperAdminSubscribersIndexRouteImport } from './routes/super-admin.subscribers.index'
 import { Route as SuperAdminSubscribersIdRouteImport } from './routes/super-admin.subscribers.$id'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
@@ -122,9 +133,55 @@ const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminAiRoute = SuperAdminAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminApiRoute = SuperAdminApiRouteImport.update({
+  id: '/api',
+  path: '/api',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const SuperAdminAuditRoute = SuperAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminFlagsRoute = SuperAdminFlagsRouteImport.update({
+  id: '/flags',
+  path: '/flags',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminHealthRoute = SuperAdminHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminInfrastructureRoute =
+  SuperAdminInfrastructureRouteImport.update({
+    id: '/infrastructure',
+    path: '/infrastructure',
+    getParentRoute: () => SuperAdminRoute,
+  } as any)
+const SuperAdminIntegrationsRoute = SuperAdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminPaymentsRoute = SuperAdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminRevenueRoute = SuperAdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminSubscriptionsRoute = SuperAdminSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminVouchersRoute = SuperAdminVouchersRouteImport.update({
@@ -156,6 +213,16 @@ const AuthenticatedAppPlansRoute = AuthenticatedAppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
   getParentRoute: () => AuthenticatedAppRoute,
+} as any)
+const SuperAdminPlansIndexRoute = SuperAdminPlansIndexRouteImport.update({
+  id: '/plans/',
+  path: '/plans/',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminPlansKeyRoute = SuperAdminPlansKeyRouteImport.update({
+  id: '/plans/$key',
+  path: '/plans/$key',
+  getParentRoute: () => SuperAdminRoute,
 } as any)
 const SuperAdminSubscribersIndexRoute =
   SuperAdminSubscribersIndexRouteImport.update({
@@ -196,7 +263,16 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/super-admin/ai': typeof SuperAdminAiRoute
+  '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/flags': typeof SuperAdminFlagsRoute
+  '/super-admin/health': typeof SuperAdminHealthRoute
+  '/super-admin/infrastructure': typeof SuperAdminInfrastructureRoute
+  '/super-admin/integrations': typeof SuperAdminIntegrationsRoute
+  '/super-admin/payments': typeof SuperAdminPaymentsRoute
+  '/super-admin/revenue': typeof SuperAdminRevenueRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/vouchers': typeof SuperAdminVouchersRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
@@ -204,8 +280,10 @@ export interface FileRoutesByFullPath {
   '/super-admin/': typeof SuperAdminIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
+  '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/super-admin/plans/': typeof SuperAdminPlansIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/app/$section/': typeof AuthenticatedAppSectionIndexRoute
@@ -223,7 +301,16 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/security': typeof SecurityRoute
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/super-admin/ai': typeof SuperAdminAiRoute
+  '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/flags': typeof SuperAdminFlagsRoute
+  '/super-admin/health': typeof SuperAdminHealthRoute
+  '/super-admin/infrastructure': typeof SuperAdminInfrastructureRoute
+  '/super-admin/integrations': typeof SuperAdminIntegrationsRoute
+  '/super-admin/payments': typeof SuperAdminPaymentsRoute
+  '/super-admin/revenue': typeof SuperAdminRevenueRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/vouchers': typeof SuperAdminVouchersRoute
   '/super-admin/login': typeof SuperAdminLoginRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
@@ -231,8 +318,10 @@ export interface FileRoutesByTo {
   '/super-admin': typeof SuperAdminIndexRoute
   '/use-cases': typeof UseCasesIndexRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
+  '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/super-admin/plans': typeof SuperAdminPlansIndexRoute
   '/super-admin/subscribers': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/app/$section': typeof AuthenticatedAppSectionIndexRoute
@@ -254,7 +343,16 @@ export interface FileRoutesById {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/super-admin/ai': typeof SuperAdminAiRoute
+  '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
+  '/super-admin/flags': typeof SuperAdminFlagsRoute
+  '/super-admin/health': typeof SuperAdminHealthRoute
+  '/super-admin/infrastructure': typeof SuperAdminInfrastructureRoute
+  '/super-admin/integrations': typeof SuperAdminIntegrationsRoute
+  '/super-admin/payments': typeof SuperAdminPaymentsRoute
+  '/super-admin/revenue': typeof SuperAdminRevenueRoute
+  '/super-admin/subscriptions': typeof SuperAdminSubscriptionsRoute
   '/super-admin/vouchers': typeof SuperAdminVouchersRoute
   '/super-admin_/login': typeof SuperAdminLoginRoute
   '/use-cases/$slug': typeof UseCasesSlugRoute
@@ -262,8 +360,10 @@ export interface FileRoutesById {
   '/super-admin/': typeof SuperAdminIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
   '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
+  '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/super-admin/plans/': typeof SuperAdminPlansIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/_authenticated/app/$section/': typeof AuthenticatedAppSectionIndexRoute
@@ -285,7 +385,16 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/app'
     | '/industries/$slug'
+    | '/super-admin/ai'
+    | '/super-admin/api'
     | '/super-admin/audit'
+    | '/super-admin/flags'
+    | '/super-admin/health'
+    | '/super-admin/infrastructure'
+    | '/super-admin/integrations'
+    | '/super-admin/payments'
+    | '/super-admin/revenue'
+    | '/super-admin/subscriptions'
     | '/super-admin/vouchers'
     | '/super-admin/login'
     | '/use-cases/$slug'
@@ -293,8 +402,10 @@ export interface FileRouteTypes {
     | '/super-admin/'
     | '/use-cases/'
     | '/app/plans'
+    | '/super-admin/plans/$key'
     | '/super-admin/subscribers/$id'
     | '/app/'
+    | '/super-admin/plans/'
     | '/super-admin/subscribers/'
     | '/app/$section/$id'
     | '/app/$section/'
@@ -312,7 +423,16 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/security'
     | '/industries/$slug'
+    | '/super-admin/ai'
+    | '/super-admin/api'
     | '/super-admin/audit'
+    | '/super-admin/flags'
+    | '/super-admin/health'
+    | '/super-admin/infrastructure'
+    | '/super-admin/integrations'
+    | '/super-admin/payments'
+    | '/super-admin/revenue'
+    | '/super-admin/subscriptions'
     | '/super-admin/vouchers'
     | '/super-admin/login'
     | '/use-cases/$slug'
@@ -320,8 +440,10 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/use-cases'
     | '/app/plans'
+    | '/super-admin/plans/$key'
     | '/super-admin/subscribers/$id'
     | '/app'
+    | '/super-admin/plans'
     | '/super-admin/subscribers'
     | '/app/$section/$id'
     | '/app/$section'
@@ -342,7 +464,16 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/_authenticated/app'
     | '/industries/$slug'
+    | '/super-admin/ai'
+    | '/super-admin/api'
     | '/super-admin/audit'
+    | '/super-admin/flags'
+    | '/super-admin/health'
+    | '/super-admin/infrastructure'
+    | '/super-admin/integrations'
+    | '/super-admin/payments'
+    | '/super-admin/revenue'
+    | '/super-admin/subscriptions'
     | '/super-admin/vouchers'
     | '/super-admin_/login'
     | '/use-cases/$slug'
@@ -350,8 +481,10 @@ export interface FileRouteTypes {
     | '/super-admin/'
     | '/use-cases/'
     | '/_authenticated/app/plans'
+    | '/super-admin/plans/$key'
     | '/super-admin/subscribers/$id'
     | '/_authenticated/app/'
+    | '/super-admin/plans/'
     | '/super-admin/subscribers/'
     | '/_authenticated/app/$section/$id'
     | '/_authenticated/app/$section/'
@@ -499,11 +632,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminIndexRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/ai': {
+      id: '/super-admin/ai'
+      path: '/ai'
+      fullPath: '/super-admin/ai'
+      preLoaderRoute: typeof SuperAdminAiRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/api': {
+      id: '/super-admin/api'
+      path: '/api'
+      fullPath: '/super-admin/api'
+      preLoaderRoute: typeof SuperAdminApiRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/super-admin/audit': {
       id: '/super-admin/audit'
       path: '/audit'
       fullPath: '/super-admin/audit'
       preLoaderRoute: typeof SuperAdminAuditRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/flags': {
+      id: '/super-admin/flags'
+      path: '/flags'
+      fullPath: '/super-admin/flags'
+      preLoaderRoute: typeof SuperAdminFlagsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/health': {
+      id: '/super-admin/health'
+      path: '/health'
+      fullPath: '/super-admin/health'
+      preLoaderRoute: typeof SuperAdminHealthRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/infrastructure': {
+      id: '/super-admin/infrastructure'
+      path: '/infrastructure'
+      fullPath: '/super-admin/infrastructure'
+      preLoaderRoute: typeof SuperAdminInfrastructureRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/integrations': {
+      id: '/super-admin/integrations'
+      path: '/integrations'
+      fullPath: '/super-admin/integrations'
+      preLoaderRoute: typeof SuperAdminIntegrationsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/payments': {
+      id: '/super-admin/payments'
+      path: '/payments'
+      fullPath: '/super-admin/payments'
+      preLoaderRoute: typeof SuperAdminPaymentsRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/revenue': {
+      id: '/super-admin/revenue'
+      path: '/revenue'
+      fullPath: '/super-admin/revenue'
+      preLoaderRoute: typeof SuperAdminRevenueRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/subscriptions': {
+      id: '/super-admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/super-admin/subscriptions'
+      preLoaderRoute: typeof SuperAdminSubscriptionsRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/vouchers': {
@@ -547,6 +743,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/plans'
       preLoaderRoute: typeof AuthenticatedAppPlansRouteImport
       parentRoute: typeof AuthenticatedAppRoute
+    }
+    '/super-admin/plans/': {
+      id: '/super-admin/plans/'
+      path: '/plans'
+      fullPath: '/super-admin/plans/'
+      preLoaderRoute: typeof SuperAdminPlansIndexRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/plans/$key': {
+      id: '/super-admin/plans/$key'
+      path: '/plans/$key'
+      fullPath: '/super-admin/plans/$key'
+      preLoaderRoute: typeof SuperAdminPlansKeyRouteImport
+      parentRoute: typeof SuperAdminRoute
     }
     '/super-admin/subscribers/': {
       id: '/super-admin/subscribers/'
@@ -608,18 +818,40 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface SuperAdminRouteChildren {
+  SuperAdminAiRoute: typeof SuperAdminAiRoute
+  SuperAdminApiRoute: typeof SuperAdminApiRoute
   SuperAdminAuditRoute: typeof SuperAdminAuditRoute
+  SuperAdminFlagsRoute: typeof SuperAdminFlagsRoute
+  SuperAdminHealthRoute: typeof SuperAdminHealthRoute
+  SuperAdminInfrastructureRoute: typeof SuperAdminInfrastructureRoute
+  SuperAdminIntegrationsRoute: typeof SuperAdminIntegrationsRoute
+  SuperAdminPaymentsRoute: typeof SuperAdminPaymentsRoute
+  SuperAdminRevenueRoute: typeof SuperAdminRevenueRoute
+  SuperAdminSubscriptionsRoute: typeof SuperAdminSubscriptionsRoute
   SuperAdminVouchersRoute: typeof SuperAdminVouchersRoute
   SuperAdminIndexRoute: typeof SuperAdminIndexRoute
+  SuperAdminPlansKeyRoute: typeof SuperAdminPlansKeyRoute
   SuperAdminSubscribersIdRoute: typeof SuperAdminSubscribersIdRoute
+  SuperAdminPlansIndexRoute: typeof SuperAdminPlansIndexRoute
   SuperAdminSubscribersIndexRoute: typeof SuperAdminSubscribersIndexRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminAiRoute: SuperAdminAiRoute,
+  SuperAdminApiRoute: SuperAdminApiRoute,
   SuperAdminAuditRoute: SuperAdminAuditRoute,
+  SuperAdminFlagsRoute: SuperAdminFlagsRoute,
+  SuperAdminHealthRoute: SuperAdminHealthRoute,
+  SuperAdminInfrastructureRoute: SuperAdminInfrastructureRoute,
+  SuperAdminIntegrationsRoute: SuperAdminIntegrationsRoute,
+  SuperAdminPaymentsRoute: SuperAdminPaymentsRoute,
+  SuperAdminRevenueRoute: SuperAdminRevenueRoute,
+  SuperAdminSubscriptionsRoute: SuperAdminSubscriptionsRoute,
   SuperAdminVouchersRoute: SuperAdminVouchersRoute,
   SuperAdminIndexRoute: SuperAdminIndexRoute,
+  SuperAdminPlansKeyRoute: SuperAdminPlansKeyRoute,
   SuperAdminSubscribersIdRoute: SuperAdminSubscribersIdRoute,
+  SuperAdminPlansIndexRoute: SuperAdminPlansIndexRoute,
   SuperAdminSubscribersIndexRoute: SuperAdminSubscribersIndexRoute,
 }
 
