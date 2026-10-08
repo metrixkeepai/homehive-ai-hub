@@ -129,7 +129,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-midnight-foreground/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-xs text-midnight-foreground/50"><p>© 2026 MatrixKeep. All rights reserved.</p><a href={import.meta.env.VITE_SUPER_ADMIN_URL || "/super-admin/login"} className="text-midnight-foreground/40 hover:text-midnight-foreground/80">Super Admin</a></div>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-xs text-midnight-foreground/50"><p>© 2026 MatrixKeep. All rights reserved.</p><a href={import.meta.env["VITE_SUPER_ADMIN_URL"] || "/super-admin/login"} className="text-midnight-foreground/40 hover:text-midnight-foreground/80">Super Admin</a></div>
       </div>
     </footer>
   );

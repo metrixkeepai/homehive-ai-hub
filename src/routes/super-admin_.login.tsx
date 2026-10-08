@@ -10,7 +10,7 @@ import { Logo } from "@/components/hv/Logo";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/super-admin_/login")({
-  validateSearch: (s: Record<string, unknown>) => ({ denied: s["denied"] ? 1 : undefined }),
+  validateSearch: (s: Record<string, unknown>): { denied?: number } => (s["denied"] ? { denied: 1 } : {}),
   head: () => ({
     meta: [
       { title: "Control Centre sign in — MatrixKeep" },
