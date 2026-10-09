@@ -8,6 +8,6 @@
 - [x] Billing section (overview + 9 sub-pages, Stripe-backed)
 - [x] Voucher engine upgrade
 - [x] Dashboard charts and widgets (subscribers, subscriptions & revenue charts (after vouchers)
-- [ ] Products + checkout: create plan products in payments (in progress)
+- [x] Products + checkout: plan products created in payments
 - [ ] Ask user: business logic on purchase, subscribe, cancel, upgrade/downgrade
-- [ ] Build embedded checkout on Plans page + webhook handler + subscriptions table
+- [x] Embedded checkout on Plans page + webhook handler + subscriptions table
