@@ -28,16 +28,16 @@ function waitForOAuth(popup: Window, connector: string) {
   });
 }
 
-async function handle<T extends object>(p: Promise<T | { error: string; reconnectRequired?: boolean }>, refresh: () => Promise<unknown>) {
+async function handle<R extends object>(p: Promise<R>, refresh: () => Promise<unknown>): Promise<Exclude<R, { error: string }> | null> {
   const r = await p;
-  if ("error" in r) { toast.error(r.error); await refresh(); return null; }
-  return r as T;
+  if ("error" in r) { toast.error(String((r as { error: unknown }).error)); await refresh(); return null; }
+  return r as Exclude<R, { error: string }>;
 }
 
 const when = (s: string | null) => s ? new Date(s).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Never";
 
 export function GoogleIntegration({ id }: { id: string }) {
-  const connector = googleConnectorFor[id];
+  const connector = googleConnectorFor[id] as GoogleConnector;
   const qc = useQueryClient();
   const { current } = useStore();
   const status = useQuery({ queryKey: ["google-status"], queryFn: () => getGoogleStatus(), retry: 2 });
@@ -98,7 +98,7 @@ export function GoogleIntegration({ id }: { id: string }) {
 }
 
 export function GoogleOverviewFields({ id }: { id: string }) {
-  const connector = googleConnectorFor[id];
+  const connector = googleConnectorFor[id] as GoogleConnector;
   const { current } = useStore();
   const status = useQuery({ queryKey: ["google-status"], queryFn: () => getGoogleStatus(), retry: 2 });
   const st = status.data?.[connector];
@@ -116,7 +116,7 @@ export function GoogleOverviewFields({ id }: { id: string }) {
     setBusy(fileId);
     try {
       const r = await handle(importDriveFile({ data: { fileId, workspaceId: current.id } }), refresh);
-      if (r) { toast.success(`Imported — ${r.created} record(s) added`); setLastLinks(r.firstId); await refresh(); }
+      if (r) { toast.success(`Imported — ${r.created} record(s) added`); setLastLinks(r.firstId ?? null); await refresh(); }
     } finally { setBusy(null); }
   };
 
