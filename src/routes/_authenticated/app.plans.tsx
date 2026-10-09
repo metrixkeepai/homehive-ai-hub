@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/components/hv/store";
 import { planByKey, plansFor, trialInfo, type PlanDef } from "@/lib/plans";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
+import { StripeEmbeddedCheckout } from "@/components/hv/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/hv/PaymentTestModeBanner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/app/plans")({
   head: () => ({
