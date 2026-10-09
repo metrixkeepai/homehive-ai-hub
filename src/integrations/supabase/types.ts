@@ -367,6 +367,7 @@ export type Database = {
           timezone: string
           trial_ends_at: string | null
           updated_at: string
+          voucher_ends_at: string | null
         }
         Insert: {
           account_type?: string
@@ -392,6 +393,7 @@ export type Database = {
           timezone?: string
           trial_ends_at?: string | null
           updated_at?: string
+          voucher_ends_at?: string | null
         }
         Update: {
           account_type?: string
@@ -417,6 +419,7 @@ export type Database = {
           timezone?: string
           trial_ends_at?: string | null
           updated_at?: string
+          voucher_ends_at?: string | null
         }
         Relationships: []
       }
@@ -471,30 +474,108 @@ export type Database = {
         }
         Relationships: []
       }
+      voucher_redemptions: {
+        Row: {
+          benefit_ends_at: string | null
+          benefit_type: string
+          benefit_value: number | null
+          code: string
+          created_at: string
+          id: string
+          plan_after: string | null
+          plan_before: string | null
+          user_id: string
+        }
+        Insert: {
+          benefit_ends_at?: string | null
+          benefit_type: string
+          benefit_value?: number | null
+          code: string
+          created_at?: string
+          id?: string
+          plan_after?: string | null
+          plan_before?: string | null
+          user_id: string
+        }
+        Update: {
+          benefit_ends_at?: string | null
+          benefit_type?: string
+          benefit_value?: number | null
+          code?: string
+          created_at?: string
+          id?: string
+          plan_after?: string | null
+          plan_before?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       vouchers: {
         Row: {
           active: boolean
+          assigned_email: string | null
+          audiences: string[]
+          batch: string | null
+          benefit_ends_on: string | null
+          benefit_type: string
+          benefit_value: number | null
           code: string
+          code_type: string
           created_at: string
+          created_by: string | null
+          description: string
+          duration_months: number | null
           max_uses: number
+          name: string
+          one_per_user: boolean
           plan: string
           uses: number
+          valid_from: string | null
+          valid_until: string | null
         }
         Insert: {
           active?: boolean
+          assigned_email?: string | null
+          audiences?: string[]
+          batch?: string | null
+          benefit_ends_on?: string | null
+          benefit_type?: string
+          benefit_value?: number | null
           code: string
+          code_type?: string
           created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_months?: number | null
           max_uses?: number
+          name?: string
+          one_per_user?: boolean
           plan: string
           uses?: number
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Update: {
           active?: boolean
+          assigned_email?: string | null
+          audiences?: string[]
+          batch?: string | null
+          benefit_ends_on?: string | null
+          benefit_type?: string
+          benefit_value?: number | null
           code?: string
+          code_type?: string
           created_at?: string
+          created_by?: string | null
+          description?: string
+          duration_months?: number | null
           max_uses?: number
+          name?: string
+          one_per_user?: boolean
           plan?: string
           uses?: number
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: []
       }
