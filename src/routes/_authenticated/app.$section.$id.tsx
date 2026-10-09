@@ -48,7 +48,8 @@ function Detail() {
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
     setDone((d) => [...d, a]);
-    toast.success(`${a} — done`, { description: "Demo action. Real bookings, payments and connections will be wired up next." });
+    const [title, description] = actionToast(a, section, item.title);
+    toast.success(title, { description });
   };
 
   return (
