@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Kpi } from "@/components/hv/AdminKpi";
 import { Fragment } from "react";
+import { AccountUsage } from "@/components/hv/AccountUsage";
 
 export const Route = createFileRoute("/super-admin/subscribers/$id")({ component: Detail });
 
@@ -82,6 +83,7 @@ function Detail() {
           <p className="text-xs text-muted-foreground">Existing passwords can never be viewed. Accounts are never deleted from here; suspension is reversible.</p>
         </section>
       </div>
+      <AccountUsage id={id} />
       <section className="rounded-xl border bg-card p-5 text-sm">
         <h2 className="font-semibold text-foreground">Admin history for this account</h2>
         {data.history.length === 0 ? <p className="mt-2 text-muted-foreground">No admin actions yet.</p> :

@@ -356,6 +356,7 @@ export type Database = {
           id: string
           job_title: string | null
           language: string
+          limit_overrides: Json
           org_name: string | null
           org_size: string | null
           phone: string | null
@@ -380,6 +381,7 @@ export type Database = {
           id: string
           job_title?: string | null
           language?: string
+          limit_overrides?: Json
           org_name?: string | null
           org_size?: string | null
           phone?: string | null
@@ -404,6 +406,7 @@ export type Database = {
           id?: string
           job_title?: string | null
           language?: string
+          limit_overrides?: Json
           org_name?: string | null
           org_size?: string | null
           phone?: string | null

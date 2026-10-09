@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkSuperAdmin } from "@/lib/admin.functions";
 import { Logo } from "@/components/hv/Logo";
 import { Toaster } from "@/components/ui/sonner";
-import { LayoutDashboard, Users, Ticket, ScrollText, LogOut, ShieldCheck, PoundSterling, CreditCard, Bot, Server, Layers, Repeat, ToggleLeft, Plug, Activity, HeartPulse } from "lucide-react";
+import { LayoutDashboard, Users, Ticket, ScrollText, LogOut, ShieldCheck, PoundSterling, CreditCard, Bot, Server, Layers, Repeat, ToggleLeft, Plug, Activity, HeartPulse, Receipt } from "lucide-react";
 import { useState } from "react";
 import { completePasswordChange } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/super-admin")({
 const groups = [
   ["Overview", [{ to: "/super-admin", label: "Dashboard", icon: LayoutDashboard, exact: true }]],
   ["Customers", [{ to: "/super-admin/subscribers", label: "Subscribers", icon: Users }, { to: "/super-admin/subscriptions", label: "Subscriptions", icon: Repeat }, { to: "/super-admin/plans", label: "Plans", icon: Layers }, { to: "/super-admin/vouchers", label: "Vouchers", icon: Ticket }]],
-  ["Money", [{ to: "/super-admin/revenue", label: "Revenue", icon: PoundSterling }, { to: "/super-admin/payments", label: "Stripe & payments", icon: CreditCard }]],
+  ["Finance", [{ to: "/super-admin/revenue", label: "Revenue", icon: PoundSterling }, { to: "/super-admin/payments", label: "Stripe & payments", icon: CreditCard }, { to: "/super-admin/billing", label: "Billing", icon: Receipt }]],
   ["Costs & usage", [{ to: "/super-admin/ai", label: "AI usage & cost", icon: Bot }, { to: "/super-admin/infrastructure", label: "Infrastructure", icon: Server }, { to: "/super-admin/api", label: "API usage", icon: Activity }]],
   ["Platform", [{ to: "/super-admin/health", label: "Health", icon: HeartPulse }, { to: "/super-admin/integrations", label: "Integrations", icon: Plug }, { to: "/super-admin/flags", label: "Feature switches", icon: ToggleLeft }, { to: "/super-admin/audit", label: "Audit log", icon: ScrollText }]],
   ["Reporting & intelligence", [{ to: "/super-admin/reports", label: "Reports", icon: ScrollText }]],
