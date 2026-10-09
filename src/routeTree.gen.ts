@@ -55,6 +55,7 @@ import { Route as SuperAdminSubscribersIdRouteImport } from './routes/super-admi
 import { Route as SuperAdminVouchersCodeRouteImport } from './routes/super-admin.vouchers_.$code'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
 import { Route as AuthenticatedAppSectionIdRouteImport } from './routes/_authenticated/app.$section.$id'
+import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -290,6 +291,11 @@ const AuthenticatedAppSectionIdRoute =
     path: '/$section/$id',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
+  id: '/api/oauth/google/return',
+  path: '/api/oauth/google/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -342,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/reports/': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -387,6 +394,7 @@ export interface FileRoutesByTo {
   '/super-admin/reports': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -437,6 +445,7 @@ export interface FileRoutesById {
   '/super-admin/reports/': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -487,6 +496,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports/'
     | '/super-admin/subscribers/'
     | '/app/$section/$id'
+    | '/api/oauth/google/return'
     | '/api/public/payments/webhook'
     | '/app/$section/'
   fileRoutesByTo: FileRoutesByTo
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports'
     | '/super-admin/subscribers'
     | '/app/$section/$id'
+    | '/api/oauth/google/return'
     | '/api/public/payments/webhook'
     | '/app/$section'
   id:
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports/'
     | '/super-admin/subscribers/'
     | '/_authenticated/app/$section/$id'
+    | '/api/oauth/google/return'
     | '/api/public/payments/webhook'
     | '/_authenticated/app/$section/'
   fileRoutesById: FileRoutesById
@@ -605,6 +617,7 @@ export interface RootRouteChildren {
   UseCasesSlugRoute: typeof UseCasesSlugRoute
   IndustriesIndexRoute: typeof IndustriesIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
+  ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -932,6 +945,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSectionIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/api/oauth/google/return': {
+      id: '/api/oauth/google/return'
+      path: '/api/oauth/google/return'
+      fullPath: '/api/oauth/google/return'
+      preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1053,6 +1073,7 @@ const rootRouteChildren: RootRouteChildren = {
   UseCasesSlugRoute: UseCasesSlugRoute,
   IndustriesIndexRoute: IndustriesIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
+  ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

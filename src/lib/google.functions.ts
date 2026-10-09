@@ -44,13 +44,13 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
     const { listConnectionsForUser } = await import("@/server/appUserConnections.server");
     const rows = await listConnectionsForUser(userId);
     const out: Record<string, { connected: boolean; reconnectRequired: boolean; account: string | null; lastSyncAt: string | null; lastSyncCount: number; lastError: string | null; since: string | null }> = {};
-    await Promise.all((Object.keys(GOOGLE) as GoogleConnector[]).map(async (c) => {
-      const r = rows.find((x) => x.connector_id === c);
-      const account = r && !r.reconnect_required ? await accountEmail(userId, c) : null;
-      const fresh = r ? (await import("@/server/appUserConnections.server")).listConnectionsForUser(userId).then((l) => l.find((x) => x.connector_id === c)) : null;
-      const cur = (await fresh) ?? r;
-      out[c] = { connected: !!cur, reconnectRequired: !!cur?.reconnect_required, account, lastSyncAt: cur?.last_sync_at ?? null, lastSyncCount: cur?.last_sync_count ?? 0, lastError: cur?.last_error ?? null, since: cur?.created_at ?? null };
-    }));
+    const accounts: Record<string, string | null> = {};
+    await Promise.all(rows.filter((r) => !r.reconnect_required).map(async (r) => { accounts[r.connector_id] = await accountEmail(userId, r.connector_id as GoogleConnector); }));
+    const latest = await listConnectionsForUser(userId); // an account lookup may have flagged a reconnect
+    for (const c of Object.keys(GOOGLE) as GoogleConnector[]) {
+      const cur = latest.find((x) => x.connector_id === c);
+      out[c] = { connected: !!cur, reconnectRequired: !!cur?.reconnect_required, account: cur?.reconnect_required ? null : accounts[c] ?? null, lastSyncAt: cur?.last_sync_at ?? null, lastSyncCount: cur?.last_sync_count ?? 0, lastError: cur?.last_error ?? null, since: cur?.created_at ?? null };
+    }
     return out;
   });
 
