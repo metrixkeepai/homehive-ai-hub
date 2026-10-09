@@ -66,7 +66,7 @@ export function DataTable<T extends Record<string, any>>({ rows, cols, name, onO
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs text-muted-foreground"><tr>{cols.map((c) => <th key={c.key} className="p-3 font-medium">{c.label}</th>)}</tr></thead>
           <tbody>
-            {shown.map((r, i) => <tr key={r.id ?? i} onClick={onOpen ? () => onOpen(r) : undefined} className={`border-t ${onOpen ? "cursor-pointer hover:bg-muted/30" : ""}`}>{cols.map((c) => <td key={c.key} className="p-3">{c.render ? c.render(r) : String(r[c.key] ?? "—")}</td>)}</tr>)}
+            {shown.map((r, i) => <tr key={r["id"] ?? i} onClick={onOpen ? () => onOpen(r) : undefined} className={`border-t ${onOpen ? "cursor-pointer hover:bg-muted/30" : ""}`}>{cols.map((c) => <td key={c.key} className="p-3">{c.render ? c.render(r) : String(r[c.key] ?? "—")}</td>)}</tr>)}
             {!shown.length && <tr><td colSpan={cols.length} className="p-6 text-center text-muted-foreground">Nothing matches yet.</td></tr>}
           </tbody>
         </table>
