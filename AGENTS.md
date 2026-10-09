@@ -20,3 +20,4 @@
 - Plans, prices and capacities come from one shared plan list (src/lib/plans.ts) so public pricing, in-app plans and billing never disagree.
 - Super Admin portal lives at /super-admin/* (own layout, own login); every admin server function re-checks has_role(super_admin) before using the privileged client, and every change writes admin_audit_log.
 - Provider-backed admin figures (Stripe, AWS, Azure) load only when their secrets exist; otherwise the UI shows a Setup Required state instead of estimates.
+- Sera voice calls run through a persistent /api/live relay (src/lib/live-relay.server.ts, dispatched in src/server.ts); the browser sends its sign-in token in app.start so the relay only reads that user's own records.
