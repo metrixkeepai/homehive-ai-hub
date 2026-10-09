@@ -14,7 +14,7 @@ export const Route = createFileRoute("/super-admin/vouchers")({ component: Vouch
 function Vouchers() {
   const qc = useQueryClient();
   const list = useServerFn(listVouchers), create = useServerFn(createVoucher), toggle = useServerFn(toggleVoucher);
-  const { data, isLoading } = useQuery({ queryKey: ["admin", "vouchers"], queryFn: () => list() });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["admin", "vouchers"], queryFn: () => list() });
   const [code, setCode] = useState(""); const [plan, setPlan] = useState("plus"); const [max, setMax] = useState(100);
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin"] });
   const createM = useMutation({ mutationFn: () => create({ data: { code, plan, max_uses: max } }), onSuccess: () => { toast.success("Voucher created"); setCode(""); refresh(); }, onError: (e: Error) => toast.error(e.message.startsWith("[") ? "Use 4–32 letters, numbers, - or _" : e.message) });
@@ -28,7 +28,7 @@ function Vouchers() {
         <div><label className="text-xs text-muted-foreground">Max uses</label><Input type="number" min={1} value={max} onChange={(e) => setMax(Number(e.target.value))} className="w-28" /></div>
         <Button type="submit" disabled={!code || createM.isPending}>Create voucher</Button>
       </form>
-      {isLoading ? <p className="text-muted-foreground">Loading…</p> : (
+      {isLoading ? <p className="text-muted-foreground">Loading…</p> : error ? <div className="space-y-2"><p className="text-destructive">Couldn't reach the server. Check your connection and try again.</p><Button variant="outline" onClick={() => refetch()}>Try again</Button></div> : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground"><tr><th className="p-3">Code</th><th className="p-3">Plan</th><th className="p-3">Used</th><th className="p-3">Created</th><th className="p-3">Active</th></tr></thead>
