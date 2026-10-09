@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/components/hv/store";
 import { planByKey, plansFor, trialInfo, type PlanDef } from "@/lib/plans";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
+import { StripeEmbeddedCheckout } from "@/components/hv/StripeEmbeddedCheckout";
+import { PaymentTestModeBanner } from "@/components/hv/PaymentTestModeBanner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/app/plans")({
   head: () => ({
@@ -26,6 +29,7 @@ function Plans() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [yearly, setYearly] = useState(false);
+  const [checkout, setCheckout] = useState<PlanDef | null>(null);
   const kind = profile?.account_type ?? "individual";
   const list = plansFor(kind);
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
@@ -55,11 +59,13 @@ function Plans() {
   };
   const choose = async (p: PlanDef) => {
     if (p.monthly === 0) { if (await saveProfile({ plan: "free", plan_source: "self" })) toast.success("You're on the Free plan — your records are kept"); return; }
-    toast("Card payments aren't switched on yet", { description: p.monthly === null ? "Use the Contact page and our team will set up this plan with you." : "Your plan hasn't changed. Use a voucher code, or the trial on Business Starter, until card payments are available." });
+    if (p.monthly === null) { toast("Talk to us", { description: "Use the Contact page and our team will set up this plan with you." }); return; }
+    setCheckout(p);
   };
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:px-6">
+      <PaymentTestModeBanner />
       <nav className="text-sm text-muted-foreground"><Link to="/app" className="hover:text-foreground">Overview</Link> / <span className="text-foreground">Plans</span></nav>
       <div>
         <h1 className="font-display text-3xl sm:text-4xl">Choose your plan</h1>
@@ -84,7 +90,17 @@ function Plans() {
         })}
       </div>
       <CompareTable list={list} />
-      <p className="text-xs text-muted-foreground">Card payments aren't connected yet, so paid plans can't be bought here. Vouchers and the Business Starter trial work now.</p>
+      <Dialog open={!!checkout} onOpenChange={(o) => { if (!o) { setCheckout(null); void reload(); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{checkout ? `Subscribe to ${checkout.name} — ${yearly ? "yearly" : "monthly"}` : ""}</DialogTitle></DialogHeader>
+          {checkout && (
+            <StripeEmbeddedCheckout
+              priceId={`${checkout.key}_${yearly ? "yearly" : "monthly"}`}
+              returnUrl={`${window.location.origin}/app/plans`}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       <Link to="/app/$section" params={{ section: "billing" }} className="inline-block rounded-full border px-5 py-2 text-sm font-semibold">See my usage & billing</Link>
     </div>
   );
