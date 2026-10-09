@@ -55,6 +55,7 @@ import { Route as SuperAdminSubscribersIdRouteImport } from './routes/super-admi
 import { Route as SuperAdminVouchersCodeRouteImport } from './routes/super-admin.vouchers_.$code'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
 import { Route as AuthenticatedAppSectionIdRouteImport } from './routes/_authenticated/app.$section.$id'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -289,6 +290,12 @@ const AuthenticatedAppSectionIdRoute =
     path: '/$section/$id',
     getParentRoute: () => AuthenticatedAppRoute,
   } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -335,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/reports/': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
 export interface FileRoutesByTo {
@@ -379,6 +387,7 @@ export interface FileRoutesByTo {
   '/super-admin/reports': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section': typeof AuthenticatedAppSectionIndexRoute
 }
 export interface FileRoutesById {
@@ -428,6 +437,7 @@ export interface FileRoutesById {
   '/super-admin/reports/': typeof SuperAdminReportsIndexRoute
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
 export interface FileRouteTypes {
@@ -477,6 +487,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports/'
     | '/super-admin/subscribers/'
     | '/app/$section/$id'
+    | '/api/public/payments/webhook'
     | '/app/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports'
     | '/super-admin/subscribers'
     | '/app/$section/$id'
+    | '/api/public/payments/webhook'
     | '/app/$section'
   id:
     | '__root__'
@@ -569,6 +581,7 @@ export interface FileRouteTypes {
     | '/super-admin/reports/'
     | '/super-admin/subscribers/'
     | '/_authenticated/app/$section/$id'
+    | '/api/public/payments/webhook'
     | '/_authenticated/app/$section/'
   fileRoutesById: FileRoutesById
 }
@@ -592,6 +605,7 @@ export interface RootRouteChildren {
   UseCasesSlugRoute: typeof UseCasesSlugRoute
   IndustriesIndexRoute: typeof IndustriesIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -918,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppSectionIdRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1032,6 +1053,7 @@ const rootRouteChildren: RootRouteChildren = {
   UseCasesSlugRoute: UseCasesSlugRoute,
   IndustriesIndexRoute: IndustriesIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
