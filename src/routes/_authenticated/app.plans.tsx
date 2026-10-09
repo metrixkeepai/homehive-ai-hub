@@ -65,6 +65,7 @@ function Plans() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 md:px-6">
+      <PaymentTestModeBanner />
       <nav className="text-sm text-muted-foreground"><Link to="/app" className="hover:text-foreground">Overview</Link> / <span className="text-foreground">Plans</span></nav>
       <div>
         <h1 className="font-display text-3xl sm:text-4xl">Choose your plan</h1>
@@ -89,7 +90,17 @@ function Plans() {
         })}
       </div>
       <CompareTable list={list} />
-      <p className="text-xs text-muted-foreground">Card payments aren't connected yet, so paid plans can't be bought here. Vouchers and the Business Starter trial work now.</p>
+      <Dialog open={!!checkout} onOpenChange={(o) => { if (!o) { setCheckout(null); void reload(); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{checkout ? `Subscribe to ${checkout.name} — ${yearly ? "yearly" : "monthly"}` : ""}</DialogTitle></DialogHeader>
+          {checkout && (
+            <StripeEmbeddedCheckout
+              priceId={`${checkout.key}_${yearly ? "yearly" : "monthly"}`}
+              returnUrl={`${window.location.origin}/app/plans`}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       <Link to="/app/$section" params={{ section: "billing" }} className="inline-block rounded-full border px-5 py-2 text-sm font-semibold">See my usage & billing</Link>
     </div>
   );
