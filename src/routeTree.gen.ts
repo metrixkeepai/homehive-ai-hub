@@ -52,6 +52,7 @@ import { Route as SuperAdminReportsIndexRouteImport } from './routes/super-admin
 import { Route as SuperAdminReportsKeyRouteImport } from './routes/super-admin.reports.$key'
 import { Route as SuperAdminSubscribersIndexRouteImport } from './routes/super-admin.subscribers.index'
 import { Route as SuperAdminSubscribersIdRouteImport } from './routes/super-admin.subscribers.$id'
+import { Route as SuperAdminVouchersCodeRouteImport } from './routes/super-admin.vouchers_.$code'
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
 import { Route as AuthenticatedAppSectionIdRouteImport } from './routes/_authenticated/app.$section.$id'
 
@@ -271,6 +272,11 @@ const SuperAdminSubscribersIdRoute = SuperAdminSubscribersIdRouteImport.update({
   path: '/subscribers/$id',
   getParentRoute: () => SuperAdminRoute,
 } as any)
+const SuperAdminVouchersCodeRoute = SuperAdminVouchersCodeRouteImport.update({
+  id: '/vouchers_/$code',
+  path: '/vouchers/$code',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const AuthenticatedAppSectionIndexRoute =
   AuthenticatedAppSectionIndexRouteImport.update({
     id: '/$section/',
@@ -322,6 +328,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
+  '/super-admin/vouchers/$code': typeof SuperAdminVouchersCodeRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/super-admin/billing/': typeof SuperAdminBillingIndexRoute
   '/super-admin/plans/': typeof SuperAdminPlansIndexRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
+  '/super-admin/vouchers/$code': typeof SuperAdminVouchersCodeRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/super-admin/billing': typeof SuperAdminBillingIndexRoute
   '/super-admin/plans': typeof SuperAdminPlansIndexRoute
@@ -413,6 +421,7 @@ export interface FileRoutesById {
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
   '/super-admin/subscribers/$id': typeof SuperAdminSubscribersIdRoute
+  '/super-admin/vouchers_/$code': typeof SuperAdminVouchersCodeRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/super-admin/billing/': typeof SuperAdminBillingIndexRoute
   '/super-admin/plans/': typeof SuperAdminPlansIndexRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
     | '/super-admin/subscribers/$id'
+    | '/super-admin/vouchers/$code'
     | '/app/'
     | '/super-admin/billing/'
     | '/super-admin/plans/'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
     | '/super-admin/subscribers/$id'
+    | '/super-admin/vouchers/$code'
     | '/app'
     | '/super-admin/billing'
     | '/super-admin/plans'
@@ -551,6 +562,7 @@ export interface FileRouteTypes {
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
     | '/super-admin/subscribers/$id'
+    | '/super-admin/vouchers_/$code'
     | '/_authenticated/app/'
     | '/super-admin/billing/'
     | '/super-admin/plans/'
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperAdminSubscribersIdRouteImport
       parentRoute: typeof SuperAdminRoute
     }
+    '/super-admin/vouchers_/$code': {
+      id: '/super-admin/vouchers_/$code'
+      path: '/vouchers/$code'
+      fullPath: '/super-admin/vouchers/$code'
+      preLoaderRoute: typeof SuperAdminVouchersCodeRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
     '/_authenticated/app/$section/': {
       id: '/_authenticated/app/$section/'
       path: '/$section'
@@ -960,6 +979,7 @@ interface SuperAdminRouteChildren {
   SuperAdminPlansKeyRoute: typeof SuperAdminPlansKeyRoute
   SuperAdminReportsKeyRoute: typeof SuperAdminReportsKeyRoute
   SuperAdminSubscribersIdRoute: typeof SuperAdminSubscribersIdRoute
+  SuperAdminVouchersCodeRoute: typeof SuperAdminVouchersCodeRoute
   SuperAdminPlansIndexRoute: typeof SuperAdminPlansIndexRoute
   SuperAdminReportsIndexRoute: typeof SuperAdminReportsIndexRoute
   SuperAdminSubscribersIndexRoute: typeof SuperAdminSubscribersIndexRoute
@@ -982,6 +1002,7 @@ const SuperAdminRouteChildren: SuperAdminRouteChildren = {
   SuperAdminPlansKeyRoute: SuperAdminPlansKeyRoute,
   SuperAdminReportsKeyRoute: SuperAdminReportsKeyRoute,
   SuperAdminSubscribersIdRoute: SuperAdminSubscribersIdRoute,
+  SuperAdminVouchersCodeRoute: SuperAdminVouchersCodeRoute,
   SuperAdminPlansIndexRoute: SuperAdminPlansIndexRoute,
   SuperAdminReportsIndexRoute: SuperAdminReportsIndexRoute,
   SuperAdminSubscribersIndexRoute: SuperAdminSubscribersIndexRoute,
