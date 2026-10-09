@@ -4,6 +4,7 @@ import { Camera, DoorOpen, Receipt, Upload, Mic, Mail, X, Loader2, Check, ArrowL
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { extractRecords, type Extracted } from "@/lib/capture.functions";
+import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
 import { useStore } from "./store";
 
@@ -78,14 +79,33 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     setFile(f); setPreview(f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined);
   };
 
-  const listen = () => {
-    const W = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
-    const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
-    if (!Ctor) { toast.error("Voice input isn't supported in this browser — please type instead."); return; }
-    const r = new Ctor(); r.lang = navigator.language || "en-GB"; r.interimResults = false;
-    r.onresult = (e) => setText((t) => (t ? t + " " : "") + (e.results[0]?.[0]?.transcript ?? ""));
-    r.onend = () => setListening(false);
-    setListening(true); r.start();
+  const recRef = useRef<MediaRecorder | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const listen = async () => {
+    if (recRef.current) { recRef.current.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast.error("Voice input isn't supported in this browser — please type instead."); return; }
+    let stream: MediaStream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { toast.error("Please allow the microphone to speak."); return; }
+    const mr = new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      recRef.current = null; setListening(false);
+      const blob = new Blob(chunks, { type: (mr.mimeType || "audio/webm").replace("video/", "audio/") });
+      if (!blob.size) return;
+      if (blob.size > 10 * 1024 * 1024) { toast.error("That recording is too long — please keep it under a few minutes."); return; }
+      setTranscribing(true);
+      try {
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        const r = await transcribeToEnglish({ data: { audio: btoa(bin), mime: blob.type } });
+        if ("error" in r && r.error) toast.error(r.error);
+        else if ("english" in r && r.english) setText((t) => (t ? t + " " : "") + r.english);
+      } catch { toast.error("We couldn't understand that recording. Please try again."); }
+      finally { setTranscribing(false); }
+    };
+    recRef.current = mr; setListening(true); mr.start();
   };
 
   const process = async () => {
@@ -176,8 +196,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                 </div>
               )}
               {mode.kind === "voice" && (
-                <button type="button" onClick={listen} disabled={listening} className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening ? "animate-pulse border-primary text-primary" : ""}`}>
-                  <Mic className="h-5 w-5" />{listening ? "Listening…" : "Tap and speak"}
+                <button type="button" onClick={listen} disabled={transcribing} className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}>
+                  <Mic className="h-5 w-5" />{transcribing ? "Translating to English…" : listening ? "Listening… tap to finish" : "Tap and speak"}
                 </button>
               )}
               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={mode.kind === "file" ? 2 : 6} maxLength={8000}
