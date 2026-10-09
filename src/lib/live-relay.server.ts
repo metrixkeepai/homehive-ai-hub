@@ -12,7 +12,7 @@ export type LiveConfig = {
 };
 
 // Fill from co-loaded knowledge: the gateway URL, the Live model and the resolved chat model.
-const liveSettings = { baseURL: "", liveModel: "", backendModel: "" };
+const liveSettings = { baseURL: "https://ai.gateway.lovable.dev", liveModel: "openai/gpt-live-1", backendModel: "openai/gpt-6-astra" };
 
 export type LiveSocket = {
   readonly readyState: number;
@@ -111,34 +111,38 @@ export function handleLiveRequest(request: Request): Response {
   return new Response(null, response);
 }
 
-const conversationInstructions = `You are Mira, a calm learning companion.
+const conversationInstructions = `You are Sera, the warm, practical AI household manager inside MatrixKeep.
+You help people find what they own, receipts, warranties, renewals, rooms, vehicles and locations.
+Language: always reply in the language the user speaks; switch when they switch. Default to British English.
 Speak naturally in brief replies. Ask a focused question when details are unclear.
+Never invent records, dates or amounts. You cannot change or delete records by voice.
 Backchannel policy: Use moderate listening sounds without taking over.
 Interruption policy: Stop your answer and listen when the user interrupts.
 Delegation policy:
-Backend tools: Reason through questions and plan study sessions across days.
-Delegate to the backend when: The user wants a study schedule or careful reasoning,
-or a correction changes a question already being worked on.
+Backend tools: Look up the user's saved MatrixKeep records (items, receipts, warranties, renewals, rooms, vehicles).
+Delegate to the backend when: The user asks anything about their own saved items, dates, warranties,
+renewals, amounts or where something is, or a correction changes a question already being worked on.
 Do not delegate to the backend when: Greeting, clarifying a question, or repeating
 a still-current answer. Wait for the backend result before presenting its answer.`;
 
-const studyScheduleInput = z
-  .object({
-    total_minutes: z.number().int().min(1).max(10_080),
-    days: z.number().int().min(1).max(30),
-  })
-  .strict();
+const findInput = z.object({ query: z.string().min(1).max(200) }).strict();
 
-function planStudySchedule(args: z.infer<typeof studyScheduleInput>) {
-  const daily = Math.floor(args.total_minutes / args.days);
-  return {
-    total_minutes: args.total_minutes,
-    days: args.days,
-    sessions: Array.from({ length: args.days }, (_, index) => ({
-      day: index + 1,
-      minutes: daily + (index < args.total_minutes % args.days ? 1 : 0),
-    })),
-  };
+function findRecords(records: string[], query: string) {
+  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const hits = records.filter((r) => words.some((w) => r.toLowerCase().includes(w)));
+  return { matches: (hits.length ? hits : records).slice(0, 25), total_saved: records.length };
+}
+type RecordsResult = ReturnType<typeof findRecords>;
+
+async function loadRecords(token: unknown): Promise<string[]> {
+  if (typeof token !== "string" || !token) throw new Error("Please sign in to talk to Sera");
+  const { createClient } = await import("@supabase/supabase-js");
+  const url = process.env["SUPABASE_URL"] ?? "", key = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
+  const db = createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: u, error } = await db.auth.getUser(token);
+  if (error || !u.user) throw new Error("Please sign in to talk to Sera");
+  const { data } = await db.from("home_items").select("section,title,subtitle,fields").order("created_at", { ascending: false }).limit(300);
+  return (data ?? []).map((r) => `[${r.section}] ${r.title}${r.subtitle ? ` — ${r.subtitle}` : ""} ${JSON.stringify(r.fields)}`);
 }
 
 function isListeningSound(text: string) {
@@ -152,7 +156,8 @@ async function answerQuestion(
   correlation: { runID: string; sessionID: string | undefined; delegationID: string },
   signal: AbortSignal,
   consumeInput: () => void,
-  onPlan: (plan: ReturnType<typeof planStudySchedule>) => void,
+  onPlan: (plan: RecordsResult) => void,
+  records: string[],
 ) {
   signal.throwIfAborted();
   const provider = createOpenAI({
@@ -200,23 +205,21 @@ async function answerQuestion(
       },
     },
     system:
-      "Help a spoken learning companion answer the latest user question. " +
+      "You are the research backend for Sera, MatrixKeep's spoken household manager. " +
       "Transcripts may be incomplete or corrected. Use the latest correction. " +
-      "Continue from completed tool results; do not repeat completed actions. " +
-      "Return verified facts and useful next steps in at most 150 words. " +
-      "To display a study schedule for the current request, call plan_study_schedule with its total minutes and days. " +
-      "Ask for missing details instead of guessing. The tool only calculates a draft plan; " +
-      "it does not save calendar events. You have no other tools.",
+      "Call find_records to search the user's saved records before answering about their belongings. " +
+      "Use ONLY those records for facts; if nothing matches, say it isn't recorded and suggest Add anything. " +
+      "Reply in the same language the user spoke, in at most 120 words, suitable to be read aloud. You have no other tools.",
     messages,
     tools: {
-      plan_study_schedule: tool({
-        description: "Distribute a total study time evenly across days and return a draft schedule.",
-        inputSchema: studyScheduleInput,
+      find_records: tool({
+        description: "Search the signed-in user's saved MatrixKeep records by keywords.",
+        inputSchema: findInput,
         execute: async (args) => {
           signal.throwIfAborted();
-          const plan = planStudySchedule(args);
-          onPlan(plan);
-          return plan;
+          const found = findRecords(records, args.query);
+          onPlan(found);
+          return found;
         },
       }),
     },
@@ -275,6 +278,7 @@ export function bindLiveConnection(
 ): void {
   const config = { ...configuration };
   const runID = crypto.randomUUID();
+  let records: string[] = [];
   const setupAbort = new AbortController();
   let gateway: LiveSocket | undefined;
   let sessionID: string | undefined;
@@ -285,7 +289,7 @@ export function bindLiveConnection(
   let task: AbortController | undefined;
   const pendingDelegations: Array<{
     event: ProviderEvent;
-    plan?: ReturnType<typeof planStudySchedule>;
+    plan?: RecordsResult;
   }> = [];
   let completedDelegation: (typeof pendingDelegations)[number] | undefined;
   const backendMessages: ModelMessage[] = [];
@@ -406,7 +410,7 @@ export function bindLiveConnection(
     restartTimer = setTimeout(() => void runDelegation(), 300);
   }
 
-  function deliverResult(delegationID: string, answer: string, plan?: ReturnType<typeof planStudySchedule>) {
+  function deliverResult(delegationID: string, answer: string, plan?: RecordsResult) {
     if (closing) return;
     if (gateway?.readyState !== 1) return stop();
     try {
@@ -420,7 +424,7 @@ export function bindLiveConnection(
           }),
         );
       }
-      if (plan) emit({ type: "app.study_schedule.plan", delegation_id: delegationID, plan });
+      void plan;
       completedDelegation = pendingDelegations.shift();
     } catch {
       stop();
@@ -452,6 +456,7 @@ export function bindLiveConnection(
         (plan) => {
           pending.plan = plan;
         },
+        records,
       );
       if (closing || controller.signal.aborted) return;
       if (taskRevision !== revision) return;
@@ -563,7 +568,8 @@ export function bindLiveConnection(
     }
   }
 
-  async function startSession(sdp: string) {
+  async function startSession(sdp: string, token: unknown) {
+    records = await loadRecords(token);
     if (closing || browser.readyState !== 1) return;
     clearTimeout(startTimer);
     startupTimer = setTimeout(() => {
@@ -616,7 +622,7 @@ export function bindLiveConnection(
         }
         starting = true;
         execution.waitUntil(
-          startSession(event.sdp).catch((error) => {
+          startSession(event.sdp, event.token).catch((error) => {
             if (!closing)
               emit({
                 type: "app.error",
