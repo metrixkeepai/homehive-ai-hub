@@ -31,6 +31,27 @@ async function toDataUrl(f: File): Promise<string | undefined> {
   return c.toDataURL("image/jpeg", 0.82);
 }
 
+async function videoFrames(f: File, count = 6): Promise<string[]> {
+  const url = URL.createObjectURL(f);
+  try {
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+    await new Promise<void>((ok, bad) => { v.onloadeddata = () => ok(); v.onerror = () => bad(new Error("video")); });
+    const out: string[] = [];
+    const c = document.createElement("canvas");
+    const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
+    c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
+    const d = isFinite(v.duration) ? v.duration : 1;
+    for (let i = 0; i < count; i++) {
+      v.currentTime = Math.min(d - 0.05, (d * (i + 0.5)) / count);
+      await new Promise<void>((ok) => { v.onseeked = () => ok(); });
+      c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
+      out.push(c.toDataURL("image/jpeg", 0.75));
+    }
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+
 export function AddAnything({ onClose, initial }: { onClose: () => void; initial?: string }) {
   const { addReturning, added, current } = useStore();
   const [step, setStep] = useState<Step>(initial ? "capture" : "pick");
@@ -61,7 +82,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     const W = window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR };
     const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
     if (!Ctor) { toast.error("Voice input isn't supported in this browser — please type instead."); return; }
-    const r = new Ctor(); r.lang = "en-GB"; r.interimResults = false;
+    const r = new Ctor(); r.lang = navigator.language || "en-GB"; r.interimResults = false;
     r.onresult = (e) => setText((t) => (t ? t + " " : "") + (e.results[0]?.[0]?.transcript ?? ""));
     r.onend = () => setListening(false);
     setListening(true); r.start();
@@ -73,8 +94,10 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     if (mode.kind !== "file" && !text.trim()) { toast.error("Please add some text first"); return; }
     setStep("processing");
     try {
-      const image = file ? await toDataUrl(file) : undefined;
-      const r = await extractRecords({ data: { mode: mode.label, text, image, fileName: file?.name } });
+      const isVideo = !!file?.type.startsWith("video/");
+      const image = file && !isVideo ? await toDataUrl(file) : undefined;
+      const images = file && isVideo ? await videoFrames(file) : undefined;
+      const r = await extractRecords({ data: { mode: mode.label, text, image, images, fileName: file?.name } });
       if ("error" in r && r.error) { toast.error(r.error); setStep("capture"); return; }
       if (!("records" in r) || !r.records?.length) { toast.error("Nothing recognisable was found. Try a clearer photo or add a note."); setStep("capture"); return; }
       setSummary(r.summary); setRecs(r.records.map((x) => ({ ...x, keep: true }))); setStep("review");
@@ -148,8 +171,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   onClick={() => fileRef.current?.click()} className="grid min-h-48 cursor-pointer place-items-center rounded-2xl border-2 border-dashed p-6 text-center hover:border-primary">
                   {preview ? <img src={preview} alt="Selected" className="max-h-64 rounded-xl" />
                     : file ? <p className="font-medium">{file.name}</p>
-                    : <div><mode.icon className="mx-auto h-8 w-8 text-primary" /><p className="mt-2 text-sm font-medium">Tap to take a photo or choose a file</p><p className="text-xs text-muted-foreground">Photos or PDF, up to 20 MB</p></div>}
-                  <input ref={fileRef} type="file" accept={mode.key === "document" ? "image/*,application/pdf" : "image/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
+                    : <div><mode.icon className="mx-auto h-8 w-8 text-primary" /><p className="mt-2 text-sm font-medium">Tap to take a photo or choose a file</p><p className="text-xs text-muted-foreground">Photos, short videos or PDF, up to 20 MB</p></div>}
+                  <input ref={fileRef} type="file" accept={mode.key === "document" ? "image/*,application/pdf" : "image/*,video/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
                 </div>
               )}
               {mode.kind === "voice" && (
