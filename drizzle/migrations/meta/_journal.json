@@ -85,6 +85,13 @@
       "when": 1791544591640,
       "tag": "0011_create_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791549042406,
+      "tag": "0012_google_app_user_connections",
+      "breakpoints": true
     }
   ]
 }

@@ -110,6 +110,45 @@ export type Database = {
         }
         Relationships: []
       }
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          last_sync_count: number
+          reconnect_required: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          last_sync_count?: number
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          last_sync_count?: number
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       evidence_files: {
         Row: {
           created_at: string
@@ -184,6 +223,39 @@ export type Database = {
           rollout?: number
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      google_sync_links: {
+        Row: {
+          connector_id: string
+          created_at: string
+          external_id: string
+          google_id: string | null
+          id: string
+          item_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connector_id: string
+          created_at?: string
+          external_id: string
+          google_id?: string | null
+          id?: string
+          item_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connector_id?: string
+          created_at?: string
+          external_id?: string
+          google_id?: string | null
+          id?: string
+          item_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
