@@ -4,12 +4,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Bar, BarChart, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { billingData } from "@/lib/billing.functions";
 import { Kpi, PageTitle, SetupRequired, money } from "@/components/hv/AdminKpi";
-import { useBillingRange } from "@/components/hv/BillingKit";
+import { useBillingRange, stripeSteps } from "@/components/hv/BillingKit";
 
 export const Route = createFileRoute("/super-admin/billing/")({ component: Overview });
 
 const colors = ["var(--primary)", "var(--chart-2, #16a34a)", "var(--chart-3, #f59e0b)", "var(--destructive)", "var(--muted-foreground)"];
-export const stripeSteps = ["Ask Lovable in chat: “Connect Stripe payments for MatrixKeep”.", "Approve the connection and add your Stripe secret key in the secure form.", "Invoices, payments, refunds and balances then load here live — nothing is estimated before that."];
 
 function Overview() {
   const fn = useServerFn(billingData);

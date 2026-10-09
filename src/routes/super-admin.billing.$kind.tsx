@@ -5,10 +5,8 @@ import { useState } from "react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { billingData, billingKinds, type BillingKind } from "@/lib/billing.functions";
 import { Kpi, PageTitle, SetupRequired, money, when } from "@/components/hv/AdminKpi";
-import { DataTable, useBillingRange } from "@/components/hv/BillingKit";
+import { DataTable, useBillingRange, stripeSteps, billingTabs } from "@/components/hv/BillingKit";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { stripeSteps } from "./super-admin.billing.index";
-import { billingTabs } from "./super-admin.billing";
 
 export const Route = createFileRoute("/super-admin/billing/$kind")({
   beforeLoad: ({ params }) => { if (!(billingKinds as readonly string[]).includes(params.kind) || params.kind === "overview") throw notFound(); },

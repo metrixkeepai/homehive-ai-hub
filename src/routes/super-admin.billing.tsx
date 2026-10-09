@@ -1,11 +1,8 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { billingTabs } from "@/components/hv/BillingKit";
 
 export const Route = createFileRoute("/super-admin/billing")({ component: BillingLayout });
 
-export const billingTabs = [
-  ["overview", "Overview"], ["invoices", "Invoices"], ["payments", "Payments"], ["transactions", "Transactions"], ["outstanding", "Outstanding / Due"],
-  ["failed", "Failed payments"], ["refunds", "Refunds"], ["credits", "Credits / Adjustments"], ["stripe", "Stripe"], ["reconciliation", "Reconciliation"],
-] as const;
 
 function BillingLayout() {
   return (

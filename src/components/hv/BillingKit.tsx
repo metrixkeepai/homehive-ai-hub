@@ -85,3 +85,9 @@ export function DataTable<T extends Record<string, any>>({ rows, cols, name, onO
 }
 
 export const bytes = (n: number) => n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : `${(n / 1024 ** 3).toFixed(2)} GB`;
+
+export const billingTabs = [
+  ["overview", "Overview"], ["invoices", "Invoices"], ["payments", "Payments"], ["transactions", "Transactions"], ["outstanding", "Outstanding / Due"],
+  ["failed", "Failed payments"], ["refunds", "Refunds"], ["credits", "Credits / Adjustments"], ["stripe", "Stripe"], ["reconciliation", "Reconciliation"],
+] as const;
+export const stripeSteps = ["Ask Lovable in chat: “Connect Stripe payments for MatrixKeep”.", "Approve the connection and add your Stripe secret key in the secure form.", "Invoices, payments, refunds and balances then load here live — nothing is estimated before that."];
