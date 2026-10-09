@@ -173,7 +173,7 @@ export const syncGmail = createServerFn({ method: "POST" })
 
 /* ---------------- Calendar ---------------- */
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const plusDay = (d: string) => { const [y, m, dd] = d.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1, dd + 1)); return t.toISOString().slice(0, 10); };
+const plusDay = (d: string) => { const [y = 0, m = 1, dd = 1] = d.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1, dd + 1)); return t.toISOString().slice(0, 10); };
 
 export const syncCalendar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -266,7 +266,7 @@ export const importDriveFile = createServerFn({ method: "POST" })
         const up = await supabase.storage.from("evidence").upload(path, bytes, { contentType: meta.mimeType });
         if (!up.error) await supabase.from("evidence_files").insert({ item_id: itemId, path, name: meta.name, mime: meta.mimeType, size: bytes.length });
       }
-      await saveLink(userId, c, `${data.workspaceId ?? "personal"}:${data.fileId}`, ids[0], data.fileId);
+      await saveLink(userId, c, `${data.workspaceId ?? "personal"}:${data.fileId}`, ids[0] ?? null, data.fileId);
       await markConnection(userId, c, { last_sync_at: new Date().toISOString(), last_sync_count: ids.length, last_error: null });
       return { created: ids.length, firstId: ids[0] };
     } catch (e) { return fail(userId, c, e); }
