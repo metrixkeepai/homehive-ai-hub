@@ -48,7 +48,8 @@ function Detail() {
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
     setDone((d) => [...d, a]);
-    toast.success(`${a} — done`, { description: "Demo action. Real bookings, payments and connections will be wired up next." });
+    const [title, description] = actionToast(a, section, item.title);
+    toast.success(title, { description });
   };
 
   return (
@@ -152,4 +153,21 @@ function Detail() {
       </section>
     </div>
   );
+}
+
+function actionToast(a: string, section: string, name: string): [string, string] {
+  const l = a.toLowerCase();
+  if (l.includes("scan room")) return ["Room scan ready", `Use Add anything → Scan room to let Sera organise what's in ${name}.`];
+  if (l.includes("warranty") || section === "warranties") return ["Warranty protected", "MatrixKeep is watching this warranty and will remind you before it expires."];
+  if (section === "renewals" || l.includes("renew")) return ["Renewal is being watched", "Sera will keep an eye on this date and let you know before action is needed."];
+  if (l.includes("mot") || l.includes("service") || l.includes("booking")) return ["Request noted", `Sera has added this to the timeline for ${name}.`];
+  if (l.includes("mark") || l.includes("complete") || l.includes("descaled")) return ["Maintenance updated", "MatrixKeep will remind you when it's time to act again."];
+  if (l.includes("mileage")) return ["Vehicle updated", "Sera has added the latest information to its digital passport."];
+  if (l.includes("claim")) return ["Claim started", "MatrixKeep is gathering the evidence linked to this record."];
+  if (l.includes("download") || l.includes("export")) return ["Preparing your file", `${name} is being put together for you.`];
+  if (l.includes("ai") || l.includes("extraction") || l.includes("run now")) return ["Sera is on it", `${name} is being reviewed with your latest records.`];
+  if (l.includes("invite") || l.includes("permission")) return ["Access updated", "Your team settings have been noted."];
+  if (section === "insurance") return ["Insurance record updated", "MatrixKeep is tracking the important dates and evidence."];
+  if (section === "assets") return ["Digital passport updated", "Your asset is organised and ready for MatrixKeep to track."];
+  return [`${a} noted`, `MatrixKeep has recorded this for ${name}.`];
 }
