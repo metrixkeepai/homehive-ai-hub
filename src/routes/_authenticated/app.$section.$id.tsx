@@ -6,6 +6,7 @@ import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 import { Evidence } from "@/components/hv/Evidence";
 import { TrackingDetail } from "@/components/hv/Tracking";
+import { GoogleIntegration, GoogleOverviewFields, googleConnectorFor } from "@/components/hv/GoogleIntegration";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
@@ -36,6 +37,7 @@ function Detail() {
     );
   }
 
+  const isGoogle = section === "integrations" && !!googleConnectorFor[id];
   const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms");
   if ((section === "warranties" || section === "renewals") && added[section]?.some((x) => x.id === id)) return <TrackingDetail section={section} item={item} />;
   const roomItems = section === "rooms" ? [
@@ -59,6 +61,7 @@ function Detail() {
         <p className="text-sm text-midnight-foreground/60">{s.title}</p>
         <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
         <p className="mt-2 text-midnight-foreground/70">{item.subtitle}</p>
+        {isGoogle ? <GoogleIntegration id={id} /> : <>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           {item.status && <span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(item.status[1])}`}>{item.status[0]}</span>}
           {item.value && <span className="font-display text-2xl">{item.value}</span>}
@@ -72,6 +75,7 @@ function Detail() {
             ))}
           </div>
         )}
+        </>}
       </section>
 
       <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
@@ -81,7 +85,8 @@ function Detail() {
       </div>
 
       <section className="rounded-3xl border bg-card p-6 shadow-soft">
-        {tab === "Overview" && (item.fields.length ? (
+        {tab === "Overview" && isGoogle && <GoogleOverviewFields id={id} />}
+        {tab === "Overview" && !isGoogle && (item.fields.length ? (
           <dl className="grid gap-4 sm:grid-cols-2">
             {item.fields.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}
           </dl>

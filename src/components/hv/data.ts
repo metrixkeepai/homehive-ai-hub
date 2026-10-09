@@ -231,13 +231,13 @@ export const sections: Section[] = [
   {
     slug: "integrations", title: "Integrations", group: "main", icon: Plug,
     intro: "Connect MatrixKeep to the places your home life already happens.",
-    kpis: [["Connected", "2"], ["Available", "8"], ["Imported this month", "23"]],
+    kpis: [["Google services", "3"], ["Coming soon", "2"]],
     items: [
-      { id: "gmail", title: "Gmail", subtitle: "Import receipts and warranties", status: ["Connected (demo)", "success"], fields: [["Account", "sarah@example.com"], ["Last sync", "4 min ago"], ["Imported", "214 documents"], ["Access", "Read-only, receipts only"]], links: [["agents", "document-agent"]], actions: ["Sync now", "Disconnect"] },
-      { id: "gcal", title: "Google Calendar", subtitle: "Add reminders to your calendar", status: ["Connected (demo)", "success"], fields: [["Calendar", "Home"]], actions: ["Disconnect"] },
+      { id: "gmail", title: "Gmail", subtitle: "Import receipts and warranties", status: ["Open to connect", "primary"], fields: [["Access", "Read-only, receipts only"]], links: [["agents", "document-agent"]] },
+      { id: "gcal", title: "Google Calendar", subtitle: "Add reminders to your calendar", status: ["Open to connect", "primary"], fields: [["Access", "MatrixKeep reminders only"]] },
       { id: "outlook", title: "Outlook", subtitle: "Import receipts from Outlook", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
       { id: "whatsapp", title: "WhatsApp", subtitle: "Send photos and ask questions by chat", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
-      { id: "drive", title: "Google Drive", subtitle: "Back up your vault", status: ["Not connected", "muted"], fields: [["Status", "Coming soon"]], actions: ["Connect"] },
+      { id: "drive", title: "Google Drive", subtitle: "Import documents from Drive", status: ["Open to connect", "primary"], fields: [["Access", "Read-only, files you choose"]] },
     ],
   },
   {

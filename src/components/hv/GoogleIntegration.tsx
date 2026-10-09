@@ -28,6 +28,12 @@ function waitForOAuth(popup: Window, connector: string) {
   });
 }
 
+async function handle<T extends object>(p: Promise<T | { error: string; reconnectRequired?: boolean }>, refresh: () => Promise<unknown>) {
+  const r = await p;
+  if ("error" in r) { toast.error(r.error); await refresh(); return null; }
+  return r as T;
+}
+
 const when = (s: string | null) => s ? new Date(s).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Never";
 
 export function GoogleIntegration({ id }: { id: string }) {
@@ -37,9 +43,6 @@ export function GoogleIntegration({ id }: { id: string }) {
   const status = useQuery({ queryKey: ["google-status"], queryFn: () => getGoogleStatus(), retry: 2 });
   const st = status.data?.[connector];
   const [busy, setBusy] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [files, setFiles] = useState<{ id: string; name: string; mimeType: string; size: number; modifiedTime: string }[] | null>(null);
-  const [lastLinks, setLastLinks] = useState<string | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["google-status"] });
 
   const connect = async () => {
@@ -61,39 +64,22 @@ export function GoogleIntegration({ id }: { id: string }) {
   const disconnect = async () => {
     if (!confirm(`Disconnect ${names[connector]}? Records already imported stay in MatrixKeep.`)) return;
     setBusy("disconnect");
-    try { await disconnectGoogle({ data: { connector } }); setFiles(null); await refresh(); toast.success(`${names[connector]} disconnected`); }
+    try { await disconnectGoogle({ data: { connector } }); await refresh(); toast.success(`${names[connector]} disconnected`); }
     catch { toast.error("Couldn't disconnect. Try again."); } finally { setBusy(null); }
-  };
-  const handle = async <T extends object>(p: Promise<T | { error: string; reconnectRequired?: boolean }>) => {
-    const r = await p;
-    if ("error" in r) { toast.error(r.error); await refresh(); return null; }
-    return r as T;
   };
   const sync = async () => {
     setBusy("sync");
     try {
       if (connector === "google_mail") {
-        const r = await handle(syncGmail({ data: { workspaceId: current.id } }));
+        const r = await handle(syncGmail({ data: { workspaceId: current.id } }), refresh);
         if (r) toast.success(`Checked ${r.checked} new email(s)`, { description: `${r.created} record(s) added to ${current.name}.${r.checked === 8 ? " Press again to check more." : ""}` });
       } else {
-        const r = await handle(syncCalendar({ data: { workspaceId: current.id } }));
+        const r = await handle(syncCalendar({ data: { workspaceId: current.id } }), refresh);
         if (r) toast.success(`${r.created} reminder(s) added, ${r.updated} updated`, { description: r.skippedNoDate ? `${r.skippedNoDate} record(s) have no date yet.` : undefined });
       }
       await refresh();
     } finally { setBusy(null); }
   };
-  const browse = async () => {
-    setBusy("browse");
-    try { const r = await handle(listDriveFiles({ data: { search } })); if (r) setFiles(r.files); } finally { setBusy(null); }
-  };
-  const importFile = async (fileId: string) => {
-    setBusy(fileId);
-    try {
-      const r = await handle(importDriveFile({ data: { fileId, workspaceId: current.id } }));
-      if (r) { toast.success(`Imported — ${r.created} record(s) added`); setLastLinks(r.firstId); await refresh(); }
-    } finally { setBusy(null); }
-  };
-
   const badge: [string, string] = status.isLoading ? ["Checking…", "muted"] : status.isError ? ["Status unavailable", "danger"] : st?.reconnectRequired ? ["Reconnect needed", "warning"] : st?.connected ? ["Connected", "success"] : ["Not connected", "muted"];
   const btn = "rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50";
 
@@ -103,39 +89,37 @@ export function GoogleIntegration({ id }: { id: string }) {
       <div className="mt-6 flex flex-wrap gap-2">
         {(!st?.connected || st.reconnectRequired) && <button disabled={!!busy || status.isLoading} onClick={connect} className={`${btn} bg-aurora text-primary-foreground`}>{busy === "connect" ? "Waiting for Google…" : st?.reconnectRequired ? `Reconnect ${names[connector]}` : "Connect"}</button>}
         {st?.connected && !st.reconnectRequired && connector !== "google_drive" && <button disabled={!!busy} onClick={sync} className={`${btn} bg-aurora text-primary-foreground`}>{busy === "sync" ? "Syncing…" : connector === "google_mail" ? "Sync now" : "Add reminders to calendar"}</button>}
-        {st?.connected && !st.reconnectRequired && connector === "google_drive" && <button disabled={!!busy} onClick={browse} className={`${btn} bg-aurora text-primary-foreground`}>{busy === "browse" ? "Loading…" : "Choose files"}</button>}
         {st?.connected && <button disabled={!!busy} onClick={disconnect} className={`${btn} border border-midnight-foreground/20`}>{busy === "disconnect" ? "Disconnecting…" : "Disconnect"}</button>}
         {status.isError && <button onClick={() => status.refetch()} className={`${btn} border border-midnight-foreground/20`}>Try again</button>}
       </div>
       {st?.reconnectRequired && <p className="mt-3 text-sm text-midnight-foreground/70">Your Google access needs to be renewed.</p>}
-      {/* rendered into the Overview tab via portal-free sibling: parent places this block */}
-      <GoogleOverview connector={connector} st={st} workspace={current.name}>
-        {connector === "google_drive" && files && (
-          <div className="mt-6 space-y-3">
-            <div className="flex gap-2"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search file names" className="min-w-0 flex-1 rounded-md border bg-card px-3 py-2 text-sm" /><button onClick={browse} disabled={!!busy} className="rounded-full border px-4 py-2 text-sm">Search</button></div>
-            {files.length === 0 && <p className="text-sm text-muted-foreground">No PDFs or photos found.</p>}
-            {files.map((f) => (
-              <div key={f.id} className="flex items-center gap-3 rounded-2xl border p-3">
-                <div className="min-w-0 flex-1"><p className="truncate font-medium">{f.name}</p><p className="text-xs text-muted-foreground">{f.mimeType === "application/pdf" ? "PDF" : "Photo"} · {(f.size / 1024 / 1024).toFixed(1)} MB · {new Date(f.modifiedTime).toLocaleDateString("en-GB")}</p></div>
-                <button disabled={!!busy} onClick={() => importFile(f.id)} className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">{busy === f.id ? "Importing…" : "Import"}</button>
-              </div>
-            ))}
-            {lastLinks && <Link to="/app/$section/$id" params={{ section: "documents", id: lastLinks }} className="inline-block text-sm font-medium text-primary">Open the last imported document →</Link>}
-          </div>
-        )}
-      </GoogleOverview>
     </>
   );
 }
-
-let overviewSlot: ((n: React.ReactNode) => void) | null = null;
-function GoogleOverview(_: { connector: GoogleConnector; st: unknown; workspace: string; children?: React.ReactNode }) { void overviewSlot; return null; }
 
 export function GoogleOverviewFields({ id }: { id: string }) {
   const connector = googleConnectorFor[id];
   const { current } = useStore();
   const status = useQuery({ queryKey: ["google-status"], queryFn: () => getGoogleStatus(), retry: 2 });
   const st = status.data?.[connector];
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ["google-status"] });
+  const [busy, setBusy] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [files, setFiles] = useState<{ id: string; name: string; mimeType: string; size: number; modifiedTime: string }[] | null>(null);
+  const [lastLinks, setLastLinks] = useState<string | null>(null);
+  const browse = async () => {
+    setBusy("browse");
+    try { const r = await handle(listDriveFiles({ data: { search } }), refresh); if (r) setFiles(r.files); } finally { setBusy(null); }
+  };
+  const importFile = async (fileId: string) => {
+    setBusy(fileId);
+    try {
+      const r = await handle(importDriveFile({ data: { fileId, workspaceId: current.id } }), refresh);
+      if (r) { toast.success(`Imported — ${r.created} record(s) added`); setLastLinks(r.firstId); await refresh(); }
+    } finally { setBusy(null); }
+  };
+
   const rows: [string, string][] = st?.connected ? [
     ["Account", st.account ?? (st.reconnectRequired ? "Needs reconnecting" : "—")],
     ["Connected since", when(st.since)],
@@ -145,5 +129,24 @@ export function GoogleOverviewFields({ id }: { id: string }) {
     ["Access", access[connector]],
     ...(st.lastError ? [["Last problem", st.lastError] as [string, string]] : []),
   ] : [["Status", status.isLoading ? "Checking…" : "Not connected"], ["Access when connected", access[connector]], ["Your account", "Each person connects their own Google account. Nobody else in MatrixKeep can use it."]];
-  return <dl className="grid gap-4 sm:grid-cols-2">{rows.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}</dl>;
+  const usable = !!st?.connected && !st.reconnectRequired;
+  return (
+    <div>
+      <dl className="grid gap-4 sm:grid-cols-2">{rows.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}</dl>
+      {connector === "google_drive" && usable && (
+        <div className="mt-6 space-y-3 border-t pt-6">
+          <p className="font-semibold">Import from Google Drive</p>
+          <div className="flex gap-2"><input aria-label="Search Drive files" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search file names (PDFs and photos)" className="min-w-0 flex-1 rounded-md border bg-card px-3 py-2 text-sm" /><button onClick={browse} disabled={!!busy} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">{busy === "browse" ? "Loading…" : files ? "Search" : "Choose files"}</button></div>
+          {files && files.length === 0 && <p className="text-sm text-muted-foreground">No PDFs or photos found.</p>}
+          {files?.map((f) => (
+            <div key={f.id} className="flex items-center gap-3 rounded-2xl border p-3">
+              <div className="min-w-0 flex-1"><p className="truncate font-medium">{f.name}</p><p className="text-xs text-muted-foreground">{f.mimeType === "application/pdf" ? "PDF" : "Photo"} · {(f.size / 1024 / 1024).toFixed(1)} MB · {new Date(f.modifiedTime).toLocaleDateString("en-GB")}</p></div>
+              <button disabled={!!busy} onClick={() => importFile(f.id)} className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50">{busy === f.id ? "Importing…" : "Import"}</button>
+            </div>
+          ))}
+          {lastLinks && <Link to="/app/$section/$id" params={{ section: "documents", id: lastLinks }} className="inline-block text-sm font-medium text-primary">Open the last imported document →</Link>}
+        </div>
+      )}
+    </div>
+  );
 }
