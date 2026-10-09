@@ -5,6 +5,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recha
 import { adminOverview } from "@/lib/admin.functions";
 import { planByKey, gbp } from "@/lib/plans";
 import { Kpi } from "@/components/hv/AdminKpi";
+import { DashboardCharts } from "@/components/hv/DashboardCharts";
 
 export const Route = createFileRoute("/super-admin/")({ component: Dashboard });
 
@@ -39,6 +40,7 @@ function Dashboard() {
           <ul className="mt-4 space-y-2 text-sm">{Object.entries(data.byPlan).sort((a, b) => b[1] - a[1]).map(([k, n]) => <li key={k} className="flex justify-between"><span>{planByKey(k).name}</span><span className="font-medium">{n}</span></li>)}</ul>
         </section>
       </div>
+      <DashboardCharts />
       <section className="rounded-xl border bg-card p-5">
         <div className="flex items-center justify-between"><h2 className="font-semibold text-foreground">Recent admin activity</h2><Link to="/super-admin/audit" className="text-sm text-primary">View all</Link></div>
         {data.recent.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No admin actions yet.</p> :

@@ -6,5 +6,5 @@
 # Super Admin remaining spec
 - [x] Account usage & history on subscriber page (storage, documents, limits, overrides, subscription history)
 - [x] Billing section (overview + 9 sub-pages, Stripe-backed)
-- [ ] Voucher engine upgrade (next)
-- [ ] Dashboard, subscribers, subscriptions & revenue charts (after vouchers)
+- [x] Voucher engine upgrade
+- [x] Dashboard charts and widgets (subscribers, subscriptions & revenue charts (after vouchers)
