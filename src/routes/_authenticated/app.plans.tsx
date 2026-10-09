@@ -29,6 +29,7 @@ function Plans() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [yearly, setYearly] = useState(false);
+  const [checkout, setCheckout] = useState<PlanDef | null>(null);
   const kind = profile?.account_type ?? "individual";
   const list = plansFor(kind);
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
@@ -58,7 +59,8 @@ function Plans() {
   };
   const choose = async (p: PlanDef) => {
     if (p.monthly === 0) { if (await saveProfile({ plan: "free", plan_source: "self" })) toast.success("You're on the Free plan — your records are kept"); return; }
-    toast("Card payments aren't switched on yet", { description: p.monthly === null ? "Use the Contact page and our team will set up this plan with you." : "Your plan hasn't changed. Use a voucher code, or the trial on Business Starter, until card payments are available." });
+    if (p.monthly === null) { toast("Talk to us", { description: "Use the Contact page and our team will set up this plan with you." }); return; }
+    setCheckout(p);
   };
 
   return (
