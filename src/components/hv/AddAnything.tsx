@@ -4,6 +4,7 @@ import { Camera, DoorOpen, Receipt, Upload, Mic, Mail, X, Loader2, Check, ArrowL
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { extractRecords, type Extracted } from "@/lib/capture.functions";
+import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
 import { useStore } from "./store";
 
