@@ -195,8 +195,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                 </div>
               )}
               {mode.kind === "voice" && (
-                <button type="button" onClick={listen} disabled={listening} className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening ? "animate-pulse border-primary text-primary" : ""}`}>
-                  <Mic className="h-5 w-5" />{listening ? "Listening…" : "Tap and speak"}
+                <button type="button" onClick={listen} disabled={transcribing} className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}>
+                  <Mic className="h-5 w-5" />{transcribing ? "Translating to English…" : listening ? "Listening… tap to finish" : "Tap and speak"}
                 </button>
               )}
               <textarea value={text} onChange={(e) => setText(e.target.value)} rows={mode.kind === "file" ? 2 : 6} maxLength={8000}
