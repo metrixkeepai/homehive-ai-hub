@@ -34,3 +34,10 @@ describe("plan limits", () => {
   it("free plan caps documents at 10", () => { expect(sectionLimit("documents", "free")?.max).toBe(10); });
   it("enterprise is uncapped", () => { expect(sectionLimit("assets", "enterprise")).toBeNull(); });
 });
+
+import { flagOn } from "@/lib/features";
+describe("feature switches", () => {
+  it("off switch locks", () => { expect(flagOn({ enabled: false, audiences: [], rollout: 100 }, "individual", "u1")).toBe(false); });
+  it("audience mismatch locks", () => { expect(flagOn({ enabled: true, audiences: ["business"], rollout: 100 }, "individual", "u1")).toBe(false); });
+  it("on for matching audience at 100%", () => { expect(flagOn({ enabled: true, audiences: ["business"], rollout: 100 }, "business", "u1")).toBe(true); });
+});

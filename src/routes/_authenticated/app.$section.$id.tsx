@@ -68,7 +68,7 @@ function Detail() {
         <p className="text-sm text-midnight-foreground/60">{s.title}</p>
         <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
         <p className="mt-2 text-midnight-foreground/70">{item.subtitle}</p>
-        {isGoogle ? <GoogleIntegration id={id} /> : <>
+        {isGoogle ? (googleOn ? <GoogleIntegration id={id} /> : <div className="mt-5"><Locked name="Google integrations" /></div>) : <>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           {item.status && <span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(item.status[1])}`}>{item.status[0]}</span>}
           {item.value && <span className="font-display text-2xl">{item.value}</span>}

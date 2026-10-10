@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
 import { TrackingPage } from "@/components/hv/Tracking";
+import { COUNTRIES } from "@/lib/countries";
 import { BillingPage } from "@/components/hv/Billing";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
@@ -130,7 +131,7 @@ function ProfileEditor() {
     const ok = await saveProfile({
       display_name: clean(v.display_name, 100), household: clean(v.household), phone: clean(v.phone, 30), job_title: clean(v.job_title, 100),
       bio: clean(v.bio, 500), account_type: v.account_type, org_name: clean(v.org_name), sector: clean(v.sector, 100),
-      language: v.language, currency: v.currency, timezone: v.timezone,
+      language: v.language, currency: v.currency, timezone: v.timezone, country: v.country,
     });
     if (ok) { toast.success("Profile saved"); setD({}); } else toast.error("Couldn't save profile");
   };
@@ -173,6 +174,7 @@ function ProfileEditor() {
         <h2 className="font-display text-xl md:col-span-3">Preferences</h2>
         <label className="block text-sm font-medium">Language<select value={v.language} onChange={set("language")} className={inp}>{["English (UK)", "English (US)", "Français", "Deutsch", "Español"].map((x) => <option key={x}>{x}</option>)}</select></label>
         <label className="block text-sm font-medium">Currency<select value={v.currency} onChange={set("currency")} className={inp}>{["GBP", "EUR", "USD"].map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="block text-sm font-medium">Country<select value={v.country} onChange={set("country")} className={inp}>{COUNTRIES.map((x) => <option key={x}>{x}</option>)}</select></label>
         <label className="block text-sm font-medium">Time zone<select value={v.timezone} onChange={set("timezone")} className={inp}>{["Europe/London", "Europe/Paris", "America/New_York", "America/Los_Angeles", "Asia/Dubai"].map((x) => <option key={x}>{x}</option>)}</select></label>
       </div>
       <div className="flex justify-end"><button className="rounded-full bg-aurora px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow">Save profile</button></div>

@@ -16,9 +16,9 @@ export function sectionLimit(slug: string, plan?: string | null): { max: number;
 export type Profile = {
   display_name: string | null; avatar_url: string | null; household: string | null;
   account_type: "individual" | "business" | "enterprise"; plan: string; plan_source: string | null; business_type: string | null; org_size: string | null; branches: number | null; trial_ends_at: string | null; org_name: string | null; sector: string | null; job_title: string | null;
-  phone: string | null; language: string; currency: string; timezone: string; bio: string | null;
+  phone: string | null; language: string; currency: string; timezone: string; country: string; bio: string | null;
 };
-const emptyProfile: Profile = { display_name: null, avatar_url: null, household: null, account_type: "individual", org_name: null, sector: null, job_title: null, phone: null, language: "English (UK)", currency: "GBP", timezone: "Europe/London", bio: null, plan: "free", plan_source: null, business_type: null, org_size: null, branches: null, trial_ends_at: null };
+const emptyProfile: Profile = { display_name: null, avatar_url: null, household: null, account_type: "individual", org_name: null, sector: null, job_title: null, phone: null, language: "English (UK)", currency: "GBP", timezone: "Europe/London", country: "United Kingdom", bio: null, plan: "free", plan_source: null, business_type: null, org_size: null, branches: null, trial_ends_at: null };
 export type Workspace = { id: string | null; name: string; type: "individual" | "business" | "enterprise" };
 type Ctx = {
   added: Record<string, Item[]>;
@@ -60,7 +60,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEmail(u.user.email ?? "");
     const [{ data: rows }, { data: p }, { data: ws }] = await Promise.all([
       supabase.from("home_items").select("id,workspace_id,section,title,subtitle,fields,created_at").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,bio,plan,plan_source,business_type,org_size,branches,trial_ends_at").eq("id", u.user.id).maybeSingle(),
+      supabase.from("profiles").select("display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,country,bio,plan,plan_source,business_type,org_size,branches,trial_ends_at").eq("id", u.user.id).maybeSingle(),
       supabase.from("workspaces").select("id,name,type").order("created_at"),
     ]);
     setAllRows((rows ?? []) as Row[]);
