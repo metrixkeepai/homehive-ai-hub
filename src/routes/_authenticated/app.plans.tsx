@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/components/hv/store";
 import { planByKey, plansFor, trialInfo, type PlanDef } from "@/lib/plans";
+import { useInactivePlans } from "@/lib/plan-status";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
 import { StripeEmbeddedCheckout } from "@/components/hv/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/hv/PaymentTestModeBanner";
@@ -31,7 +32,8 @@ function Plans() {
   const [yearly, setYearly] = useState(false);
   const [checkout, setCheckout] = useState<PlanDef | null>(null);
   const kind = profile?.account_type ?? "individual";
-  const list = plansFor(kind);
+  const off = useInactivePlans();
+  const list = plansFor(kind).filter((p) => !off.has(p.key) || p.key === profile?.plan);
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
 
   const redeem = async (c: string) => {
