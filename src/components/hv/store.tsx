@@ -1,6 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Item } from "./data";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { planByKey } from "@/lib/plans";
+
+/** Plan capacity for a section, or null when the plan doesn't cap it. */
+export function sectionLimit(slug: string, plan?: string | null): { max: number; label: string } | null {
+  const l = planByKey(plan).limits;
+  const m: Record<string, [number, string]> = { assets: [l.assets, "assets"], documents: [l.docs, "documents"], locations: [l.places, "locations"], properties: [l.places, "properties"], team: [l.users, "team members"] };
+  const v = m[slug];
+  return v && Number.isFinite(v[0]) ? { max: v[0], label: v[1] } : null;
+}
+
 
 export type Profile = {
   display_name: string | null; avatar_url: string | null; household: string | null;

@@ -28,3 +28,9 @@ describe("workspace navigation", () => {
     expect(slugs(true)).not.toContain("family");
   });
 });
+import { sectionLimit } from "./store";
+describe("plan limits", () => {
+  it("free plan caps assets at 50", () => { expect(sectionLimit("assets", "free")?.max).toBe(50); });
+  it("free plan caps documents at 10", () => { expect(sectionLimit("documents", "free")?.max).toBe(10); });
+  it("enterprise is uncapped", () => { expect(sectionLimit("assets", "enterprise")).toBeNull(); });
+});
