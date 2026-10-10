@@ -95,6 +95,28 @@ function Detail() {
             {item.fields.map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 font-medium">{v}</dd></div>)}
           </dl>
         ) : <p className="text-sm text-muted-foreground">No details yet. Use the buttons above to get started.</p>)}
+        {tab === "Overview" && !isGoogle && own && section !== "documents" && (() => {
+          const l = saved?.find((x) => x.section === "documents");
+          const d = l && added["documents"]?.find((x) => x.id === l.id);
+          if (!l) return null;
+          const g = (re: RegExp) => d?.fields.find(([k]) => re.test(k))?.[1];
+          const own_ = (re: RegExp) => item.fields.find(([k]) => re.test(k))?.[1];
+          const rows: [string, string | undefined][] = [
+            ["Invoice #", g(/invoice (number|no|#)|receipt (number|no)/i)],
+            ["Issue date", g(/invoice date|issue date|^date/i)],
+            ["Supplier", g(/supplier$|service provider|retailer|vendor|merchant/i)],
+            ["Related line", own_(/issue|description/i) ?? item.title],
+            ["Amount", own_(/line total|amount|price/i) ?? item.value],
+          ];
+          return (
+            <div className="mt-6 rounded-2xl border p-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Source document</p>
+              <p className="mt-1 font-display text-lg">{l.title}</p>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2">{rows.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs text-muted-foreground">{k}</dt><dd className="font-medium">{v}</dd></div>)}</dl>
+              <Link to="/app/$section/$id" params={{ section: "documents", id: l.id }} className="mt-4 inline-block rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">View Source Document</Link>
+            </div>
+          );
+        })()}
 
         {tab === "Items" && (
           <div className="space-y-4">
