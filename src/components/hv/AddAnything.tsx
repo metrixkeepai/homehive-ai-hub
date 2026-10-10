@@ -129,8 +129,15 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     if (!keep.length) { toast.error("Select at least one record"); return; }
     setStep("saving");
     const out: (typeof saved[number] & { rel: string })[] = [];
+    const doc = keep.find((r) => r.section === "documents");
+    const SHARED = /^(invoice|receipt|order|reference|issue date|due date|supplier|service provider|provider|retailer|vendor|merchant|seller|bill to|email|telephone|phone|address|supplier (email|telephone|phone|address))/i;
+    const shared = doc ? doc.fields.filter((f) => SHARED.test(f.label.trim()) && f.value.trim()) : [];
     for (const r of keep) {
       const fields: [string, string][] = r.fields.map((f) => [f.label, f.value]);
+      if (doc && r !== doc) {
+        for (const f of shared) if (!fields.some(([k]) => k.toLowerCase() === f.label.toLowerCase())) fields.push([f.label, f.value]);
+        fields.push(["Source document", doc.title.trim()]);
+      }
       if (location) fields.push(["Location", location]);
       if (room && !fields.some(([k]) => k === "Room")) fields.push(["Room", room]);
       fields.push(["Captured via", mode?.label ?? "Add anything"]);
