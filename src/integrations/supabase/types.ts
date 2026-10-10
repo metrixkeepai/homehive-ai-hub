@@ -421,6 +421,7 @@ export type Database = {
           bio: string | null
           branches: number | null
           business_type: string | null
+          country: string
           created_at: string
           currency: string
           display_name: string | null
@@ -447,6 +448,7 @@ export type Database = {
           bio?: string | null
           branches?: number | null
           business_type?: string | null
+          country?: string
           created_at?: string
           currency?: string
           display_name?: string | null
@@ -473,6 +475,7 @@ export type Database = {
           bio?: string | null
           branches?: number | null
           business_type?: string | null
+          country?: string
           created_at?: string
           currency?: string
           display_name?: string | null
