@@ -10,7 +10,7 @@ export const Input = z.object({
   fileName: z.string().max(200).optional(),
 });
 
-export type Extracted = { section: (typeof SECTIONS)[number]; title: string; subtitle: string; fields: { label: string; value: string }[] };
+export type Extracted = { section: (typeof SECTIONS)[number]; title: string; subtitle: string; relates_to: string; fields: { label: string; value: string }[] };
 
 const schema = {
   type: "object", additionalProperties: false, required: ["summary", "records"],
@@ -19,11 +19,12 @@ const schema = {
     records: {
       type: "array",
       items: {
-        type: "object", additionalProperties: false, required: ["section", "title", "subtitle", "fields"],
+        type: "object", additionalProperties: false, required: ["section", "title", "subtitle", "relates_to", "fields"],
         properties: {
           section: { type: "string", enum: [...SECTIONS] },
           title: { type: "string" },
           subtitle: { type: "string" },
+          relates_to: { type: "string" },
           fields: { type: "array", items: { type: "object", additionalProperties: false, required: ["label", "value"], properties: { label: { type: "string" }, value: { type: "string" } } } },
         },
       },
@@ -32,7 +33,7 @@ const schema = {
 };
 
 export async function runExtraction(data: z.infer<typeof Input>, userId: string | null): Promise<{ summary: string; records: Extracted[] } | { error: string }> {
-    const instructions = `You are MatrixKeep's capture agent. The user used "${data.mode}". Extract every distinct real-world record (items/assets, rooms, receipts/documents, warranties, vehicles, maintenance jobs, tasks, insurance policies) you can see or read. For a room photo list each visible item as an asset with a "Room" field. For a receipt create a document record AND one asset per purchased product with Brand, Model, Price, Purchase date, Retailer where known, plus a warranty record if a warranty term is stated. Write record text in the language the user wrote their note in (British English if none); use the currency shown, else £. Never invent values you cannot see — omit those fields. Keep titles short. Maximum 15 records. Return JSON.`;
+    const instructions = `You are MatrixKeep's capture agent. The user used "${data.mode}". Extract every distinct real-world record (items/assets, rooms, receipts/documents, warranties, vehicles, maintenance jobs, tasks, insurance policies) you can see or read. For a room photo list each visible item as an asset with a "Room" field. For a receipt create a document record AND one asset per purchased product with Brand, Model, Price, Purchase date, Retailer where known, plus a warranty record if a warranty term is stated. Write record text in the language the user wrote their note in (British English if none); use the currency shown, else £. Never invent values you cannot see — omit those fields. Keep titles short. Set relates_to to the exact title of the asset or vehicle (in this same list) that a maintenance, warranty, insurance or task record is about, otherwise an empty string. Not every receipt line is an asset: labour, call-out fees, delivery, VAT and parts used in a repair belong in the document/maintenance fields, not as assets. Maximum 15 records. Return JSON.`;
     const content: unknown[] = [{ type: "input_text", text: (data.text || "(no text provided)") + (data.fileName ? `\nFile name: ${data.fileName}` : "") }];
     if (data.image) content.push({ type: "input_image", image_url: data.image });
     if (data.images?.length) {
