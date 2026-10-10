@@ -366,6 +366,27 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_status: {
+        Row: {
+          active: boolean
+          plan_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          plan_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          plan_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       plan_versions: {
         Row: {
           audience: string
