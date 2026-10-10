@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 import { Evidence } from "@/components/hv/Evidence";
+import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
 import { GoogleIntegration, GoogleOverviewFields, googleConnectorFor } from "@/components/hv/GoogleIntegration";
 
@@ -28,6 +29,8 @@ function Detail() {
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [done, setDone] = useState<string[]>([]);
   const [view, setView] = useState<"grid" | "table">("table");
+  const own = !!added[section]?.some((x) => x.id === id);
+  const saved = useRecordLinks(own ? id : "00000000-0000-0000-0000-000000000000");
   if (!s || !item) {
     return (
       <div className="mx-auto max-w-xl px-6 py-24 text-center">
@@ -122,7 +125,8 @@ function Detail() {
           ? <Evidence itemId={id} />
           : <p className="text-sm text-muted-foreground">This is a sample record. Add your own record to attach photos, receipts and PDFs.</p>)}
 
-        {tab === "Related" && (item.links?.length ? (
+        {tab === "Related" && own && (saved === null ? <p className="text-sm text-muted-foreground">Loading linked records…</p> : saved.length ? <RelatedRecords links={saved} /> : <p className="text-sm text-muted-foreground">Nothing linked yet. Records captured together in Add anything are linked automatically.</p>)}
+        {tab === "Related" && !own && (item.links?.length ? (
           <div className="space-y-2">
             {item.links.map(([sl, lid]) => {
               const ls = getSection(sl); const li = getItem(sl, lid);
@@ -140,7 +144,7 @@ function Detail() {
 
         {tab === "Activity" && (item.timeline?.length ? (
           <ol className="space-y-4 border-l pl-5">
-            {item.timeline.map(([d, e]) => <li key={d + e} className="relative"><span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-aurora" /><p className="text-xs text-muted-foreground">{d}</p><p className="font-medium">{e}</p></li>)}
+            {[...item.timeline, ...(own && saved ? saved.map((l) => [new Date(l.at).toLocaleDateString(), `Linked to ${l.title} (${l.label.toLowerCase()})`] as [string, string]) : [])].map(([d, e]) => <li key={d + e} className="relative"><span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-aurora" /><p className="text-xs text-muted-foreground">{d}</p><p className="font-medium">{e}</p></li>)}
           </ol>
         ) : <p className="text-sm text-muted-foreground">No activity recorded yet.</p>)}
 
