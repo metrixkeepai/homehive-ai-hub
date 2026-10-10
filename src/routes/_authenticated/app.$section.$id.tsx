@@ -70,13 +70,14 @@ function Detail() {
           {item.status && <span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(item.status[1])}`}>{item.status[0]}</span>}
           {item.value && <span className="font-display text-2xl">{item.value}</span>}
         </div>
-        {item.actions && (
+        {(item.actions || own) && (
           <div className="mt-6 flex flex-wrap gap-2">
-            {item.actions.map((a, idx) => (
+            {(item.actions ?? []).filter((a) => a !== "Delete").map((a, idx) => (
               <button key={a} disabled={done.includes(a)} onClick={() => act(a)} className={`rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${idx === 0 ? "bg-aurora text-primary-foreground" : "border border-midnight-foreground/20"}`}>
                 {done.includes(a) ? `✓ ${a}` : a}
               </button>
             ))}
+            {own && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
           </div>
         )}
         </>}

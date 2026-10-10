@@ -1,6 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Item } from "./data";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { planByKey } from "@/lib/plans";
+
+/** Plan capacity for a section, or null when the plan doesn't cap it. */
+export function sectionLimit(slug: string, plan?: string | null): { max: number; label: string } | null {
+  const l = planByKey(plan).limits;
+  const m: Record<string, [number, string]> = { assets: [l.assets, "assets"], documents: [l.docs, "documents"], locations: [l.places, "locations"], properties: [l.places, "properties"], team: [l.users, "team members"] };
+  const v = m[slug];
+  return v && Number.isFinite(v[0]) ? { max: v[0], label: v[1] } : null;
+}
+
 
 export type Profile = {
   display_name: string | null; avatar_url: string | null; household: string | null;
@@ -77,6 +88,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const add = async (slug: string, item: Item): Promise<boolean> => (await addReturning(slug, item)) !== null;
   const addReturning = async (slug: string, item: Item): Promise<string | null> => {
+    const cap = sectionLimit(slug, profile?.plan);
+    if (cap && allRows.filter((r) => r.section === slug).length >= cap.max) {
+      toast.error(`You've reached your plan's limit of ${cap.max.toLocaleString("en-GB")} ${cap.label}`, { description: "Upgrade your plan to add more.", action: { label: "Upgrade", onClick: () => { window.location.href = "/app/plans"; } } });
+      return null;
+    }
     const { data, error } = await supabase.from("home_items")
       .insert({ workspace_id: current.id, section: slug, title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields })
       .select("id,workspace_id,section,title,subtitle,fields,created_at").single();
