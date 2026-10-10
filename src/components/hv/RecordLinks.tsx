@@ -29,7 +29,7 @@ export function useRecordLinks(itemId: string) {
         const outgoing = r.source_item_id === itemId;
         const other = byId.get(outgoing ? r.target_item_id : r.source_item_id);
         if (!other) return [];
-        const lbl = LABEL[r.relationship_type] ?? LABEL.RELATED_TO!;
+        const lbl = LABEL[r.relationship_type] ?? LABEL["RELATED_TO"]!;
         return [{ id: other.id, section: other.section, title: other.title, label: outgoing ? lbl[1] : lbl[0], via: r.source_capture_type, at: r.created_at, outgoing }];
       });
       if (!off) setLinks(out);

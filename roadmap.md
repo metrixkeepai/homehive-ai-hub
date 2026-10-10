@@ -11,3 +11,4 @@
 - [x] Products + checkout: plan products created in payments
 - [ ] Ask user: business logic on purchase, subscribe, cancel, upgrade/downgrade
 - [x] Embedded checkout on Plans page + webhook handler + subscriptions table
+- [ ] Relationship graph spec: remaining sections (line items, evidence sync, Super Admin CRUD, entitlement engine, feature gating, country/business-upgrade fixes)
