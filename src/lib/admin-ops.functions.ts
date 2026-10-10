@@ -169,7 +169,7 @@ export const savePlanVersion = createServerFn({ method: "POST" })
     const db = await adminClient(context as Ctx);
     const { data: last } = await db.from("plan_versions").select("version").eq("plan_key", data.plan_key).order("version", { ascending: false }).limit(1);
     const version = (last?.[0]?.version ?? 0) + 1;
-    const { error } = await db.from("plan_versions").insert({ ...data, notes: data.notes ?? null, version, status: "draft", created_by: context.userId });
+    const { error } = await db.from("plan_versions").insert({ ...data, entitlements: (data.entitlements ?? null) as any, notes: data.notes ?? null, version, status: "draft", created_by: context.userId });
     if (error) throw new Error(error.message);
     await audit(db, context.userId, "plan_version_saved", data.plan_key, data.notes ?? null, { version });
     return { version };

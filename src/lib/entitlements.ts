@@ -3,7 +3,7 @@
 import { planByKey, plans, type Audience } from "@/lib/plans";
 
 export type Unit = "count" | "MB" | "GB" | "TB" | "per month";
-export type FeatureDef = { key: string; name: string; desc: string; group: string; audience: "individual" | "business"; unit?: Unit; min: number; limits?: (number | null)[] };
+export type FeatureDef = { key: string; name: string; desc: string; group: string; audience: "individual" | "business"; unit?: Unit | undefined; min: number; limits?: (number | null)[] | undefined };
 export type Entitlement = { on: boolean; limit?: number | null | undefined; unit?: Unit | undefined }; // limit null = unlimited
 export type Entitlements = Record<string, Entitlement>;
 
