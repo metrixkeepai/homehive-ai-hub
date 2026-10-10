@@ -525,6 +525,73 @@ export type Database = {
         }
         Relationships: []
       }
+      record_links: {
+        Row: {
+          confidence: number | null
+          confirmed: boolean
+          created_at: string
+          id: string
+          relationship_type: string
+          source_capture_type: string | null
+          source_document_id: string | null
+          source_extraction_id: string | null
+          source_item_id: string
+          target_item_id: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          relationship_type: string
+          source_capture_type?: string | null
+          source_document_id?: string | null
+          source_extraction_id?: string | null
+          source_item_id: string
+          target_item_id: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          confirmed?: boolean
+          created_at?: string
+          id?: string
+          relationship_type?: string
+          source_capture_type?: string | null
+          source_document_id?: string | null
+          source_extraction_id?: string | null
+          source_item_id?: string
+          target_item_id?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_links_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "home_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "record_links_source_item_id_fkey"
+            columns: ["source_item_id"]
+            isOneToOne: false
+            referencedRelation: "home_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "record_links_target_item_id_fkey"
+            columns: ["target_item_id"]
+            isOneToOne: false
+            referencedRelation: "home_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
