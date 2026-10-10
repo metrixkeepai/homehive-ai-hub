@@ -394,6 +394,7 @@ export type Database = {
           capacity: Json
           created_at: string
           created_by: string | null
+          entitlements: Json | null
           id: string
           monthly: number | null
           name: string
@@ -409,6 +410,7 @@ export type Database = {
           capacity?: Json
           created_at?: string
           created_by?: string | null
+          entitlements?: Json | null
           id?: string
           monthly?: number | null
           name: string
@@ -424,6 +426,7 @@ export type Database = {
           capacity?: Json
           created_at?: string
           created_by?: string | null
+          entitlements?: Json | null
           id?: string
           monthly?: number | null
           name?: string
@@ -829,6 +832,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      published_plan_entitlements: {
+        Args: never
+        Returns: {
+          entitlements: Json
+          plan_key: string
+        }[]
       }
       redeem_voucher: { Args: { _code: string }; Returns: string }
       start_business_trial: { Args: never; Returns: string }
