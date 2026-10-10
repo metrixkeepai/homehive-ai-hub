@@ -163,12 +163,13 @@ export const savePlanVersion = createServerFn({ method: "POST" })
     plan_key: z.string().regex(/^[a-z0-9_]{2,40}$/, "Key: lowercase letters, numbers, _"), name: z.string().min(2).max(60), audience: z.enum(["individual", "business", "enterprise"]),
     monthly: z.number().min(0).max(100000).nullable(), yearly: z.number().min(0).max(1000000).nullable(),
     capacity: z.record(z.string(), z.string().max(60)), benefits: z.array(z.string().max(200)).max(30), notes: z.string().max(500).optional(),
+    entitlements: z.record(z.string().max(60), z.object({ on: z.boolean(), limit: z.number().min(0).max(1e9).nullable().optional(), unit: z.enum(["count", "MB", "GB", "TB", "per month"]).optional() })).optional(),
   }).parse(d))
   .handler(async ({ context, data }) => {
     const db = await adminClient(context as Ctx);
     const { data: last } = await db.from("plan_versions").select("version").eq("plan_key", data.plan_key).order("version", { ascending: false }).limit(1);
     const version = (last?.[0]?.version ?? 0) + 1;
-    const { error } = await db.from("plan_versions").insert({ ...data, notes: data.notes ?? null, version, status: "draft", created_by: context.userId });
+    const { error } = await db.from("plan_versions").insert({ ...data, entitlements: (data.entitlements ?? null) as any, notes: data.notes ?? null, version, status: "draft", created_by: context.userId });
     if (error) throw new Error(error.message);
     await audit(db, context.userId, "plan_version_saved", data.plan_key, data.notes ?? null, { version });
     return { version };
