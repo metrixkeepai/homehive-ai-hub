@@ -1,11 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
-import { getSubscriber, overridePlan, setSuspended, extendTrial, passwordAction } from "@/lib/admin.functions";
+import { getSubscriber, overridePlan, setSuspended, extendTrial, passwordAction, deleteAccount, updateSubscriber } from "@/lib/admin.functions";
 import { plans, planByKey } from "@/lib/plans";
+import { COUNTRIES } from "@/lib/countries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Kpi } from "@/components/hv/AdminKpi";
@@ -13,6 +14,26 @@ import { Fragment } from "react";
 import { AccountUsage } from "@/components/hv/AccountUsage";
 
 export const Route = createFileRoute("/super-admin/subscribers/$id")({ component: Detail });
+
+function EditProfile({ id, p, reason, onDone, onFail }: { id: string; p: any; reason: string; onDone: () => void; onFail: (e: Error) => void }) {
+  const fn = useServerFn(updateSubscriber);
+  const [f, setF] = useState({ display_name: p.display_name ?? "", account_type: p.account_type, org_name: p.org_name ?? "", country: p.country ?? "United Kingdom", phone: p.phone ?? "" });
+  const m = useMutation({ mutationFn: () => fn({ data: { id, reason, display_name: f.display_name || null, account_type: f.account_type, org_name: f.org_name || null, country: f.country, phone: f.phone || null } }), onSuccess: onDone, onError: onFail });
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
+  return (
+    <section className="space-y-3 rounded-xl border bg-card p-5 text-sm lg:col-span-2">
+      <h2 className="font-semibold text-foreground">Edit profile</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label>Name<Input value={f.display_name} onChange={set("display_name")} /></label>
+        <label>Account type<select value={f.account_type} onChange={set("account_type")} className="h-9 w-full rounded-md border bg-background px-2"><option value="individual">Individual</option><option value="business">Business</option><option value="enterprise">Enterprise</option></select></label>
+        <label>Organisation<Input value={f.org_name} onChange={set("org_name")} /></label>
+        <label>Country<select value={f.country} onChange={set("country")} className="h-9 w-full rounded-md border bg-background px-2">{COUNTRIES.map((c) => <option key={c}>{c}</option>)}</select></label>
+        <label>Phone<Input value={f.phone} onChange={set("phone")} /></label>
+      </div>
+      <Button disabled={m.isPending} onClick={() => m.mutate()}>Save profile (uses the reason above)</Button>
+    </section>
+  );
+}
 
 function Detail() {
   const { id } = Route.useParams();
@@ -31,6 +52,9 @@ function Detail() {
   const [tempPw, setTempPw] = useState<string | null>(null);
   const pwM = useMutation({ mutationFn: (action: "email" | "temp") => pwFn({ data: { id, action, reason, origin: window.location.origin } }), onSuccess: (r) => { setTempPw(r.password); done(r.password ? "Temporary password set" : "Reset email sent")(); }, onError: fail });
   const trialM = useMutation({ mutationFn: () => ext({ data: { id, days, reason } }), onSuccess: done("Trial extended"), onError: fail });
+  const delFn = useServerFn(deleteAccount);
+  const nav = useNavigate();
+  const delM = useMutation({ mutationFn: () => delFn({ data: { id, reason } }), onSuccess: () => { toast.success("Account deleted"); qc.invalidateQueries({ queryKey: ["admin"] }); nav({ to: "/super-admin/subscribers" }); }, onError: fail });
 
   if (isLoading) return <p className="text-muted-foreground">Loading account…</p>;
   if (error || !data) {
@@ -80,8 +104,10 @@ function Detail() {
             <Button variant="outline" disabled={pwM.isPending} onClick={() => pwM.mutate("temp")}>Set temporary password</Button>
           </div>
           {tempPw && <p className="rounded-md border bg-muted p-2 text-xs">Temporary password (shown once, must be changed at next sign-in): <span className="font-mono">{tempPw}</span></p>}
-          <p className="text-xs text-muted-foreground">Existing passwords can never be viewed. Accounts are never deleted from here; suspension is reversible.</p>
+          <p className="text-xs text-muted-foreground">Existing passwords can never be viewed. Suspension is reversible; deletion is not.</p>
+          <Button variant="destructive" disabled={delM.isPending} onClick={() => { if (confirm(`Permanently delete ${data.email} and all their records and files? This cannot be undone.`)) delM.mutate(); }}>Delete account permanently</Button>
         </section>
+        <EditProfile id={id} p={p} reason={reason} onDone={done("Profile saved")} onFail={fail} />
       </div>
       <AccountUsage id={id} />
       <section className="rounded-xl border bg-card p-5 text-sm">
