@@ -77,6 +77,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const add = async (slug: string, item: Item): Promise<boolean> => (await addReturning(slug, item)) !== null;
   const addReturning = async (slug: string, item: Item): Promise<string | null> => {
+    const cap = sectionLimit(slug, profile?.plan);
+    if (cap && allRows.filter((r) => r.section === slug).length >= cap.max) {
+      toast.error(`You've reached your plan's limit of ${cap.max.toLocaleString("en-GB")} ${cap.label}`, { description: "Upgrade your plan to add more.", action: { label: "Upgrade", onClick: () => { window.location.href = "/app/plans"; } } });
+      return null;
+    }
     const { data, error } = await supabase.from("home_items")
       .insert({ workspace_id: current.id, section: slug, title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields })
       .select("id,workspace_id,section,title,subtitle,fields,created_at").single();

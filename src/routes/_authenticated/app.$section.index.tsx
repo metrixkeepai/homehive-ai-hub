@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, X, ChevronRight } from "lucide-react";
+import { Plus, X, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
@@ -30,7 +30,7 @@ function SectionPage() {
   const { section } = Route.useParams();
   const search = Route.useSearch();
   const s = getSection(section);
-  const { added, add } = useStore();
+  const { added, add, remove } = useStore();
   const [open, setOpen] = useState(!!search.add);
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
@@ -84,6 +84,13 @@ function SectionPage() {
               {i.status && <span className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${toneClass(i.status[1])}`}>{i.status[0]}</span>}
             </div>
             {i.value && <p className="font-display text-xl">{i.value}</p>}
+            {added[s.slug]?.some((x) => x.id === i.id) && (
+              <button aria-label={`Delete ${i.title}`} onClick={async (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (!confirm(`Delete “${i.title}”? This can't be undone.`)) return;
+                try { await remove(s.slug, i.id); toast.success(`${i.title} deleted`); } catch { toast.error("Couldn't delete — please try again"); }
+              }} className="rounded-full p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            )}
             <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
           </Link>
         ))}
