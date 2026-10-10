@@ -7,6 +7,7 @@ import { type Profile, useStore, toneClass } from "@/components/hv/store";
 import { TrackingPage } from "@/components/hv/Tracking";
 import { COUNTRIES } from "@/lib/countries";
 import { BillingPage } from "@/components/hv/Billing";
+import { ViewToggle, useViewMode } from "@/components/hv/ViewToggle";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
@@ -35,6 +36,7 @@ function SectionPage() {
   const [open, setOpen] = useState(!!search.add);
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
+  const [view, setView] = useViewMode(section);
   if (!s) return <Missing />;
   if (section === "billing") return <BillingPage />;
   if (section === "warranties" || section === "renewals") return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
@@ -73,8 +75,19 @@ function SectionPage() {
         ))}
       </div>
 
-      {s.items.length > 2 && <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${s.title.toLowerCase()}…`} className="w-full rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />}
+      {s.slug !== "profile" && <div className="flex items-center gap-3"><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${s.title.toLowerCase()}…`} className="min-w-0 flex-1 rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" /><ViewToggle mode={view} onChange={setView} /></div>}
 
+      {view === "table" && s.slug !== "profile" ? (
+        <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft"><table className="w-full text-sm"><thead className="bg-secondary/50 text-left text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Name</th><th className="p-4">Details</th><th className="p-4">Status</th><th className="p-4">Value</th><th /></tr></thead>
+          <tbody className="divide-y">{items.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nothing matches “{filter}”.</td></tr>}{items.map((i) => (
+            <tr key={i.id} className="hover:bg-secondary/40">
+              <td className="p-4 font-semibold"><Link to="/app/$section/$id" params={{ section: s.slug, id: i.id }} className="hover:text-primary">{i.title}</Link></td>
+              <td className="max-w-xs truncate p-4 text-muted-foreground">{i.subtitle}</td>
+              <td className="p-4">{i.status && <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${toneClass(i.status[1])}`}>{i.status[0]}</span>}</td>
+              <td className="p-4">{i.value ?? "—"}</td>
+              <td className="p-4 text-right">{added[s.slug]?.some((x) => x.id === i.id) && <button aria-label={`Delete ${i.title}`} onClick={async () => { if (!confirm(`Delete “${i.title}”? This can't be undone.`)) return; try { await remove(s.slug, i.id); toast.success(`${i.title} deleted`); } catch { toast.error("Couldn't delete — please try again"); } }} className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}</td>
+            </tr>))}</tbody></table></div>
+      ) : (
       <div className="grid gap-3 md:grid-cols-2">
         {items.length === 0 && <p className="rounded-2xl bg-secondary p-8 text-center text-sm text-muted-foreground md:col-span-2">Nothing matches “{filter}”.</p>}
         {items.map((i) => (
@@ -96,6 +109,7 @@ function SectionPage() {
           </Link>
         ))}
       </div>
+      )}
 
       {open && s.addFields && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
