@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteShell, PageHero, FAQ, CTA, Reveal } from "@/components/hv/Site";
 import { plans, type Audience } from "@/lib/plans";
+import { useInactivePlans } from "@/lib/plan-status";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
 
 const t = "Pricing — MatrixKeep";
@@ -16,7 +17,8 @@ const tabs: [Audience, string][] = [["individual", "Individual"], ["business", "
 function Page() {
   const [tab, setTab] = useState<Audience>("individual");
   const [yearly, setYearly] = useState(false);
-  const list = plans.filter((p) => p.audience === tab);
+  const off = useInactivePlans();
+  const list = plans.filter((p) => p.audience === tab && !off.has(p.key));
   return (
     <SiteShell>
       <PageHero eyebrow="Pricing" title="Know exactly what you get." accent="Start free." lead={d} />

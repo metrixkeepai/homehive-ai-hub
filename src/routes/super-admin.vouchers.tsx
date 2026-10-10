@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { toggleVoucher } from "@/lib/admin.functions";
+import { toggleVoucher, deleteVoucher } from "@/lib/admin.functions";
 import { benefitTypes, createVouchers, voucherList } from "@/lib/vouchers.functions";
 import { plans, planByKey } from "@/lib/plans";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ const blank = { name: "", description: "", code_type: "shared" as "shared" | "un
 function Vouchers() {
   const qc = useQueryClient();
   const nav = useNavigate();
-  const list = useServerFn(voucherList), create = useServerFn(createVouchers), toggle = useServerFn(toggleVoucher);
+  const list = useServerFn(voucherList), create = useServerFn(createVouchers), toggle = useServerFn(toggleVoucher), remove = useServerFn(deleteVoucher);
   const q = useQuery({ queryKey: ["admin", "vouchers"], queryFn: () => list() });
   const [f, setF] = useState(blank);
   const [step, setStep] = useState<"form" | "review" | null>(null);
@@ -51,6 +51,7 @@ function Vouchers() {
     onError: (e: Error) => { let m = e.message; try { m = JSON.parse(e.message)[0].message; } catch { /* plain */ } toast.error(m); setStep("form"); },
   });
   const toggleM = useMutation({ mutationFn: (v: { code: string; active: boolean }) => toggle({ data: v }), onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "vouchers"] }), onError: (e: Error) => toast.error(e.message) });
+  const delM = useMutation({ mutationFn: (code: string) => remove({ data: { code } }), onSuccess: () => { toast.success("Voucher deleted"); qc.invalidateQueries({ queryKey: ["admin", "vouchers"] }); }, onError: (e: Error) => toast.error(e.message) });
   const d = q.data;
   const field = "h-9 w-full rounded-md border bg-background px-2 text-sm";
   return (
@@ -68,7 +69,8 @@ function Vouchers() {
           onOpen={(r) => nav({ to: "/super-admin/vouchers/$code", params: { code: r.code } })}
           filters={[{ key: "state", label: "States" }, { key: "kind", label: "Code types" }, { key: "benefit_type", label: "Benefits" }]}
           cols={[{ key: "code", label: "Code", render: (r) => <span className="font-mono">{r.code}</span> }, { key: "name", label: "Name" }, { key: "benefit", label: "Benefit" }, { key: "audience", label: "Who" }, { key: "uses", label: "Used", render: (r) => `${r.uses} / ${r.max_uses}` }, { key: "valid_until", label: "Redeem by", render: (r) => r.valid_until ? new Date(r.valid_until).toLocaleDateString("en-GB") : "—" }, { key: "state", label: "State", render: (r) => <span className="capitalize">{r.state}</span> },
-            { key: "active", label: "On", render: (r) => <span onClick={(e) => e.stopPropagation()}><Switch checked={r.active} onCheckedChange={(a) => toggleM.mutate({ code: r.code, active: a })} aria-label={`Toggle ${r.code}`} /></span> }]} />
+            { key: "active", label: "On", render: (r) => <span onClick={(e) => e.stopPropagation()}><Switch checked={r.active} onCheckedChange={(a) => toggleM.mutate({ code: r.code, active: a })} aria-label={`Toggle ${r.code}`} /></span> },
+            { key: "del", label: "", render: (r) => <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${r.code}?`)) delM.mutate(r.code); }} className="text-xs text-destructive">Delete</button> }]} />
       </>}
 
       <Dialog open={step !== null} onOpenChange={(o) => !o && setStep(null)}>
