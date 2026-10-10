@@ -263,3 +263,59 @@ export const passwordAction = createServerFn({ method: "POST" })
     await audit(db, context.userId, data.action === "email" ? "password_reset_email" : "temporary_password_set", data.id, data.reason);
     return { ok: true, password };
   });
+
+/* ---------------- Full edit / delete ---------------- */
+export const updateSubscriber = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), display_name: z.string().trim().max(120).nullable(), account_type: z.enum(["individual", "business", "enterprise"]), org_name: z.string().trim().max(200).nullable(), country: z.string().trim().min(2).max(80), phone: z.string().trim().max(40).nullable(), reason }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { id, reason: why, ...patch } = data;
+    const { error } = await db.from("profiles").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) throw new Error(error.message);
+    await audit(db, context.userId, "account_edited", id, why, patch);
+    return { ok: true };
+  });
+
+export const deleteAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), reason }).parse(d))
+  .handler(async ({ context, data }) => {
+    if (data.id === context.userId) throw new Error("You can't delete your own admin account");
+    const db = await adminClient(context as Ctx);
+    const { data: files } = await db.from("evidence_files").select("path").eq("user_id", data.id);
+    if (files?.length) await db.storage.from("evidence").remove(files.map((f: { path: string }) => f.path));
+    await db.from("evidence_files").delete().eq("user_id", data.id);
+    await db.from("record_links").delete().eq("user_id", data.id);
+    await db.from("home_items").delete().eq("user_id", data.id);
+    await db.from("workspaces").delete().eq("owner_id", data.id);
+    const { error } = await db.auth.admin.deleteUser(data.id);
+    if (error) throw new Error(error.message);
+    await audit(db, context.userId, "account_deleted", data.id, data.reason);
+    return { ok: true };
+  });
+
+export const updateVoucher = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ code: z.string().max(64), name: z.string().trim().max(120), description: z.string().trim().max(500), max_uses: z.number().int().min(1).max(100000), valid_until: z.string().datetime().nullable() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { code, ...patch } = data;
+    const { error } = await db.from("vouchers").update(patch).eq("code", code);
+    if (error) throw new Error(error.message);
+    await audit(db, context.userId, "voucher_edited", code, null, patch);
+    return { ok: true };
+  });
+
+export const deleteVoucher = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ code: z.string().max(64) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { count } = await db.from("voucher_redemptions").select("id", { count: "exact", head: true }).eq("code", data.code);
+    if (count) throw new Error("This code has been redeemed — pause it instead so the history stays intact");
+    const { error } = await db.from("vouchers").delete().eq("code", data.code);
+    if (error) throw new Error(error.message);
+    await audit(db, context.userId, "voucher_deleted", data.code, null);
+    return { ok: true };
+  });
