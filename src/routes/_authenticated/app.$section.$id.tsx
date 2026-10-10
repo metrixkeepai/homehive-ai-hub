@@ -4,7 +4,8 @@ import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getSection, getItem } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
-import { Evidence } from "@/components/hv/Evidence";
+import { Evidence, type Proposed } from "@/components/hv/Evidence";
+import { useFeature, Locked } from "@/components/hv/Feature";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
 import { GoogleIntegration, GoogleOverviewFields, googleConnectorFor } from "@/components/hv/GoogleIntegration";
@@ -23,7 +24,9 @@ const tabs = ["Overview", "Items", "Evidence", "Related", "Activity", "AI insigh
 function Detail() {
   const { section, id } = Route.useParams();
   const s = getSection(section);
-  const { added, remove } = useStore();
+  const { added, remove, update } = useStore();
+  const [proposal, setProposal] = useState<Proposed | null>(null);
+  const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
   const item = getItem(section, id) ?? added[section]?.find((x) => x.id === id);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
@@ -145,7 +148,25 @@ function Detail() {
         )}
 
         {tab === "Evidence" && (added[section]?.some((x) => x.id === id)
-          ? <Evidence itemId={id} />
+          ? <div className="space-y-4">
+              {proposal && (
+                <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
+                  <p className="font-semibold">Sera found these details in {proposal.file}</p>
+                  <p className="text-xs text-muted-foreground">Confirm to add them to this record's Overview. Existing values with the same name are replaced.</p>
+                  <dl className="mt-3 grid gap-2 sm:grid-cols-2">{proposal.fields.map(([k, v]) => <div key={k}><dt className="text-xs text-muted-foreground">{k}{item.fields.some(([x]) => x.toLowerCase() === k.toLowerCase()) ? " (update)" : " (new)"}</dt><dd className="font-medium">{v}</dd></div>)}</dl>
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={async () => {
+                      const keys = new Set(proposal.fields.map(([k]) => k.toLowerCase()));
+                      const fields: [string, string][] = [...item.fields.filter(([k]) => !keys.has(k.toLowerCase()) && k !== "Last updated from evidence"), ...proposal.fields, ["Last updated from evidence", `${proposal.file} · ${new Date().toLocaleDateString("en-GB")}`]];
+                      const ok = await update(id, { ...item, fields });
+                      if (ok) { toast.success("Overview updated"); setProposal(null); setTab("Overview"); } else toast.error("Couldn't update — please try again");
+                    }} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Confirm & update</button>
+                    <button onClick={() => setProposal(null)} className="rounded-full border px-4 py-2 text-sm">Dismiss</button>
+                  </div>
+                </div>
+              )}
+              <Evidence itemId={id} itemTitle={item.title} onExtract={setProposal} />
+            </div>
           : <p className="text-sm text-muted-foreground">This is a sample record. Add your own record to attach photos, receipts and PDFs.</p>)}
 
         {tab === "Related" && own && (saved === null ? <p className="text-sm text-muted-foreground">Loading linked records…</p> : saved.length ? <RelatedRecords links={saved} /> : <p className="text-sm text-muted-foreground">Nothing linked yet. Records captured together in Add anything are linked automatically.</p>)}

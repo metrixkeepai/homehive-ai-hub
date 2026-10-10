@@ -1,14 +1,44 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { voucherDetail } from "@/lib/vouchers.functions";
+import { updateVoucher, deleteVoucher, toggleVoucher } from "@/lib/admin.functions";
 import { Kpi, when } from "@/components/hv/AdminKpi";
 import { DataTable } from "@/components/hv/BillingKit";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { planByKey } from "@/lib/plans";
 
 export const Route = createFileRoute("/super-admin/vouchers_/$code")({ component: VoucherDetail });
+
+function EditVoucher({ v, onSaved }: { v: any; onSaved: () => void }) {
+  const up = useServerFn(updateVoucher), del = useServerFn(deleteVoucher), tog = useServerFn(toggleVoucher);
+  const nav = useNavigate();
+  const [f, setF] = useState({ name: v.name ?? "", description: v.description ?? "", max_uses: v.max_uses as number, valid_until: v.valid_until ? String(v.valid_until).slice(0, 10) : "" });
+  const err = (e: Error) => toast.error(e.message);
+  const save = useMutation({ mutationFn: () => up({ data: { code: v.code, name: f.name, description: f.description, max_uses: f.max_uses, valid_until: f.valid_until ? new Date(f.valid_until + "T23:59:59Z").toISOString() : null } }), onSuccess: () => { toast.success("Voucher saved"); onSaved(); }, onError: err });
+  const rm = useMutation({ mutationFn: () => del({ data: { code: v.code } }), onSuccess: () => { toast.success("Voucher deleted"); nav({ to: "/super-admin/vouchers" }); }, onError: err });
+  const tg = useMutation({ mutationFn: () => tog({ data: { code: v.code, active: !v.active } }), onSuccess: () => { toast.success(v.active ? "Paused" : "Activated"); onSaved(); }, onError: err });
+  return (
+    <section className="space-y-3 rounded-xl border bg-card p-5 text-sm">
+      <h2 className="font-semibold">Edit voucher</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label>Name<Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
+        <label>Description<Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></label>
+        <label>Max uses<Input type="number" min={1} value={f.max_uses} onChange={(e) => setF({ ...f, max_uses: Number(e.target.value) })} /></label>
+        <label>Redeem until<Input type="date" value={f.valid_until} onChange={(e) => setF({ ...f, valid_until: e.target.value })} /></label>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={save.isPending} onClick={() => save.mutate()}>Save changes</Button>
+        <Button variant="outline" disabled={tg.isPending} onClick={() => tg.mutate()}>{v.active ? "Pause" : "Activate"}</Button>
+        <Button variant="destructive" disabled={rm.isPending} onClick={() => { if (confirm(`Delete ${v.code}?`)) rm.mutate(); }}>Delete</Button>
+      </div>
+    </section>
+  );
+}
 
 function VoucherDetail() {
   const { code } = Route.useParams();
@@ -23,6 +53,7 @@ function VoucherDetail() {
     <div className="space-y-6">
       {back}
       <div><h1 className="font-mono text-3xl text-foreground">{v.code}</h1><p className="text-sm text-muted-foreground">{v.name || "Unnamed"}{v.description && ` · ${v.description}`}</p></div>
+      <EditVoucher v={v} onSaved={() => q.refetch()} />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="State" value={v.state} /><Kpi label="Redeemed" value={`${v.uses} / ${v.max_uses}`} /><Kpi label="Plan" value={planByKey(v.plan).name} hint={v.benefit_type.replace(/_/g, " ")} /><Kpi label="Benefit lasts" value={len} />
       </section>
