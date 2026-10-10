@@ -128,15 +128,16 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     const keep = recs.filter((r) => r.keep && r.title.trim());
     if (!keep.length) { toast.error("Select at least one record"); return; }
     setStep("saving");
-    const out: typeof saved = [];
+    const out: (typeof saved[number] & { rel: string })[] = [];
     for (const r of keep) {
       const fields: [string, string][] = r.fields.map((f) => [f.label, f.value]);
       if (location) fields.push(["Location", location]);
       if (room && !fields.some(([k]) => k === "Room")) fields.push(["Room", room]);
       fields.push(["Captured via", mode?.label ?? "Add anything"]);
       const id = await addReturning(r.section, { id: "", title: r.title.trim(), subtitle: r.subtitle, fields });
-      if (id) out.push({ section: r.section, id, title: r.title });
+      if (id) out.push({ section: r.section, id, title: r.title, rel: r.relates_to ?? "" });
     }
+    await linkCaptured(out, mode?.label ?? "Add anything", current.id);
     if (file && out[0]) {
       const { data: u } = await supabase.auth.getUser();
       if (u.user) {
@@ -147,7 +148,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         }
       }
     }
-    setSaved(out);
+    setSaved(out.map(({ rel: _r, ...x }) => x));
     if (out.length < keep.length) toast.error(`${keep.length - out.length} record(s) couldn't be saved`);
     setStep("done");
   };
@@ -279,3 +280,20 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
 }
 
 type SR = { lang: string; interimResults: boolean; start: () => void; onresult: (e: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void; onend: () => void };
+
+const REL: Record<string, string> = { maintenance: "MAINTENANCE_FOR", warranties: "WARRANTY_FOR", insurance: "INSURANCE_FOR", tasks: "TASK_FOR" };
+/** Persist the relationship graph for records created from one capture. */
+async function linkCaptured(out: { section: string; id: string; title: string; rel: string }[], captureType: string, workspaceId: string | null) {
+  if (out.length < 2) return;
+  const extraction = crypto.randomUUID();
+  const doc = out.find((o) => o.section === "documents");
+  const rows: { source_item_id: string; target_item_id: string; relationship_type: string; source_document_id: string | null; source_extraction_id: string; source_capture_type: string; workspace_id: string | null }[] = [];
+  const base = { source_document_id: doc?.id ?? null, source_extraction_id: extraction, source_capture_type: captureType, workspace_id: workspaceId };
+  for (const o of out) {
+    if (doc && o.id !== doc.id) rows.push({ ...base, source_item_id: o.id, target_item_id: doc.id, relationship_type: "EXTRACTED_FROM" });
+    const parent = o.rel && out.find((p) => p.id !== o.id && p.title.trim().toLowerCase() === o.rel.trim().toLowerCase());
+    if (parent) rows.push({ ...base, source_item_id: o.id, target_item_id: parent.id, relationship_type: REL[o.section] ?? "RELATED_TO" });
+  }
+  if (!doc) for (const o of out.slice(1)) if (!rows.some((r) => r.source_item_id === o.id)) rows.push({ ...base, source_item_id: o.id, target_item_id: out[0]!.id, relationship_type: "SAME_SOURCE" });
+  if (rows.length) await supabase.from("record_links").insert(rows);
+}
