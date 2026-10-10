@@ -4,7 +4,7 @@ import { planByKey, plans, type Audience } from "@/lib/plans";
 
 export type Unit = "count" | "MB" | "GB" | "TB" | "per month";
 export type FeatureDef = { key: string; name: string; desc: string; group: string; audience: "individual" | "business"; unit?: Unit; min: number; limits?: (number | null)[] };
-export type Entitlement = { on: boolean; limit?: number | null; unit?: Unit }; // limit null = unlimited
+export type Entitlement = { on: boolean; limit?: number | null | undefined; unit?: Unit | undefined }; // limit null = unlimited
 export type Entitlements = Record<string, Entitlement>;
 
 const slug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
@@ -93,7 +93,7 @@ export function checkAdd(ent: Entitlements, slug: string, count: number): GateRe
 }
 
 /** Plans in the same audience that would allow this feature (and a higher limit when relevant). */
-export function eligiblePlans(currentKey: string, feature: string, published: Record<string, Entitlements>, needMoreThan?: number) {
+export function eligiblePlans(currentKey: string, feature: string, published: Record<string, Entitlements>, needMoreThan?: number | undefined) {
   const aud = planByKey(currentKey).audience;
   return plans.filter((p) => p.audience === aud && p.key !== currentKey).filter((p) => {
     const e = effective(p.key, published[p.key])[feature];

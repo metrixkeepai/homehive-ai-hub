@@ -37,7 +37,7 @@ function Plans() {
   const off = useInactivePlans();
   const list = plansFor(kind).filter((p) => !off.has(p.key) || p.key === profile?.plan);
   const published = usePublished();
-  const [need, setNeed] = useState<{ feature: string; over?: number } | null>(null);
+  const [need, setNeed] = useState<{ feature: string; over?: number | undefined } | null>(null);
   const [resume, setResume] = useState<string | null>(null);
   useEffect(() => { const u = new URLSearchParams(window.location.search); const f = u.get("need"); if (f) setNeed({ feature: f, over: u.get("over") ? Number(u.get("over")) : undefined }); setResume(sessionStorage.getItem("hv-resume")); }, []);
   const eligible = need ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over) : [];
