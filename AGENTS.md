@@ -22,3 +22,4 @@
 - Provider-backed admin figures (Stripe, AWS, Azure) load only when their secrets exist; otherwise the UI shows a Setup Required state instead of estimates.
 - Sera voice calls run through a persistent /api/live relay (src/lib/live-relay.server.ts, dispatched in src/server.ts); the browser sends its sign-in token in app.start so the relay only reads that user's own records.
 - Google (Gmail, Calendar, Drive) uses per-user App User Connectors: each user's connection key is stored encrypted in app_user_connections (service-role only) and every Google call runs in src/lib/google.functions.ts, so tokens never reach the browser.
+- Plan product access comes from the feature catalogue in src/lib/entitlements.ts (defaults per plan tier) overridden by the latest approved plan_versions.entitlements; benefits text stays marketing-only so copy edits never change access.
