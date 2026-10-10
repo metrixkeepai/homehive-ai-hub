@@ -3,6 +3,8 @@ import type { Item } from "./data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { planByKey } from "@/lib/plans";
+import { checkAdd, effective, type Entitlements } from "@/lib/entitlements";
+import { fetchPublished, openUpgrade, UpgradeModal } from "./Upgrade";
 
 /** Plan capacity for a section, or null when the plan doesn't cap it. */
 export function sectionLimit(slug: string, plan?: string | null): { max: number; label: string } | null {
@@ -52,6 +54,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [rawWs, setRawWs] = useState<Workspace[]>([]);
   const [wsId, setWsId] = useState<string | null>(null);
   const [allRows, setAllRows] = useState<Row[]>([]);
+  const [published, setPublished] = useState<Record<string, Entitlements>>({});
+  useEffect(() => { void fetchPublished().then(setPublished).catch(() => {}); }, []);
   useEffect(() => { setWsId(localStorage.getItem("hv-ws") || null); }, []);
 
   const load = useCallback(async () => {
@@ -88,11 +92,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const add = async (slug: string, item: Item): Promise<boolean> => (await addReturning(slug, item)) !== null;
   const addReturning = async (slug: string, item: Item): Promise<string | null> => {
-    const cap = sectionLimit(slug, profile?.plan);
-    if (cap && allRows.filter((r) => r.section === slug).length >= cap.max) {
-      toast.error(`You've reached your plan's limit of ${cap.max.toLocaleString("en-GB")} ${cap.label}`, { description: "Upgrade your plan to add more.", action: { label: "Upgrade", onClick: () => { window.location.href = "/app/plans"; } } });
-      return null;
-    }
+    const plan = profile?.plan ?? "free";
+    const gate = checkAdd(effective(plan, published[plan]), slug, allRows.filter((r) => r.section === slug).length);
+    if (!gate.ok) { openUpgrade(gate); return null; }
     const { data, error } = await supabase.from("home_items")
       .insert({ workspace_id: current.id, section: slug, title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields })
       .select("id,workspace_id,section,title,subtitle,fields,created_at").single();
@@ -119,7 +121,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return !error;
   };
 
-  return <StoreCtx.Provider value={{ added, add, addReturning, remove, update, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load }}>{children}</StoreCtx.Provider>;
+  return <StoreCtx.Provider value={{ added, add, addReturning, remove, update, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load }}>{children}<UpgradeModal /></StoreCtx.Provider>;
 }
 export const useStore = () => useContext(StoreCtx);
 

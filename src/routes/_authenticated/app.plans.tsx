@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/components/hv/store";
 import { planByKey, plansFor, trialInfo, type PlanDef } from "@/lib/plans";
 import { useInactivePlans } from "@/lib/plan-status";
+import { eligiblePlans } from "@/lib/entitlements";
+import { usePublished } from "@/components/hv/Upgrade";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
 import { StripeEmbeddedCheckout } from "@/components/hv/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/hv/PaymentTestModeBanner";
@@ -34,6 +36,11 @@ function Plans() {
   const kind = profile?.account_type ?? "individual";
   const off = useInactivePlans();
   const list = plansFor(kind).filter((p) => !off.has(p.key) || p.key === profile?.plan);
+  const published = usePublished();
+  const [need, setNeed] = useState<{ feature: string; over?: number } | null>(null);
+  const [resume, setResume] = useState<string | null>(null);
+  useEffect(() => { const u = new URLSearchParams(window.location.search); const f = u.get("need"); if (f) setNeed({ feature: f, over: u.get("over") ? Number(u.get("over")) : undefined }); setResume(sessionStorage.getItem("hv-resume")); }, []);
+  const eligible = need ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over) : [];
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
 
   const redeem = async (c: string) => {
@@ -79,11 +86,13 @@ function Plans() {
         <div className="flex flex-1 items-center gap-2 rounded-full border bg-card px-4"><Ticket className="h-4 w-4 text-primary" /><input value={code} onChange={(e) => setCode(e.target.value)} maxLength={40} placeholder="Voucher code" className="w-full bg-transparent py-2.5 text-base uppercase outline-none sm:text-sm" /></div>
         <button disabled={busy} className="rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-60">Redeem</button>
       </form>
+      {need && <p className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">{eligible.length ? <>Plans that unlock this are highlighted below.</> : <>No self-serve plan unlocks this — talk to us about Enterprise.</>}</p>}
+      {resume && <a href={resume} onClick={() => sessionStorage.removeItem("hv-resume")} className="inline-block text-sm font-semibold text-primary">← Return to what you were doing</a>}
       <BillingToggle yearly={yearly} onChange={setYearly} />
       <div className="grid gap-6 pt-2 md:grid-cols-2 xl:grid-cols-4">
         {list.map((p) => {
           const cur = (profile?.plan ?? "free") === p.key;
-          return <PlanCard key={p.key} p={p} yearly={yearly} current={cur} highlight={p.badge === "Most popular"} cta={
+          return <PlanCard key={p.key} p={p} yearly={yearly} current={cur} highlight={need ? eligible.includes(p.key) : p.badge === "Most popular"} cta={
             cur ? <button disabled className="w-full rounded-full bg-secondary py-2.5 text-sm font-semibold text-muted-foreground">Current plan</button> : <>
               {p.trialDays && !profile?.trial_ends_at && <button disabled={busy} onClick={startTrial} className="w-full rounded-full bg-aurora py-2.5 text-sm font-semibold text-primary-foreground">Start 14-day free trial</button>}
               <button onClick={() => choose(p)} className={`w-full rounded-full py-2.5 text-sm font-semibold ${p.trialDays && !profile?.trial_ends_at ? "border" : "bg-aurora text-primary-foreground"}`}>{p.monthly === null ? "Talk to us" : p.monthly === 0 ? "Switch to Free" : p.trialDays ? "Buy now" : `Choose ${p.name}`}</button>
