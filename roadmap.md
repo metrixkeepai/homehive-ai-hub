@@ -12,3 +12,10 @@
 - [ ] Ask user: business logic on purchase, subscribe, cancel, upgrade/downgrade
 - [x] Embedded checkout on Plans page + webhook handler + subscriptions table
 - [ ] Relationship graph spec: remaining sections (line items, evidence sync, Super Admin CRUD, entitlement engine, feature gating, country/business-upgrade fixes)
+- [x] Delete own records (rooms, vehicles, assets, any section) from list and detail pages
+- [x] Plan limits enforced on adding assets/documents/locations/team with Upgrade prompt
+- [ ] Separate line items on documents
+- [ ] Evidence fixes across the whole app (AI-read new evidence, update Overview after confirm)
+- [ ] Full add/edit/delete in Super Admin
+- [ ] Feature switches gating features + upgrade prompts on locked features
+- [ ] Country field and Individual-to-Business upgrade fixes
