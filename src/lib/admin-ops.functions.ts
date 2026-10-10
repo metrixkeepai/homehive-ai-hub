@@ -150,10 +150,11 @@ export const planVersions = createServerFn({ method: "GET" })
     const db = await adminClient(context as Ctx);
     let q = db.from("plan_versions").select("*").order("version", { ascending: false });
     if (data.key) q = q.eq("plan_key", data.key);
-    const [{ data: versions }, { data: profiles }] = await Promise.all([q, db.from("profiles").select("plan")]);
+    const [{ data: versions }, { data: profiles }, { data: st }] = await Promise.all([q, db.from("profiles").select("plan"), db.from("plan_status").select("plan_key, active")]);
     const counts: Record<string, number> = {};
     (profiles ?? []).forEach((p: any) => { counts[p.plan] = (counts[p.plan] ?? 0) + 1; });
-    return { versions: versions ?? [], counts };
+    const inactive = (st ?? []).filter((s) => !s.active).map((s) => s.plan_key);
+    return { versions: versions ?? [], counts, inactive };
   });
 
 export const savePlanVersion = createServerFn({ method: "POST" })
@@ -184,6 +185,32 @@ export const setPlanVersionStatus = createServerFn({ method: "POST" })
     const { error } = await db.from("plan_versions").update({ status: data.status }).eq("id", data.id);
     if (error) throw new Error(error.message);
     await audit(db, context.userId, `plan_version_${data.status}`, v.plan_key, null, { version: v.version });
+    return { ok: true };
+  });
+
+export const setPlanActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ key: z.string().max(60), active: z.boolean() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { error } = await db.from("plan_status").upsert({ plan_key: data.key, active: data.active, updated_by: context.userId, updated_at: new Date().toISOString() });
+    if (error) throw new Error(error.message);
+    await audit(db, context.userId, data.active ? "plan_activated" : "plan_deactivated", data.key, null);
+    return { ok: true };
+  });
+
+export const deletePlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    const { plans } = await import("@/lib/plans");
+    if (plans.some((p) => p.key === data.key)) throw new Error("Live plans can't be deleted — deactivate them instead.");
+    const { count } = await db.from("profiles").select("id", { count: "exact", head: true }).eq("plan", data.key);
+    if (count) throw new Error(`${count} accounts are on this plan — move them first.`);
+    await db.from("plan_versions").delete().eq("plan_key", data.key);
+    await db.from("plan_status").delete().eq("plan_key", data.key);
+    await audit(db, context.userId, "plan_deleted", data.key, null);
     return { ok: true };
   });
 
