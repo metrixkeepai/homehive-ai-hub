@@ -1,17 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, FileText, X, Download, Trash2, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
+import { Upload, FileText, X, Download, Trash2, ZoomIn, ZoomOut, RotateCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { extractRecords } from "@/lib/capture.functions";
+import { useFeature } from "./Feature";
 
 type Ev = { id: string; path: string; name: string; mime: string; size: number; created_at: string; url?: string };
+export type Proposed = { file: string; fields: [string, string][] };
 
-export function Evidence({ itemId }: { itemId: string }) {
+/** Extracted facts from evidence; only labels relevant to this record, never sibling items. */
+export function Evidence({ itemId, itemTitle, onExtract }: { itemId: string; itemTitle?: string; onExtract?: (p: Proposed) => void }) {
   const [files, setFiles] = useState<Ev[]>([]);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Ev | null>(null);
   const [zoom, setZoom] = useState(1);
   const [rot, setRot] = useState(0);
+  const [reading, setReading] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const extract = useServerFn(extractRecords);
+  const aiOn = useFeature("evidence_ai");
+
+  const read = async (e: Ev) => {
+    if (!e.url || !onExtract) return;
+    setReading(true);
+    try {
+      const blob = await (await fetch(e.url)).blob();
+      if (blob.size > 5_000_000) { toast.error("That file is too large for AI reading (5 MB max)"); return; }
+      const dataUrl = await new Promise<string>((ok) => { const r = new FileReader(); r.onload = () => ok(r.result as string); r.readAsDataURL(blob); });
+      const r = await extract({ data: { mode: "Evidence", text: `Extract only details about "${itemTitle ?? "this record"}" (warranty provider, warranty end date, serial number, model, purchase/service dates, prices). Return one record about it.`, image: dataUrl, fileName: e.name } });
+      if ("error" in r && r.error) { toast.error(r.error); return; }
+      const recs = "records" in r ? r.records ?? [] : [];
+      const t = (itemTitle ?? "").toLowerCase();
+      const best = recs.find((x) => x.title.toLowerCase().includes(t) || t.includes(x.title.toLowerCase())) ?? recs[0];
+      const fields = (best?.fields ?? []).filter((f) => f.value.trim()).map((f) => [f.label, f.value] as [string, string]);
+      if (!fields.length) { toast.error("No new details found in that file"); return; }
+      setOpen(null); onExtract({ file: e.name, fields });
+    } catch { toast.error("Couldn't read that file. Please try again."); } finally { setReading(false); }
+  };
 
   const load = useCallback(async () => {
     const { data } = await supabase.from("evidence_files").select("*").eq("item_id", itemId).order("created_at", { ascending: false });
@@ -88,6 +114,7 @@ export function Evidence({ itemId }: { itemId: string }) {
               <button aria-label="Rotate" onClick={() => setRot((r) => r + 90)} className="rounded-full p-2 hover:bg-midnight-foreground/10"><RotateCw className="h-5 w-5" /></button>
             </>}
             <a aria-label="Download" href={open.url} download={open.name} target="_blank" rel="noreferrer" className="rounded-full p-2 hover:bg-midnight-foreground/10"><Download className="h-5 w-5" /></a>
+            {onExtract && aiOn && (isImg(open) || isPdf(open)) && <button disabled={reading} onClick={() => void read(open)} className="flex items-center gap-1 rounded-full bg-aurora px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Sparkles className="h-4 w-4" />{reading ? "Reading…" : "Read with AI"}</button>}
             <button aria-label="Delete" onClick={() => void del(open)} className="rounded-full p-2 hover:bg-midnight-foreground/10"><Trash2 className="h-5 w-5" /></button>
             <button aria-label="Close" onClick={() => setOpen(null)} className="rounded-full p-2 hover:bg-midnight-foreground/10"><X className="h-5 w-5" /></button>
           </div>
