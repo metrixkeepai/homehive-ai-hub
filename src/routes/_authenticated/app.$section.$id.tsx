@@ -24,7 +24,7 @@ const tabs = ["Overview", "Items", "Evidence", "Related", "Activity", "AI insigh
 function Detail() {
   const { section, id } = Route.useParams();
   const s = getSection(section);
-  const { added, remove, update } = useStore();
+  const { added, remove, update, profile, email } = useStore();
   const [proposal, setProposal] = useState<Proposed | null>(null);
   const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
@@ -53,6 +53,18 @@ function Detail() {
   const fv = (a: { fields: [string, string][] }, k: string) => a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
+    if (a === "Download home report") {
+      const { buildPassportHtml, exportPassport, sharePassport } = await import("@/components/hv/passport-report");
+      const html = buildPassportHtml(item, added, profile?.display_name || email || "you");
+      toast("Your Home Digital Passport is ready", {
+        duration: 15000,
+        description: "Choose a format",
+        action: { label: "PDF", onClick: () => exportPassport("pdf", html, id) },
+        cancel: { label: "Word", onClick: () => exportPassport("word", html, id) },
+      });
+      toast("Also available", { duration: 15000, action: { label: "HTML", onClick: () => exportPassport("html", html, id) }, cancel: { label: "Share", onClick: () => { void sharePassport(html, item.title).then((ok) => { if (!ok) toast.info("Sharing files isn't supported here — download it and attach it instead."); }); } } });
+      return;
+    }
     setDone((d) => [...d, a]);
     const [title, description] = actionToast(a, section, item.title);
     toast.success(title, { description });
