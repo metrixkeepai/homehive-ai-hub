@@ -9,7 +9,7 @@ import { getSection, sections } from "./data";
 import { useStore } from "./store";
 import { usePlanGate } from "./Upgrade";
 import { deriveContractDates, isAutoRenew, noticeDeadline } from "@/lib/contract-dates";
-import { DOC_ACCEPT, extractFileText } from "@/lib/file-text";
+import { DOC_ACCEPT, extractFileText, fileHash, tiffToPng } from "@/lib/file-text";
 const modeFeature: Record<string, [string, string]> = { room: ["room_scan", "room scans"], email: ["email_import", "email import"], speak: ["voice_capture", "voice capture"] };
 
 type Mode = { key: string; label: string; icon: typeof Camera; hint: string; kind: "file" | "voice" | "text" };
@@ -78,9 +78,10 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  const pickFile = (f: File | undefined) => {
+  const pickFile = async (f: File | undefined) => {
     if (!f) return;
     if (f.size > 20 * 1024 * 1024) { toast.error("Files must be under 20 MB"); return; }
+    if (/\.tiff?$/i.test(f.name) || f.type === "image/tiff") { try { f = await tiffToPng(f); } catch { toast.error("We couldn't open that TIFF image."); return; } }
     setFile(f); setPreview(f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined);
   };
 
@@ -135,7 +136,13 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   const save = async () => {
     const keep = recs.filter((r) => r.keep && r.title.trim());
     if (!keep.length) { toast.error("Select at least one record"); return; }
+    const hash = file ? await fileHash(file) : "";
+    const docs = added["documents"] ?? [];
+    const fv = (i: { fields: [string, string][] }, k: string) => i.fields.find(([l]) => l.toLowerCase() === k.toLowerCase())?.[1]?.trim() ?? "";
+    const dup = hash && docs.find((d) => fv(d, "File fingerprint") === hash);
+    if (dup && !confirm(`This file was already uploaded as “${dup.title}”. Save it again anyway?`)) return;
     setStep("saving");
+    let previous: (typeof docs)[number] | undefined;
     const out: (typeof saved[number] & { rel: string })[] = [];
     const doc = keep.find((r) => r.section === "documents");
     const SHARED = /^(invoice|receipt|order|reference|issue date|due date|supplier|service provider|provider|retailer|vendor|merchant|seller|bill to|email|telephone|phone|address|supplier (email|telephone|phone|address))/i;
@@ -146,11 +153,23 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         for (const f of shared) if (!fields.some(([k]) => k.toLowerCase() === f.label.toLowerCase())) fields.push([f.label, f.value]);
         fields.push(["Source document", doc.title.trim()]);
       }
+      if (r === doc) {
+        if (hash) fields.push(["File fingerprint", hash]);
+        const ref = r.fields.find((f) => /^(reference|contract reference)$/i.test(f.label))?.value.trim().toLowerCase();
+        previous = docs.find((d) => d !== dup && !/^superseded$/i.test(fv(d, "Status")) && ((ref && fv(d, "Reference").toLowerCase() === ref) || d.title.trim().toLowerCase() === r.title.trim().toLowerCase()));
+        if (previous) fields.push(["Version", String((Number(fv(previous, "Version")) || 1) + 1)], ["Previous version", previous.title]);
+      }
       if (location) fields.push(["Location", location]);
       if (room && !fields.some(([k]) => k === "Room")) fields.push(["Room", room]);
       fields.push(["Captured via", mode?.label ?? "Add anything"]);
       const id = await addReturning(r.section, { id: "", title: r.title.trim(), subtitle: r.subtitle, fields });
       if (id) out.push({ section: r.section, id, title: r.title, rel: r.relates_to ?? "" });
+    }
+    const newDoc = doc && out.find((o) => o.section === "documents");
+    if (previous && newDoc) {
+      const pf = previous.fields.filter(([k]) => !/^(status|replaced by)$/i.test(k));
+      await update(previous.id, { ...previous, fields: [...pf, ["Status", "Superseded"], ["Replaced by", newDoc.title]] });
+      await supabase.from("record_links").insert({ from_id: newDoc.id, to_id: previous.id, relation: "supersedes" } as never);
     }
     await linkCaptured(out, mode?.label ?? "Add anything", current.id);
     if (file && out[0]) {
@@ -208,7 +227,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   {preview ? <img src={preview} alt="Selected" className="max-h-64 rounded-xl" />
                     : file ? <p className="font-medium">{file.name}</p>
                     : <div><mode.icon className="mx-auto h-8 w-8 text-primary" /><p className="mt-2 text-sm font-medium">Tap to take a photo or choose a file</p><p className="text-xs text-muted-foreground">Photos, short videos or PDF, up to 20 MB</p></div>}
-                  <input ref={fileRef} type="file" accept={mode.key === "document" ? DOC_ACCEPT : "image/*,video/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
+                  <input ref={fileRef} type="file" accept={mode.key === "document" ? DOC_ACCEPT : "image/*,video/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => void pickFile(e.target.files?.[0])} />
                 </div>
               )}
               {mode.kind === "voice" && (
