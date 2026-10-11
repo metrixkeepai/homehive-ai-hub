@@ -366,6 +366,42 @@ export type Database = {
         }
         Relationships: []
       }
+      passport_shares: {
+        Row: {
+          created_at: string
+          expires_at: string
+          html: string
+          id: string
+          revoked: boolean
+          title: string
+          token: string
+          user_id: string
+          views: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          html: string
+          id?: string
+          revoked?: boolean
+          title: string
+          token?: string
+          user_id?: string
+          views?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          html?: string
+          id?: string
+          revoked?: boolean
+          title?: string
+          token?: string
+          user_id?: string
+          views?: number
+        }
+        Relationships: []
+      }
       plan_status: {
         Row: {
           active: boolean
@@ -832,6 +868,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      open_passport_share: {
+        Args: { _token: string }
+        Returns: {
+          expires_at: string
+          html: string
+          title: string
+        }[]
       }
       published_plan_entitlements: {
         Args: never

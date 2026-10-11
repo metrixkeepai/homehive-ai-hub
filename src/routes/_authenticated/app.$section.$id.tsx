@@ -9,6 +9,7 @@ import { useFeature, Locked } from "@/components/hv/Feature";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
 import { GoogleIntegration, GoogleOverviewFields, googleConnectorFor } from "@/components/hv/GoogleIntegration";
+import { PassportModal, PASSPORT_KINDS } from "@/components/hv/PassportModal";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
@@ -31,6 +32,7 @@ function Detail() {
   const item = getItem(section, id) ?? added[section]?.find((x) => x.id === id);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [done, setDone] = useState<string[]>([]);
+  const [passport, setPassport] = useState<"download" | "share" | null>(null);
   const [view, setView] = useState<"grid" | "table">("table");
   const own = !!added[section]?.some((x) => x.id === id);
   const saved = useRecordLinks(own ? id : "00000000-0000-0000-0000-000000000000");
@@ -53,18 +55,7 @@ function Detail() {
   const fv = (a: { fields: [string, string][] }, k: string) => a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
-    if (a === "Download home report") {
-      const { buildPassportHtml, exportPassport, sharePassport } = await import("@/components/hv/passport-report");
-      const html = buildPassportHtml(item, added, profile?.display_name || email || "you");
-      toast("Your Home Digital Passport is ready", {
-        duration: 15000,
-        description: "Choose a format",
-        action: { label: "PDF", onClick: () => exportPassport("pdf", html, id) },
-        cancel: { label: "Word", onClick: () => exportPassport("word", html, id) },
-      });
-      toast("Also available", { duration: 15000, action: { label: "HTML", onClick: () => exportPassport("html", html, id) }, cancel: { label: "Share", onClick: () => { void sharePassport(html, item.title).then((ok) => { if (!ok) toast.info("Sharing files isn't supported here — download it and attach it instead."); }); } } });
-      return;
-    }
+    if (a === "Download home report") { setPassport("download"); return; }
     setDone((d) => [...d, a]);
     const [title, description] = actionToast(a, section, item.title);
     toast.success(title, { description });
@@ -95,8 +86,13 @@ function Detail() {
             {own && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
           </div>
         )}
+        {PASSPORT_KINDS[section] && <div className="mt-2 flex flex-wrap gap-2">
+          {section !== "my-home" && <button onClick={() => setPassport("download")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Download passport</button>}
+          <button onClick={() => setPassport("share")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Share passport</button>
+        </div>}
         </>}
       </section>
+      {passport && <PassportModal open mode={passport} onClose={() => setPassport(null)} section={section} item={item} added={added} owner={profile?.display_name || email || "you"} />}
 
       <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
         {shownTabs.map((t) => (

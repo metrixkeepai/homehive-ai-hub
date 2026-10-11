@@ -19,3 +19,8 @@
 - [x] Full add/edit/delete in Super Admin
 - [x] Feature switches gating features + upgrade prompts on locked features
 - [x] Country field and Individual-to-Business upgrade fixes
+# Digital passports
+- [x] Centred download window (format cards, report type, sections, privacy)
+- [x] Secure expiring share links, revoke, guest view
+- [x] Asset, vehicle and location passports
+- [ ] MatrixKeep-sent emails — blocked: needs an email domain
