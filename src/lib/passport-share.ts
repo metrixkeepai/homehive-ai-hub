@@ -43,7 +43,7 @@ export function buildPassportShareMessage({ entity, name, expiresAt }: Input): s
     case "property":
       return name
         ? lines("🏡 *A Property Digital Passport has been shared with you*", "", "I've securely shared selected information for:", `*${name}*`, "", "View the property's organised digital record, including the information I've chosen to share with you.", "", "🔐 Secure MatrixKeep link", "👤 No account required", exp, "", "View Passport:")
-        : lines("🏡 *I've shared a MatrixKeep Digital Passport with you*", "", "Everything important about this property is organised in one secure place — key details, assets, documents, warranties, maintenance and important history, based on what I've chosen to share.", "", "🔐 Secure guest access", "👤 No MatrixKeep account required", exp || "⏳ Access may be time-limited", "", "View the Digital Passport:");
+        : lines("🏡 *I've shared a MatrixKeep Digital Passport with you*", "", "Everything important about this property is organised in one secure place — key details, assets, documents, warranties, maintenance and important history, based on what I've chosen to share.", "", "🔐 Secure guest access", "👤 No MatrixKeep account required", exp || "⏳ Access may be time-limited", "", "*View the Digital Passport:*");
     case "asset":
       return lines("📦 *I've shared a MatrixKeep Asset Passport with you*", "", ...(name ? ["I've securely shared the digital record for:", `*${name}*`, ""] : []), "It brings the item's key information, documents, warranty, maintenance and evidence together in one place — based on what I've chosen to share.", "", "🔐 Secure guest access", "👤 No account required", exp, "", "View Asset Passport:");
     case "vehicle":
@@ -53,7 +53,7 @@ export function buildPassportShareMessage({ entity, name, expiresAt }: Input): s
     case "evidence":
       return lines("📋 *A MatrixKeep Evidence Pack has been shared with you*", "", "The relevant records and supporting evidence have been organised into one secure digital view.", "", "No account is required to view the information that has been shared with you.", exp, "", "Open Secure Pack:");
     default:
-      return lines("🔐 *A MatrixKeep Digital Passport has been shared with you*", "", "Important records. One secure view — based on what I've chosen to share.", "", "👤 No account required", exp, "", "View the Digital Passport:");
+      return lines("🔐 *A MatrixKeep Digital Passport has been shared with you*", "", "Important records. One secure view — based on what I've chosen to share.", "", "👤 No account required", exp, "", "*View the Digital Passport:*");
   }
 }
 
