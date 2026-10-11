@@ -200,15 +200,34 @@ export const setPlanActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Archive: hidden from new customers and every version archived; existing subscribers keep access. */
+export const archivePlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const db = await adminClient(context as Ctx);
+    if (data.key === "free") throw new Error("The Free plan can't be archived — new accounts start on it.");
+    await db.from("plan_status").upsert({ plan_key: data.key, active: false, updated_by: context.userId, updated_at: new Date().toISOString() });
+    await db.from("plan_versions").update({ status: "archived" }).eq("plan_key", data.key).neq("status", "archived");
+    await audit(db, context.userId, "plan_archived", data.key, null);
+    return { ok: true };
+  });
+
 export const deletePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
   .handler(async ({ context, data }) => {
     const db = await adminClient(context as Ctx);
     const { plans } = await import("@/lib/plans");
-    if (plans.some((p) => p.key === data.key)) throw new Error("Live plans can't be deleted — deactivate them instead.");
-    const { count } = await db.from("profiles").select("id", { count: "exact", head: true }).eq("plan", data.key);
-    if (count) throw new Error(`${count} accounts are on this plan — move them first.`);
+    if (plans.some((p) => p.key === data.key)) throw new Error("This plan is tied to card payments and can't be deleted — deactivate or archive it instead.");
+    const [acc, subs, red, vou] = await Promise.all([
+      db.from("profiles").select("id", { count: "exact", head: true }).eq("plan", data.key),
+      db.from("subscriptions").select("id", { count: "exact", head: true }).like("price_id", `${data.key}\\_%`),
+      db.from("voucher_redemptions").select("id", { count: "exact", head: true }).or(`plan_after.eq.${data.key},plan_before.eq.${data.key}`),
+      db.from("vouchers").select("code", { count: "exact", head: true }).eq("plan", data.key),
+    ]);
+    const deps = [[acc.count, "accounts on it"], [subs.count, "subscription/billing records"], [red.count, "voucher redemptions"], [vou.count, "vouchers granting it"]].filter(([n]) => n) as [number, string][];
+    if (deps.length) throw new Error(`Can't delete safely: ${deps.map(([n, l]) => `${n} ${l}`).join(", ")}. Deactivate or archive it instead.`);
     await db.from("plan_versions").delete().eq("plan_key", data.key);
     await db.from("plan_status").delete().eq("plan_key", data.key);
     await audit(db, context.userId, "plan_deleted", data.key, null);

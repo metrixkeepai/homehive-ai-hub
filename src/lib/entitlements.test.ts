@@ -10,3 +10,10 @@ describe("plan entitlements", () => {
   it("published config overrides defaults", () => { expect(checkAdd(effective("free", { rooms: { on: true, limit: null } }), "rooms", 50).ok).toBe(true); });
   it("vehicle upgrade suggests Home+ and Family", () => { expect(eligiblePlans("free", "vehicle_passport", {})).toEqual(["plus", "family"]); });
 });
+
+import { formatLimit } from "./entitlements";
+describe("formatLimit", () => {
+  it("shows unlimited for null", () => expect(formatLimit({ on: true, limit: null })).toBe("Unlimited"));
+  it("shows dash when off", () => expect(formatLimit({ on: false, limit: 5 })).toBe("—"));
+  it("shows units", () => expect(formatLimit({ on: true, limit: 500, unit: "MB" })).toBe("500 MB"));
+});
