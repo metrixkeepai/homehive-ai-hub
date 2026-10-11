@@ -26,6 +26,7 @@ import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as IndustriesIndexRouteImport } from './routes/industries.index'
 import { Route as IndustriesSlugRouteImport } from './routes/industries.$slug'
+import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as SuperAdminIndexRouteImport } from './routes/super-admin.index'
 import { Route as SuperAdminAiRouteImport } from './routes/super-admin.ai'
 import { Route as SuperAdminApiRouteImport } from './routes/super-admin.api'
@@ -140,6 +141,11 @@ const IndustriesIndexRoute = IndustriesIndexRouteImport.update({
 const IndustriesSlugRoute = IndustriesSlugRouteImport.update({
   id: '/industries/$slug',
   path: '/industries/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminIndexRoute = SuperAdminIndexRouteImport.update({
@@ -319,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/super-admin/ai': typeof SuperAdminAiRoute
   '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
@@ -366,6 +373,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/super-admin/ai': typeof SuperAdminAiRoute
   '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
@@ -416,6 +424,7 @@ export interface FileRoutesById {
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
+  '/p/$token': typeof PTokenRoute
   '/super-admin/ai': typeof SuperAdminAiRoute
   '/super-admin/api': typeof SuperAdminApiRoute
   '/super-admin/audit': typeof SuperAdminAuditRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/app'
     | '/industries/$slug'
+    | '/p/$token'
     | '/super-admin/ai'
     | '/super-admin/api'
     | '/super-admin/audit'
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/security'
     | '/industries/$slug'
+    | '/p/$token'
     | '/super-admin/ai'
     | '/super-admin/api'
     | '/super-admin/audit'
@@ -563,6 +574,7 @@ export interface FileRouteTypes {
     | '/super-admin'
     | '/_authenticated/app'
     | '/industries/$slug'
+    | '/p/$token'
     | '/super-admin/ai'
     | '/super-admin/api'
     | '/super-admin/audit'
@@ -613,6 +625,7 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   IndustriesSlugRoute: typeof IndustriesSlugRoute
+  PTokenRoute: typeof PTokenRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
   UseCasesSlugRoute: typeof UseCasesSlugRoute
   IndustriesIndexRoute: typeof IndustriesIndexRoute
@@ -740,6 +753,13 @@ declare module '@tanstack/react-router' {
       path: '/industries/$slug'
       fullPath: '/industries/$slug'
       preLoaderRoute: typeof IndustriesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin/': {
@@ -1069,6 +1089,7 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   IndustriesSlugRoute: IndustriesSlugRoute,
+  PTokenRoute: PTokenRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,
   UseCasesSlugRoute: UseCasesSlugRoute,
   IndustriesIndexRoute: IndustriesIndexRoute,
