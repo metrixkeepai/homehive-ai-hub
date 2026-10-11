@@ -36,11 +36,15 @@ function SectionPage() {
   const [open, setOpen] = useState(!!search.add);
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
+  const [docType, setDocType] = useState("All");
+  const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useViewMode(section);
   if (!s) return <Missing />;
   if (section === "billing") return <BillingPage />;
   if (section === "warranties" || section === "renewals") return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
-  const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle).toLowerCase().includes(filter.toLowerCase()));
+  const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle + " " + i.fields.map(([, v]) => v).join(" ")).toLowerCase().includes(filter.toLowerCase()))
+    .filter((i) => section !== "documents" || ((docType === "All" || docTypeOf(i) === docType) && (showArchived || !isArchived(i))));
+  const docTypes = section === "documents" ? ["All", ...Array.from(new Set([...(added["documents"] ?? []), ...s.items].map(docTypeOf))).sort()] : [];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +80,7 @@ function SectionPage() {
       </div>
 
       {s.slug !== "profile" && <div className="flex items-center gap-3"><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${s.title.toLowerCase()}…`} className="min-w-0 flex-1 rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" /><ViewToggle mode={view} onChange={setView} /></div>}
+      {section === "documents" && <div className="flex flex-wrap items-center gap-2">{docTypes.map((t) => <button key={t} onClick={() => setDocType(t)} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${docType === t ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:border-primary"}`}>{t}</button>)}<label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived</label></div>}
 
       {view === "table" && s.slug !== "profile" ? (
         <div className="overflow-x-auto rounded-2xl border bg-card shadow-soft"><table className="w-full text-sm"><thead className="bg-secondary/50 text-left text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="p-4">Name</th><th className="p-4">Details</th><th className="p-4">Status</th><th className="p-4">Value</th><th /></tr></thead>
@@ -195,3 +200,7 @@ function ProfileEditor() {
     </form>
   );
 }
+
+const docField = (i: { fields: [string, string][] }, k: string) => i.fields.find(([f]) => f.toLowerCase() === k.toLowerCase())?.[1]?.trim() ?? "";
+function docTypeOf(i: { fields: [string, string][] }) { return docField(i, "Document type") || docField(i, "Type") || "Other"; }
+function isArchived(i: { fields: [string, string][] }) { return /^(archived|superseded)$/i.test(docField(i, "Status")); }
