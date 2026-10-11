@@ -24,7 +24,7 @@ const tabs = ["Overview", "Items", "Evidence", "Related", "Activity", "AI insigh
 function Detail() {
   const { section, id } = Route.useParams();
   const s = getSection(section);
-  const { added, remove, update } = useStore();
+  const { added, remove, update, profile, email } = useStore();
   const [proposal, setProposal] = useState<Proposed | null>(null);
   const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
