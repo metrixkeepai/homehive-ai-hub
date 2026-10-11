@@ -19,13 +19,20 @@ export function trackingStatus(item: Item, now = new Date()): { label: string; t
   if (days <= 30) return { label: `${days} days left`, tone: "warning", bucket: "soon", days };
   return { label: "Active", tone: "success", bucket: "active", days };
 }
+/** Default reminder points before a due date or notice deadline. */
+export const REMINDER_POINTS = [180, 90, 60, 30, 14, 7, 1];
 export function downloadReminder(item: Item) {
   const date = trackingDate(item);
   if (!date) return false;
   const escape = (value: string) => value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
-  const reminder = Number(field(item, "Remind me (days before)") || 30);
+  const chosen = Number(field(item, "Remind me (days before)") || 0);
+  const points = Array.from(new Set([...REMINDER_POINTS, ...(chosen > 0 ? [chosen] : [])])).sort((a, b) => b - a);
+  const alarms = (label: string) => points.flatMap((d) => ["BEGIN:VALARM", `TRIGGER:-P${d}D`, "ACTION:DISPLAY", `DESCRIPTION:${escape(label)} in ${d} day${d === 1 ? "" : "s"}`, "END:VALARM"]);
+  const nd = field(item, "Notice deadline"); const ndd = /^\d{4}-\d{2}-\d{2}$/.test(nd) ? parseISO(nd) : null;
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MatrixKeep//Reminders//EN", "BEGIN:VEVENT", `UID:${item.id}@matrixkeep`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${format(date, "yyyyMMdd")}`, `SUMMARY:${escape(item.title)} — due`, `DESCRIPTION:${escape(field(item, "Notes") || item.subtitle)}`, "BEGIN:VALARM", `TRIGGER:-P${Math.max(0, reminder)}D`, "ACTION:DISPLAY", `DESCRIPTION:${escape(item.title)} due soon`, "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MatrixKeep//Reminders//EN", "BEGIN:VEVENT", `UID:${item.id}@matrixkeep`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${format(date, "yyyyMMdd")}`, `SUMMARY:${escape(item.title)} — due`, `DESCRIPTION:${escape(field(item, "Notes") || item.subtitle)}`, ...alarms(`${item.title} due`), "END:VEVENT",
+    ...(ndd && isValid(ndd) ? ["BEGIN:VEVENT", `UID:${item.id}-notice@matrixkeep`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${format(ndd, "yyyyMMdd")}`, `SUMMARY:${escape(item.title)} — notice deadline`, `DESCRIPTION:${escape("Last day to give notice before it renews or ends.")}`, ...alarms(`${item.title} notice deadline`), "END:VEVENT"] : []),
+    "END:VCALENDAR"];
   const url = URL.createObjectURL(new Blob([lines.join("\r\n") + "\r\n"], { type: "text/calendar;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = "matrixkeep-reminder.ics"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   return true;

@@ -58,7 +58,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
 }
 
 export function AddAnything({ onClose, initial }: { onClose: () => void; initial?: string }) {
-  const { addReturning, added, current } = useStore();
+  const { addReturning, added, current, update } = useStore();
   const gate = usePlanGate();
   const [step, setStep] = useState<Step>(initial ? "capture" : "pick");
   const [mode, setMode] = useState<Mode | undefined>(modes.find((m) => m.key === initial));
@@ -169,7 +169,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     if (previous && newDoc) {
       const pf = previous.fields.filter(([k]) => !/^(status|replaced by)$/i.test(k));
       await update(previous.id, { ...previous, fields: [...pf, ["Status", "Superseded"], ["Replaced by", newDoc.title]] });
-      await supabase.from("record_links").insert({ from_id: newDoc.id, to_id: previous.id, relation: "supersedes" } as never);
+      await supabase.from("record_links").insert({ source_item_id: newDoc.id, target_item_id: previous.id, relationship_type: "SUPERSEDES", source_document_id: newDoc.id, source_capture_type: mode?.label ?? "Add anything", workspace_id: current.id });
     }
     await linkCaptured(out, mode?.label ?? "Add anything", current.id);
     if (file && out[0]) {
@@ -317,7 +317,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
 
 type SR = { lang: string; interimResults: boolean; start: () => void; onresult: (e: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void; onend: () => void };
 
-const REL: Record<string, string> = { maintenance: "MAINTENANCE_FOR", warranties: "WARRANTY_FOR", insurance: "INSURANCE_FOR", tasks: "TASK_FOR" };
+const REL: Record<string, string> = { maintenance: "MAINTENANCE_FOR", warranties: "WARRANTY_FOR", insurance: "INSURANCE_FOR", tasks: "TASK_FOR", renewals: "RENEWAL_FOR" };
 /** Persist the relationship graph for records created from one capture. */
 async function linkCaptured(out: { section: string; id: string; title: string; rel: string }[], captureType: string, workspaceId: string | null) {
   if (out.length < 2) return;
