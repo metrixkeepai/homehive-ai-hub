@@ -25,3 +25,5 @@
 - [x] Asset, vehicle and location passports
 - [ ] MatrixKeep-sent emails — blocked: needs an email domain
 - [x] Document intelligence: contract/renewal extraction, date calc, more file types
+- [x] Old Office/TIFF reading, multi-point reminders, duplicates, versions, rename/archive, document type filters
+- [ ] Automatic email and WhatsApp alerts — blocked: email domain / WhatsApp Business account
