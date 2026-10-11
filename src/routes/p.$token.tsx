@@ -5,7 +5,7 @@ import { Logo } from "@/components/hv/Logo";
 import { isEntity, OG_DESCRIPTION, OG_IMAGE, OG_TITLE, SITE, type PassportEntity } from "@/lib/passport-share";
 
 export const Route = createFileRoute("/p/$token")({
-  validateSearch: (s: Record<string, unknown>): { k?: PassportEntity } => (isEntity(s.k) ? { k: s.k } : {}),
+  validateSearch: (s: Record<string, unknown>): { k?: PassportEntity } => (isEntity(s['k']) ? { k: s['k'] } : {}),
   // Privacy-safe preview: only the passport type is used — never owner, address or record details.
   head: ({ match, params }) => {
     const k: PassportEntity = (match.search as { k?: PassportEntity }).k ?? "other";
