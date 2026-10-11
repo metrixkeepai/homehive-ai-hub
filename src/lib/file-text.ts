@@ -29,8 +29,8 @@ export function legacyText(b: Uint8Array): string {
   const runs: string[] = [];
   const keep = (t: string) => { const c = t.replace(/\s+/g, " ").trim(); if (c.length >= 4 && /[a-z]{2}/i.test(c)) runs.push(c); };
   let cur = "";
-  for (let i = 0; i + 1 < b.length; i += 2) { const c = b[i]! | (b[i + 1]! << 8); if ((c >= 32 && c < 0xd800) || c === 9 || c === 10 || c === 13) cur += String.fromCharCode(c); else { keep(cur); cur = ""; } }
-  keep(cur); cur = "";
+  for (const start of [0, 1]) { for (let i = start; i + 1 < b.length; i += 2) { const c = b[i]! | (b[i + 1]! << 8); if ((c >= 32 && c < 0xd800) || c === 9 || c === 10 || c === 13) cur += String.fromCharCode(c); else { keep(cur); cur = ""; } }
+  keep(cur); cur = ""; }
   for (let i = 0; i < b.length; i++) { const c = b[i]!; if ((c >= 32 && c < 127) || c === 9 || c === 10 || c === 13) cur += String.fromCharCode(c); else { keep(cur); cur = ""; } }
   keep(cur);
   const seen = new Set<string>();
