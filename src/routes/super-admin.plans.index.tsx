@@ -2,14 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { planVersions, setPlanActive, deletePlan } from "@/lib/admin-ops.functions";
+import { planVersions, setPlanActive, deletePlan, archivePlan } from "@/lib/admin-ops.functions";
 import { plans } from "@/lib/plans";
 import { PageTitle, Table, money } from "@/components/hv/AdminKpi";
 
 export const Route = createFileRoute("/super-admin/plans/")({ component: Plans });
 
 function Plans() {
-  const fn = useServerFn(planVersions), act = useServerFn(setPlanActive), del = useServerFn(deletePlan);
+  const fn = useServerFn(planVersions), act = useServerFn(setPlanActive), del = useServerFn(deletePlan), arc = useServerFn(archivePlan);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin", "plans"], queryFn: () => fn({ data: {} }) });
   const versions = (q.data?.versions ?? []) as any[];
@@ -19,13 +19,16 @@ function Plans() {
   const err = (e: Error) => toast.error(e.message);
   const actM = useMutation({ mutationFn: (v: { key: string; active: boolean }) => act({ data: v }), onSuccess: (_, v) => { toast.success(v.active ? "Plan activated" : "Plan deactivated"); done(); }, onError: err });
   const delM = useMutation({ mutationFn: (key: string) => del({ data: { key } }), onSuccess: () => { toast.success("Plan deleted"); done(); }, onError: err });
+  const arcM = useMutation({ mutationFn: (key: string) => arc({ data: { key } }), onSuccess: () => { toast.success("Plan archived — existing subscribers keep it"); done(); }, onError: err });
+  const archived = (key: string) => inactive.has(key) && versions.some((v) => v.plan_key === key) && versions.filter((v) => v.plan_key === key).every((v) => v.status === "archived");
   const actions = (key: string, canDelete: boolean) => (
     <td className="space-x-3 p-3 text-xs">
       <button disabled={actM.isPending} onClick={() => actM.mutate({ key, active: inactive.has(key) })} className="text-primary">{inactive.has(key) ? "Activate" : "Deactivate"}</button>
-      {canDelete && <button disabled={delM.isPending} onClick={() => { if (confirm(`Delete plan ${key} and all its versions?`)) delM.mutate(key); }} className="text-destructive">Delete</button>}
+      {!archived(key) && <button disabled={arcM.isPending} onClick={() => { if (confirm(`Archive ${key}? It will be hidden from new customers and all versions archived.`)) arcM.mutate(key); }} className="text-muted-foreground">Archive</button>}
+      {canDelete && <button disabled={delM.isPending} onClick={() => { if (confirm(`Delete plan ${key} and all its versions? This only works if nothing depends on it.`)) delM.mutate(key); }} className="text-destructive">Delete</button>}
     </td>
   );
-  const state = (key: string) => inactive.has(key) ? <span className="text-xs text-muted-foreground"> · inactive</span> : null;
+  const state = (key: string) => archived(key) ? <span className="text-xs text-muted-foreground"> · archived</span> : inactive.has(key) ? <span className="text-xs text-muted-foreground"> · inactive</span> : null;
   return (
     <div className="space-y-6">
       <PageTitle title="Plans" sub="Live plans power the public pricing page and every account. Deactivated plans are hidden from new customers; existing subscribers keep them.">
