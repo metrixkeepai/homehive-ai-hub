@@ -13,7 +13,7 @@ export const askSera = createServerFn({ method: "POST" })
     const { data: rows } = await context.supabase
       .from("home_items").select("section,title,subtitle,fields").order("created_at", { ascending: false }).limit(150);
     const records = (rows ?? []).map((r) => `- [${r.section}] ${r.title}${r.subtitle ? ` — ${r.subtitle}` : ""} ${JSON.stringify(r.fields)}`).join("\n");
-    const system = `You are Sera, the friendly AI household manager inside MatrixKeep AI. Answer briefly and practically in British English. Use ONLY the user's saved records below for facts about their home/business; if something isn't recorded, say so and suggest adding it with "Add anything". Never invent records.\n\nSaved records:\n${records || "(none yet)"}`;
+    const system = `You are Sera, the friendly AI household manager inside MatrixKeep AI. Answer briefly and practically in British English. Use ONLY the user's saved records below for facts about their home/business; if something isn't recorded, say so and suggest adding it with "Add anything". Never invent records. Today is ${new Date().toISOString().slice(0, 10)}. For contracts/renewals use the stored Renewal date, Notice deadline, Notice period and Auto-renewal fields to answer date questions.\n\nSaved records:\n${records || "(none yet)"}`;
     const { logAiUsage } = await import("./ai-usage.server");
     const t0 = Date.now();
     const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {

@@ -8,6 +8,8 @@ import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
 import { useStore } from "./store";
 import { usePlanGate } from "./Upgrade";
+import { deriveContractDates, isAutoRenew, noticeDeadline } from "@/lib/contract-dates";
+import { DOC_ACCEPT, extractFileText } from "@/lib/file-text";
 const modeFeature: Record<string, [string, string]> = { room: ["room_scan", "room scans"], email: ["email_import", "email import"], speak: ["voice_capture", "voice capture"] };
 
 type Mode = { key: string; label: string; icon: typeof Camera; hint: string; kind: "file" | "voice" | "text" };
@@ -118,12 +120,15 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     setStep("processing");
     try {
       const isVideo = !!file?.type.startsWith("video/");
-      const image = file && !isVideo ? await toDataUrl(file) : undefined;
+      let docText: string | null = null;
+      if (file && !isVideo) { try { docText = await extractFileText(file); } catch { toast.error("That file type can't be read yet. Please save it as PDF, DOCX, XLSX, PPTX or an image."); setStep("capture"); return; } }
+      if (docText !== null && !docText.trim()) { toast.error("No readable text was found in that file."); setStep("capture"); return; }
+      const image = file && !isVideo && docText === null ? await toDataUrl(file) : undefined;
       const images = file && isVideo ? await videoFrames(file) : undefined;
-      const r = await extractRecords({ data: { mode: mode.label, text, image, images, fileName: file?.name } });
+      const r = await extractRecords({ data: { mode: mode.label, text: docText !== null ? `${text}\n\nDocument content:\n${docText}`.slice(0, 60000) : text, image, images, fileName: file?.name } });
       if ("error" in r && r.error) { toast.error(r.error); setStep("capture"); return; }
       if (!("records" in r) || !r.records?.length) { toast.error("Nothing recognisable was found. Try a clearer photo or add a note."); setStep("capture"); return; }
-      setSummary(r.summary); setRecs(r.records.map((x) => ({ ...x, keep: true }))); setStep("review");
+      setSummary(r.summary); setRecs(r.records.map((x) => ({ ...x, fields: deriveContractDates(x.fields.map((f) => [f.label, f.value] as [string, string]), x.section === "warranties" ? "Expiry date" : "Renewal date").map(([label, value]) => ({ label, value })), keep: true }))); setStep("review");
     } catch { toast.error("Processing failed. Please try again."); setStep("capture"); }
   };
 
@@ -203,7 +208,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   {preview ? <img src={preview} alt="Selected" className="max-h-64 rounded-xl" />
                     : file ? <p className="font-medium">{file.name}</p>
                     : <div><mode.icon className="mx-auto h-8 w-8 text-primary" /><p className="mt-2 text-sm font-medium">Tap to take a photo or choose a file</p><p className="text-xs text-muted-foreground">Photos, short videos or PDF, up to 20 MB</p></div>}
-                  <input ref={fileRef} type="file" accept={mode.key === "document" ? "image/*,application/pdf" : "image/*,video/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
+                  <input ref={fileRef} type="file" accept={mode.key === "document" ? DOC_ACCEPT : "image/*,video/*"} capture={mode.key === "document" ? undefined : "environment"} className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
                 </div>
               )}
               {mode.kind === "voice" && (
@@ -257,6 +262,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                     </select>
                   </div>
                   {r.subtitle && <p className="mt-2 text-xs text-muted-foreground">{r.subtitle}</p>}
+                  {isAutoRenew(r.fields.map((f) => [f.label, f.value])) && <p className="mt-2 rounded-xl bg-warning/15 px-3 py-2 text-xs font-medium">Auto-renewal detected — this agreement may renew automatically unless action is taken{(() => { const d = noticeDeadline(r.fields.map((f) => [f.label, f.value])); return d ? ` before ${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""; })()}.</p>}
+                  {/^needs review|^low/i.test(r.fields.find((f) => /confidence/i.test(f.label))?.value ?? "") && <p className="mt-2 rounded-xl bg-secondary px-3 py-2 text-xs">Needs review — please check the dates before saving.</p>}
                   {r.fields.length > 0 && <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">{r.fields.map((f) => <div key={f.label} className="flex gap-1"><dt className="text-muted-foreground">{f.label}:</dt><dd className="font-medium">{f.value}</dd></div>)}</dl>}
                 </div>
               ))}

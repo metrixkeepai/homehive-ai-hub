@@ -88,6 +88,8 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
       <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
       <p className="mt-2 text-midnight-foreground/70">{field(item, "Provider") || "No provider"} · {date ? format(date, "d MMMM yyyy") : "No date"}</p>
       <div className="mt-5"><span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(status.tone)}`}>{status.label}</span></div>
+      {field(item, "Notice deadline") && <p className="mt-3 text-sm text-midnight-foreground/80">Notice deadline: {field(item, "Notice deadline")}</p>}
+      {/^y/i.test(field(item, "Auto-renewal")) && <p className="mt-3 rounded-2xl bg-warning/20 px-4 py-2 text-sm"><strong>Auto-renewal detected.</strong> This agreement may renew automatically unless action is taken{field(item, "Notice deadline") ? ` before ${field(item, "Notice deadline")}` : ""}.</p>}
       <div className="mt-6 flex flex-wrap gap-2">
         <button onClick={() => setEdit(true)} className="flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><Pencil className="h-4 w-4" />Edit</button>
         <button disabled={!date} onClick={() => downloadReminder(item)} className="flex items-center gap-2 rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold disabled:opacity-50"><CalendarPlus className="h-4 w-4" />Calendar reminder</button>

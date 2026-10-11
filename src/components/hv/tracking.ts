@@ -12,6 +12,8 @@ export function trackingStatus(item: Item, now = new Date()): { label: string; t
   const date = trackingDate(item);
   if (!date) return { label: "Date needed", tone: "muted", bucket: "missing", days: null };
   const days = differenceInCalendarDays(date, now);
+  const nd = field(item, "Notice deadline"); const ndd = /^\d{4}-\d{2}-\d{2}$/.test(nd) ? parseISO(nd) : null;
+  if (days >= 0 && ndd && isValid(ndd)) { const n = differenceInCalendarDays(ndd, now); if (n >= 0 && n <= 30) return { label: n === 0 ? "Notice due today" : `Notice due in ${n} days`, tone: "warning", bucket: "soon", days }; }
   if (days < 0) return { label: `${Math.abs(days)} days overdue`, tone: "danger", bucket: "overdue", days };
   if (days === 0) return { label: "Due today", tone: "warning", bucket: "soon", days };
   if (days <= 30) return { label: `${days} days left`, tone: "warning", bucket: "soon", days };
