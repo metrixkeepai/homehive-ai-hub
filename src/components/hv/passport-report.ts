@@ -2,29 +2,67 @@ import type { Item } from "./data";
 import { sections } from "./data";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
-const INCLUDE = ["rooms", "assets", "vehicles", "documents", "warranties", "renewals", "insurance", "maintenance", "services"];
 
-/** Builds a self-contained HTML passport from the property plus the user's own saved records. */
-export function buildPassportHtml(property: Item, added: Record<string, Item[]>, owner: string) {
+export const PASSPORT_SECTIONS = [
+  ["rooms", "Rooms"], ["assets", "Assets"], ["vehicles", "Vehicles"], ["locations", "Locations"], ["warranties", "Warranties"],
+  ["maintenance", "Maintenance"], ["renewals", "Renewals"], ["documents", "Document summary"], ["insurance", "Insurance"], ["services", "Services"],
+] as const;
+export type SectionSlug = (typeof PASSPORT_SECTIONS)[number][0];
+
+export const REPORT_TYPES: Record<string, SectionSlug[]> = {
+  "Full Digital Passport": PASSPORT_SECTIONS.map(([s]) => s),
+  "Property Summary": ["rooms", "assets"],
+  "Sale / Handover Passport": ["rooms", "assets", "warranties", "maintenance", "documents", "services"],
+  "Insurance Evidence Pack": ["assets", "vehicles", "documents", "insurance", "warranties"],
+  "Custom Report": [],
+};
+
+export type Privacy = { prices: boolean; values: boolean; insurance: boolean; contacts: boolean };
+export type PassportOptions = { reportType: string; include: SectionSlug[]; privacy: Privacy };
+
+const PRICE = /price|cost|total|amount|paid|vat/i, VALUE = /value|worth/i, CONTACT = /email|phone|telephone|mobile|address|contact/i, INS = /insur|policy/i;
+
+function keepField(k: string, p: Privacy) {
+  if (!p.prices && PRICE.test(k)) return false;
+  if (!p.values && VALUE.test(k)) return false;
+  if (!p.contacts && CONTACT.test(k)) return false;
+  if (!p.insurance && INS.test(k)) return false;
+  return true;
+}
+
+/** Records relevant to a single subject: for the property, all saved records; otherwise those that mention it. */
+function related(subject: Item, slug: SectionSlug, added: Record<string, Item[]>, whole: boolean) {
+  const list = added[slug] ?? [];
+  if (whole) return list;
+  const t = subject.title.toLowerCase();
+  return list.filter((i) => i.id !== subject.id && i.fields.some(([, v]) => (v ?? "").toLowerCase().includes(t)));
+}
+
+/** Builds a self-contained HTML passport from the subject plus the user's own saved records. */
+export function buildPassportHtml(subject: Item, added: Record<string, Item[]>, owner: string, opts: PassportOptions, kindLabel = "Home Digital Passport", whole = true) {
+  const p = opts.privacy;
   const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const fields = (f: [string, string][]) => f.length
-    ? `<table>${f.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v || "—")}</td></tr>`).join("")}</table>` : "";
-  const parts = INCLUDE.map((slug) => {
-    const list = added[slug] ?? [];
+  const fields = (f: [string, string][]) => {
+    const kept = f.filter(([k]) => keepField(k, p));
+    return kept.length ? `<table>${kept.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v || "—")}</td></tr>`).join("")}</table>` : "";
+  };
+  const include = opts.include.filter((s) => p.insurance || s !== "insurance");
+  const parts = include.map((slug) => {
+    const list = related(subject, slug, added, whole);
     if (!list.length) return "";
-    const title = sections.find((s) => s.slug === slug)?.title ?? slug;
+    const title = PASSPORT_SECTIONS.find(([s]) => s === slug)?.[1] ?? sections.find((s) => s.slug === slug)?.title ?? slug;
     return `<h2>${esc(title)} <span>(${list.length})</span></h2>${list.map((i) => `<div class="rec"><h3>${esc(i.title)}</h3><p>${esc(i.subtitle)}</p>${fields(i.fields)}</div>`).join("")}`;
   }).join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Home Digital Passport — ${esc(property.title)}</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(kindLabel)} — ${esc(subject.title)}</title>
 <style>body{font-family:Georgia,serif;color:#1e1b4b;max-width:820px;margin:32px auto;padding:0 24px}
 header{background:#1e1b4b;color:#fff;padding:28px;border-radius:16px}header p{margin:4px 0;opacity:.8}
 h1{margin:6px 0;font-size:30px}h2{margin-top:32px;border-bottom:2px solid #6366f1;padding-bottom:4px}h2 span{color:#64748b;font-size:16px}
 .rec{border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin:10px 0;page-break-inside:avoid}.rec h3{margin:0}.rec p{margin:2px 0 8px;color:#64748b}
 table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px}th{text-align:left;width:38%;color:#64748b;font-weight:normal;padding:3px 0}td{padding:3px 0}
 footer{margin-top:40px;color:#64748b;font-size:12px}</style></head><body>
-<header><p>MatrixKeep · Home Digital Passport</p><h1>${esc(property.title)}</h1><p>${esc(property.subtitle)}</p><p>Prepared for ${esc(owner)} · ${date}</p></header>
-<h2>Property</h2>${fields(property.fields)}${parts || "<p>No saved records yet.</p>"}
-<footer>Generated by MatrixKeep on ${date}. Contains only records saved in this workspace.</footer></body></html>`;
+<header><p>MatrixKeep · ${esc(kindLabel)} · ${esc(opts.reportType)}</p><h1>${esc(subject.title)}</h1><p>${esc(subject.subtitle)}</p><p>Prepared ${p.contacts ? `for ${esc(owner)} ` : ""}· ${date}</p></header>
+<h2>Overview</h2>${fields(subject.fields)}${parts || "<p>No related saved records yet.</p>"}
+<footer>Generated by MatrixKeep on ${date}. Contains only records saved in this workspace that the owner chose to include.</footer></body></html>`;
 }
 
 function save(blob: Blob, name: string) {
@@ -32,17 +70,12 @@ function save(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-export function exportPassport(format: "pdf" | "word" | "html", html: string, slug: string) {
+export type Format = "pdf" | "word" | "html";
+export function exportPassport(format: Format, html: string, slug: string) {
   const base = `matrixkeep-passport-${slug}-${new Date().toISOString().slice(0, 10)}`;
   if (format === "html") return save(new Blob([html], { type: "text/html" }), `${base}.html`);
   if (format === "word") return save(new Blob(["\uFEFF" + html], { type: "application/msword" }), `${base}.doc`);
   const w = window.open("", "_blank");
   if (!w) return save(new Blob([html], { type: "text/html" }), `${base}.html`);
   w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
-}
-
-export async function sharePassport(html: string, title: string) {
-  const file = new File([html], "matrixkeep-passport.html", { type: "text/html" });
-  if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title }); return true; }
-  return false;
 }
