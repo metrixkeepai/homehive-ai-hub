@@ -23,3 +23,12 @@ describe("contract date calculation", () => {
     expect(parsePeriod("unknown")).toBeNull();
   });
 });
+
+import { legacyText } from "./file-text";
+describe("old Office text", () => {
+  it("pulls readable UTF-16 text out of binary files", () => {
+    const t = "Tenancy ends 2027-10-31";
+    const b = new Uint8Array([0, 1, 2, ...Array.from(t).flatMap((c) => [c.charCodeAt(0), 0]), 0, 1]);
+    expect(legacyText(b)).toContain(t);
+  });
+});

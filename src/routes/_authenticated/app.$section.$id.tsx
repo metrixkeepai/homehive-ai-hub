@@ -83,6 +83,10 @@ function Detail() {
                 {done.includes(a) ? `✓ ${a}` : a}
               </button>
             ))}
+            {own && section === "documents" && <>
+              <button onClick={async () => { const t = prompt("Rename document", item.title)?.trim(); if (!t || t === item.title) return; if (await update(id, { ...item, title: t })) toast.success("Document renamed"); else toast.error("Couldn't rename — please try again"); }} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Rename</button>
+              {(() => { const arch = item.fields.some(([k, v]) => k === "Status" && /^archived$/i.test(v)); return <button onClick={async () => { const fields: [string, string][] = [...item.fields.filter(([k]) => k !== "Status"), ...(arch ? [] : [["Status", "Archived"] as [string, string]])]; if (await update(id, { ...item, fields })) toast.success(arch ? "Document restored" : "Document archived", { description: arch ? undefined : "It's hidden from Documents unless you tick Show archived." }); }} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">{arch ? "Unarchive" : "Archive"}</button>; })()}
+            </>}
             {own && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
           </div>
         )}
