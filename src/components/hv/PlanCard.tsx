@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { Check, Lock, Users, MapPin, Package, HardDrive, Sparkles, ChevronDown } from "lucide-react";
 import { type PlanDef, priceLabel, gbp, yearlySaving } from "@/lib/plans";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { catalogueFor, effective, formatLimit, groupsFor, type Entitlements } from "@/lib/entitlements";
 
 export function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (y: boolean) => void }) {
   return (
@@ -41,16 +44,30 @@ export function PlanCard({ p, yearly, highlight, current, cta }: { p: PlanDef; y
   );
 }
 
+/** Side-by-side comparison driven by each plan's live feature settings (approved Super Admin versions over defaults). */
 export function CompareTable({ list }: { list: PlanDef[] }) {
-  const rows: [string, keyof PlanDef["cap"]][] = [["Users", "users"], ["Properties / locations", "places"], ["Assets", "assets"], ["Storage", "storage"], ["Documents", "docs"], ["AI captures", "captures"], ["Sera questions", "sera"]];
+  const published = useQuery({ queryKey: ["published-entitlements"], staleTime: 60_000, queryFn: async () => {
+    const { data } = await supabase.rpc("published_plan_entitlements");
+    const out: Record<string, Entitlements> = {};
+    for (const r of data ?? []) if (r.entitlements) out[r.plan_key] = r.entitlements as Entitlements;
+    return out;
+  } }).data ?? {};
+  const [open, setOpen] = useState<string | null>(null);
+  if (!list.length) return null;
+  const aud = list[0]!.audience;
+  const ents = Object.fromEntries(list.map((p) => [p.key, effective(p.key, published[p.key])]));
+  const feats = catalogueFor(aud);
+  const cell = (k: string, f: string, limits: boolean) => { const e = ents[k]?.[f]; return limits ? formatLimit(e) : e?.on ? <Check className="h-4 w-4 text-primary" /> : <span className="text-muted-foreground">—</span>; };
   return (
     <div className="overflow-x-auto rounded-3xl border bg-card">
       <table className="w-full min-w-[640px] text-sm">
-        <thead><tr className="border-b"><th className="p-4 text-left font-semibold">Compare capacity</th>{list.map((p) => <th key={p.key} className="p-4 text-left font-semibold">{p.name}</th>)}</tr></thead>
-        <tbody>
-          {rows.map(([l, k]) => <tr key={k} className="border-b last:border-0"><td className="p-4 text-muted-foreground">{l}</td>{list.map((p) => <td key={p.key} className="p-4">{p.cap[k]}</td>)}</tr>)}
-          <tr><td className="p-4 text-muted-foreground">Support</td>{list.map((p) => <td key={p.key} className="p-4">{p.support}</td>)}</tr>
-        </tbody>
+        <thead><tr className="border-b"><th className="p-4 text-left font-semibold">Compare plans</th>{list.map((p) => <th key={p.key} className="p-4 text-left font-semibold">{p.name}</th>)}</tr></thead>
+        {groupsFor(aud).map((g) => { const fs = feats.filter((f) => f.group === g); const cap = g === "Capacity"; const shown = cap || open === g; return (
+          <tbody key={g}>
+            <tr className="border-b bg-secondary/40"><td colSpan={list.length + 1} className="p-0"><button type="button" onClick={() => !cap && setOpen(open === g ? null : g)} className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide">{g}{!cap && <ChevronDown className={`h-3.5 w-3.5 transition ${shown ? "rotate-180" : ""}`} />}</button></td></tr>
+            {shown && fs.map((f) => <tr key={f.key} className="border-b last:border-0"><td className="p-4 text-muted-foreground">{f.name}</td>{list.map((p) => <td key={p.key} className="p-4">{cell(p.key, f.key, !!f.limits)}</td>)}</tr>)}
+          </tbody>); })}
+        <tbody><tr><td className="p-4 text-muted-foreground">Support</td>{list.map((p) => <td key={p.key} className="p-4">{p.support}</td>)}</tr></tbody>
       </table>
     </div>
   );

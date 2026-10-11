@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, DoorOpen, Receipt, Upload, Mic, Mail, X, Loader2, Check, ArrowLeft, Bot } from "lucide-react";
+import { Camera, DoorOpen, Receipt, Upload, Mic, Mail, X, Loader2, Check, ArrowLeft, Bot, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { extractRecords, type Extracted } from "@/lib/capture.functions";
 import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
 import { useStore } from "./store";
+import { usePlanGate } from "./Upgrade";
+const modeFeature: Record<string, [string, string]> = { room: ["room_scan", "room scans"], email: ["email_import", "email import"], speak: ["voice_capture", "voice capture"] };
 
 type Mode = { key: string; label: string; icon: typeof Camera; hint: string; kind: "file" | "voice" | "text" };
 const modes: Mode[] = [
@@ -55,6 +57,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
 
 export function AddAnything({ onClose, initial }: { onClose: () => void; initial?: string }) {
   const { addReturning, added, current } = useStore();
+  const gate = usePlanGate();
   const [step, setStep] = useState<Step>(initial ? "capture" : "pick");
   const [mode, setMode] = useState<Mode | undefined>(modes.find((m) => m.key === initial));
   const [file, setFile] = useState<File | null>(null);
@@ -184,8 +187,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
           {step === "pick" && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {modes.map((m) => (
-                <button key={m.key} onClick={() => { setMode(m); setStep("capture"); }} className="flex flex-col items-center gap-2 rounded-2xl border p-5 text-sm font-medium transition hover:border-primary hover:bg-secondary">
-                  <m.icon className="h-6 w-6 text-primary" />{m.label}
+                <button key={m.key} onClick={() => { const f = modeFeature[m.key]; if (f && !gate.need(f[0], f[1])) return; setMode(m); setStep("capture"); }} className="relative flex flex-col items-center gap-2 rounded-2xl border p-5 text-sm font-medium transition hover:border-primary hover:bg-secondary">
+                  {modeFeature[m.key] && !gate.can(modeFeature[m.key]![0]) && <Lock className="absolute right-3 top-3 h-3.5 w-3.5 text-muted-foreground" />}<m.icon className="h-6 w-6 text-primary" />{m.label}
                 </button>
               ))}
             </div>

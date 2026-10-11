@@ -40,6 +40,9 @@ function Plans() {
   const [need, setNeed] = useState<{ feature: string; over?: number | undefined } | null>(null);
   const [resume, setResume] = useState<string | null>(null);
   useEffect(() => { const u = new URLSearchParams(window.location.search); const f = u.get("need"); if (f) setNeed({ feature: f, over: u.get("over") ? Number(u.get("over")) : undefined }); setResume(sessionStorage.getItem("hv-resume")); }, []);
+  // "Choose" from the upgrade pop-up opens checkout for that plan straight away.
+  useEffect(() => { const k = new URLSearchParams(window.location.search).get("plan"); const p = k && list.find((x) => x.key === k); if (p && profile && p.key !== profile.plan) void choose(p); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!profile]);
   const eligible = need ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over) : [];
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
 
