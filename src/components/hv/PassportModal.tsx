@@ -172,7 +172,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
               const live = !s.revoked && new Date(s.expires_at) > new Date();
               return <li key={s.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
                 <span>{live ? `Expires ${new Date(s.expires_at).toLocaleDateString("en-GB")}` : s.revoked ? "Revoked" : "Expired"} · {s.views} views</span>
-                {live && <span className="flex gap-2"><button onClick={() => copy(`${window.location.origin}/p/${s.token}`)} className="text-primary">Copy</button><button onClick={() => revoke(s.id)} className="text-destructive">Revoke</button></span>}
+                {live && <span className="flex gap-2"><button onClick={() => copy(shareUrl(window.location.origin, s.token, entity))} className="text-primary">Copy</button><button onClick={() => revoke(s.id)} className="text-destructive">Revoke</button></span>}
               </li>;
             })}</ul>
           </div>}
