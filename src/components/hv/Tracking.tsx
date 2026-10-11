@@ -1,3 +1,5 @@
+import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
+import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
@@ -73,7 +75,8 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
   const [edit, setEdit] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleted, setDeleted] = useState(false);
-  const [tab, setTab] = useState<"Overview" | "Evidence" | "Activity">("Overview");
+  const [tab, setTab] = useState<"Overview" | "Evidence" | "Related" | "Activity" | "AI insight">("Overview");
+  const links = useRecordLinks(item.id);
   const status = trackingStatus(item);
   const date = trackingDate(item);
   const title = section === "warranties" ? "Warranties" : "Renewals";
@@ -92,11 +95,13 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
       </div>
     </section>
     <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
-      {(["Overview", "Evidence", "Activity"] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === t ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground"}`}>{t}</button>)}
+      {(["Overview", "Evidence", "Related", "Activity", "AI insight"] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === t ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground"}`}>{t}</button>)}
     </div>
     <section className="rounded-3xl border bg-card p-6 shadow-soft">
       {tab === "Overview" && (item.fields.some(([, v]) => v) ? <dl className="grid gap-4 sm:grid-cols-2">{item.fields.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 break-words font-medium">{v}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">No details yet. Press Edit to add them.</p>)}
       {tab === "Evidence" && <Evidence itemId={item.id} />}
+      {tab === "Related" && (links === null ? <p className="text-sm text-muted-foreground">Loading linked records…</p> : links.length ? <RelatedRecords links={links} /> : <p className="text-sm text-muted-foreground">Nothing linked yet. Records captured together in Add anything are linked automatically.</p>)}
+      {tab === "AI insight" && <div className="flex gap-3 rounded-2xl bg-secondary p-5"><Sparkles className="h-5 w-5 shrink-0 text-violet" /><p className="text-sm">{item.insight ?? (date ? `MatrixKeep is watching this ${section === "warranties" ? "warranty" : "renewal"} and calculates its status from the saved date.` : "Add a date so MatrixKeep can track this record.")}</p></div>}
       {tab === "Activity" && <p className="text-sm text-muted-foreground">{date ? `${section === "warranties" ? "Expires" : "Renews"} on ${format(date, "d MMMM yyyy")}. Download a calendar reminder to be notified.` : "Add a date to start tracking this record."}</p>}
     </section>
     {edit && <TrackingEditor section={section} item={item} onClose={() => setEdit(false)} />}
