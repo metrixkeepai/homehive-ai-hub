@@ -28,7 +28,7 @@ export function isEntity(v: unknown): v is PassportEntity {
   return typeof v === "string" && v in OG_TITLE;
 }
 
-type Input = { entity: PassportEntity; name?: string; expiresAt?: Date | null };
+type Input = { entity: PassportEntity; name?: string | undefined; expiresAt?: Date | null };
 
 export function formatExpiry(d: Date) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
