@@ -24,3 +24,4 @@
 - [x] Secure expiring share links, revoke, guest view
 - [x] Asset, vehicle and location passports
 - [ ] MatrixKeep-sent emails — blocked: needs an email domain
+- [x] Document intelligence: contract/renewal extraction, date calc, more file types
