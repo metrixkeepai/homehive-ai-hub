@@ -118,3 +118,12 @@ export const upgradeCopy: Record<string, [string, string]> = {
   api_access: ["Connect MatrixKeep to Your Business Systems", "Use the API and webhooks to sync MatrixKeep with your tools."],
 };
 export const copyFor = (feature: string, label: string): [string, string] => upgradeCopy[feature] ?? [`Unlock more ${label}`, `Upgrade your plan to add more ${label}.`];
+
+/** Human label for a limit: "Unlimited", "500 MB", "100 / month". */
+export function formatLimit(e?: Entitlement): string {
+  if (!e || !e.on) return "—";
+  if (e.limit === undefined) return "Included";
+  if (e.limit === null) return "Unlimited";
+  const n = e.limit.toLocaleString("en-GB");
+  return e.unit === "per month" ? `${n} / month` : e.unit && e.unit !== "count" ? `${n} ${e.unit}` : n;
+}
