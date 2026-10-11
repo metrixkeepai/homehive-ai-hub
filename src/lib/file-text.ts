@@ -18,7 +18,7 @@ export async function extractFileText(f: File): Promise<string | null> {
     if (name.endsWith(".docx")) parts = pick(/^word\/(document|header\d*|footer\d*)\.xml$/);
     else if (name.endsWith(".pptx")) parts = pick(/^ppt\/slides\/slide\d+\.xml$/);
     else parts = [...pick(/^xl\/sharedStrings\.xml$/), ...pick(/^xl\/worksheets\/sheet\d+\.xml$/)];
-    return parts.map((p, i) => (name.endsWith(".pptx") ? `Slide ${i + 1}:\n` : "") + stripXml(strFromU8(z[p]))).join("\n\n").slice(0, 60000);
+    return parts.map((p, i) => (name.endsWith(".pptx") ? `Slide ${i + 1}:\n` : "") + stripXml(strFromU8(z[p]!))).join("\n\n").slice(0, 60000);
   }
   throw new Error("unsupported");
 }
