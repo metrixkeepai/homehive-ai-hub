@@ -150,11 +150,11 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
               <div className="mt-5 space-y-3 text-left">
                 <div><p className="font-display text-lg">Share Your Digital Passport</p><p className="text-xs text-muted-foreground">Send a secure, professional view without giving anyone access to your MatrixKeep account.</p></div>
                 <div className="flex flex-wrap gap-2">
-                  <a href={`https://wa.me/?text=${encodeURIComponent(fullMsg)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />WhatsApp</a>
+                  <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(fullMsg)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />WhatsApp</a>
                   <a href={`mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Mail className="h-4 w-4" />Email</a>
                   <button onClick={copyMsg} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Copy className="h-4 w-4" />Copy Message</button>
                   <button onClick={() => copy(link)} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Link2 className="h-4 w-4" />Copy Link</button>
-                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: "MatrixKeep Digital Passport", text: body, url: link }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold">More…</button>}
+                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: "MatrixKeep Digital Passport", text: fullMsg }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold">More…</button>}
                 </div>
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={showName} onChange={() => { setShowName(!showName); setBody(null); }} className="h-4 w-4 accent-[hsl(var(--primary))]" />Mention “{item.title}” in the message</label>
                 <div>
