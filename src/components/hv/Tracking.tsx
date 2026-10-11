@@ -93,6 +93,7 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
       <div className="mt-6 flex flex-wrap gap-2">
         <button onClick={() => setEdit(true)} className="flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><Pencil className="h-4 w-4" />Edit</button>
         <button disabled={!date} onClick={() => downloadReminder(item)} className="flex items-center gap-2 rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold disabled:opacity-50"><CalendarPlus className="h-4 w-4" />Calendar reminder</button>
+        <button disabled={!date} onClick={() => { const nd = field(item, "Notice deadline"); const msg = `MatrixKeep reminder: ${item.title} is due on ${date ? format(date, "d MMMM yyyy") : ""}${nd ? ` — notice deadline ${nd}` : ""}.`; window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener"); }} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold disabled:opacity-50">Send to WhatsApp</button>
         <button onClick={() => setConfirm(true)} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>
       </div>
     </section>
