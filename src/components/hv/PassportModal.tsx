@@ -154,7 +154,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
                   <a href={`mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Mail className="h-4 w-4" />Email</a>
                   <button onClick={copyMsg} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Copy className="h-4 w-4" />Copy Message</button>
                   <button onClick={() => copy(link)} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Link2 className="h-4 w-4" />Copy Link</button>
-                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: "MatrixKeep Digital Passport", text: composeShare(body, "", entity).replace(/\n\n\*MatrixKeep[\s\S]*$/, ""), url: link }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold">More…</button>}
+                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: "MatrixKeep Digital Passport", text: body, url: link }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold">More…</button>}
                 </div>
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={showName} onChange={() => { setShowName(!showName); setBody(null); }} className="h-4 w-4 accent-[hsl(var(--primary))]" />Mention “{item.title}” in the message</label>
                 <div>
