@@ -73,13 +73,32 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
   const [edit, setEdit] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [tab, setTab] = useState<"Overview" | "Evidence" | "Activity">("Overview");
   const status = trackingStatus(item);
+  const date = trackingDate(item);
+  const title = section === "warranties" ? "Warranties" : "Renewals";
   if (deleted) return <div className="p-8"><h1 className="font-display text-3xl">Record deleted</h1><Button asChild className="mt-4"><Link to="/app/$section" params={{ section }}>Back to {section}</Link></Button></div>;
   return <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-6">
-    <nav className="text-sm text-muted-foreground"><Link to="/app">Overview</Link> / <Link to="/app/$section" params={{ section }} className="capitalize">{section}</Link> / {item.title}</nav>
-    <div className="border-b pb-6"><span className={`inline-block rounded px-2 py-1 text-xs ${toneClass(status.tone)}`}>{status.label}</span><h1 className="mt-3 font-display text-4xl">{item.title}</h1><p className="mt-2 text-muted-foreground">{field(item, "Provider")}</p><div className="mt-5 flex flex-wrap gap-2"><Button onClick={() => setEdit(true)}><Pencil />Edit</Button><Button variant="outline" disabled={!trackingDate(item)} onClick={() => { downloadReminder(item); }}><CalendarPlus />Calendar reminder</Button><Button variant="ghost" className="text-destructive" onClick={() => setConfirm(true)}><Trash2 />Delete</Button></div></div>
-    <dl className="grid gap-5 sm:grid-cols-2">{item.fields.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 break-words font-medium">{v}</dd></div>)}</dl>
-    <div className="border-t pt-6"><h2 className="mb-4 font-display text-2xl">Evidence</h2><Evidence itemId={item.id} /></div>
+    <nav className="text-sm text-muted-foreground"><Link to="/app" className="hover:text-foreground">Home</Link> / <Link to="/app/$section" params={{ section }} className="hover:text-foreground">{title}</Link> / <span className="text-foreground">{item.title}</span></nav>
+    <section className="rounded-[2rem] bg-midnight-glow p-8 text-midnight-foreground">
+      <p className="text-sm text-midnight-foreground/60">{title}</p>
+      <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
+      <p className="mt-2 text-midnight-foreground/70">{field(item, "Provider") || "No provider"} · {date ? format(date, "d MMMM yyyy") : "No date"}</p>
+      <div className="mt-5"><span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(status.tone)}`}>{status.label}</span></div>
+      <div className="mt-6 flex flex-wrap gap-2">
+        <button onClick={() => setEdit(true)} className="flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><Pencil className="h-4 w-4" />Edit</button>
+        <button disabled={!date} onClick={() => downloadReminder(item)} className="flex items-center gap-2 rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold disabled:opacity-50"><CalendarPlus className="h-4 w-4" />Calendar reminder</button>
+        <button onClick={() => setConfirm(true)} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>
+      </div>
+    </section>
+    <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
+      {(["Overview", "Evidence", "Activity"] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={`flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === t ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground"}`}>{t}</button>)}
+    </div>
+    <section className="rounded-3xl border bg-card p-6 shadow-soft">
+      {tab === "Overview" && (item.fields.some(([, v]) => v) ? <dl className="grid gap-4 sm:grid-cols-2">{item.fields.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-1 break-words font-medium">{v}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">No details yet. Press Edit to add them.</p>)}
+      {tab === "Evidence" && <Evidence itemId={item.id} />}
+      {tab === "Activity" && <p className="text-sm text-muted-foreground">{date ? `${section === "warranties" ? "Expires" : "Renews"} on ${format(date, "d MMMM yyyy")}. Download a calendar reminder to be notified.` : "Add a date to start tracking this record."}</p>}
+    </section>
     {edit && <TrackingEditor section={section} item={item} onClose={() => setEdit(false)} />}
     <Dialog open={confirm} onOpenChange={setConfirm}><DialogContent><DialogTitle>Delete this record?</DialogTitle><DialogDescription>This permanently removes {item.title}.</DialogDescription><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setConfirm(false)}><X />Cancel</Button><Button variant="destructive" onClick={async () => { try { await remove(section, item.id); setDeleted(true); setConfirm(false); toast.success("Record deleted"); await navigate({ to: "/app/$section", params: { section } }); } catch { toast.error("Couldn't delete. Please try again."); } }}><Trash2 />Delete</Button></div></DialogContent></Dialog>
   </div>;
