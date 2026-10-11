@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { supabase } from "@/integrations/supabase/client";
 import type { Item } from "./data";
 import { buildPassportHtml, exportPassport, PASSPORT_SECTIONS, REPORT_TYPES, type Format, type Privacy, type SectionSlug } from "./passport-report";
+import { buildEmail, buildPassportShareMessage, composeShare, ENTITY_BY_SECTION, shareUrl } from "@/lib/passport-share";
 
 export const PASSPORT_KINDS: Record<string, string> = { "my-home": "Home Digital Passport", assets: "Asset Passport", vehicles: "Vehicle Passport", locations: "Location Passport" };
 
@@ -29,6 +30,10 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
   const [days, setDays] = useState(7);
   const [link, setLink] = useState("");
   const [shares, setShares] = useState<Share[]>([]);
+  const entity = ENTITY_BY_SECTION[section] ?? "other";
+  const [showName, setShowName] = useState(entity !== "property");
+  const [customBody, setCustomBody] = useState<string | null>(null);
+  const [expiry, setExpiry] = useState<Date | null>(null);
 
   useEffect(() => { if (open) { setStage("form"); setLink(""); } }, [open]);
   const loadShares = async () => {
@@ -47,15 +52,23 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
     setStage("working");
     try {
       if (mode === "download") { setStage("done"); return; }
-      const { data, error } = await supabase.from("passport_shares").insert({ title: `${kind}: ${item.title}`, html, expires_at: new Date(Date.now() + days * 86400000).toISOString() }).select("token").single();
+      const exp = new Date(Date.now() + days * 86400000);
+      const { data, error } = await supabase.from("passport_shares").insert({ title: `${kind}: ${item.title}`, html, expires_at: exp.toISOString() }).select("token").single();
       if (error || !data) throw error;
-      setLink(`${window.location.origin}/p/${data.token}`); setStage("done"); void loadShares();
+      setExpiry(exp); setCustomBody(null);
+      setLink(shareUrl(window.location.origin, data.token, entity)); setStage("done"); void loadShares();
     } catch { setStage("error"); }
   };
   const download = () => { exportPassport(format, html, item.id); toast.success("Passport ready", { description: `Your ${fmtLabel} ${kind} has been prepared.` }); };
   const revoke = async (id: string) => { const { error } = await supabase.from("passport_shares").update({ revoked: true }).eq("id", id); if (error) toast.error("Couldn't revoke link"); else { toast.success("Link revoked"); void loadShares(); } };
   const copy = async (u: string) => { await navigator.clipboard.writeText(u); toast.success("Link copied"); };
-  const msg = `Here is the MatrixKeep ${kind} for ${item.title}: ${link}`;
+  const shareInput = { entity, name: showName ? item.title : undefined, expiresAt: expiry };
+  const defaultBody = buildPassportShareMessage(shareInput);
+  const body = customBody ?? defaultBody;
+  const setBody = setCustomBody;
+  const fullMsg = composeShare(body, link, entity);
+  const email = buildEmail(shareInput, link);
+  const copyMsg = async () => { await navigator.clipboard.writeText(fullMsg); toast.success("✓ Share message copied", { description: "Your MatrixKeep invitation is ready to send." }); };
 
   const chk = (on: boolean, label: string, fn: () => void) => (
     <label className="flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={on} onChange={fn} className="h-4 w-4 accent-[hsl(var(--primary))]" />{label}</label>
@@ -135,11 +148,19 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
               </div>
             ) : (
               <div className="mt-5 space-y-3 text-left">
-                <div className="flex gap-2"><input readOnly value={link} className="flex-1 rounded-xl border bg-secondary px-3 py-2 text-sm" /><button onClick={() => copy(link)} className="rounded-xl border px-3"><Copy className="h-4 w-4" /></button></div>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <a href={`mailto:?subject=${encodeURIComponent(`${kind}: ${item.title}`)}&body=${encodeURIComponent(msg)}`} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Mail className="h-4 w-4" />Email</a>
-                  <a href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><MessageCircle className="h-4 w-4" />WhatsApp</a>
-                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: item.title, url: link }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Link2 className="h-4 w-4" />More apps</button>}
+                <div><p className="font-display text-lg">Share Your Digital Passport</p><p className="text-xs text-muted-foreground">Send a secure, professional view without giving anyone access to your MatrixKeep account.</p></div>
+                <div className="flex flex-wrap gap-2">
+                  <a href={`https://wa.me/?text=${encodeURIComponent(fullMsg)}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full bg-aurora px-4 py-2 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />WhatsApp</a>
+                  <a href={`mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Mail className="h-4 w-4" />Email</a>
+                  <button onClick={copyMsg} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Copy className="h-4 w-4" />Copy Message</button>
+                  <button onClick={() => copy(link)} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold"><Link2 className="h-4 w-4" />Copy Link</button>
+                  {typeof navigator !== "undefined" && "share" in navigator && <button onClick={() => navigator.share({ title: "MatrixKeep Digital Passport", text: body, url: link }).catch(() => {})} className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold">More…</button>}
+                </div>
+                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={showName} onChange={() => { setShowName(!showName); setBody(null); }} className="h-4 w-4 accent-[hsl(var(--primary))]" />Mention “{item.title}” in the message</label>
+                <div>
+                  <div className="flex items-center justify-between"><p className="text-sm font-semibold">Message Preview</p>{body !== defaultBody && <button onClick={() => setBody(null)} className="text-xs font-semibold text-primary">Reset to MatrixKeep default</button>}</div>
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} aria-label="Edit message" className="mt-1 w-full rounded-xl border bg-secondary px-3 py-2 text-sm" />
+                  <p className="mt-1 break-all rounded-xl border bg-muted px-3 py-2 text-xs text-muted-foreground">{link} <span className="whitespace-nowrap">· secure link (can't be edited)</span></p>
                 </div>
               </div>
             )}
@@ -151,7 +172,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
               const live = !s.revoked && new Date(s.expires_at) > new Date();
               return <li key={s.id} className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2">
                 <span>{live ? `Expires ${new Date(s.expires_at).toLocaleDateString("en-GB")}` : s.revoked ? "Revoked" : "Expired"} · {s.views} views</span>
-                {live && <span className="flex gap-2"><button onClick={() => copy(`${window.location.origin}/p/${s.token}`)} className="text-primary">Copy</button><button onClick={() => revoke(s.id)} className="text-destructive">Revoke</button></span>}
+                {live && <span className="flex gap-2"><button onClick={() => copy(shareUrl(window.location.origin, s.token, entity))} className="text-primary">Copy</button><button onClick={() => revoke(s.id)} className="text-destructive">Revoke</button></span>}
               </li>;
             })}</ul>
           </div>}
