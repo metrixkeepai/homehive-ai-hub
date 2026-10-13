@@ -93,11 +93,13 @@ function Detail() {
             </>}
             {own && section === propertySlug && <><PropertyEditButton item={item} /><button onClick={() => void setArchived(item, !isArchivedItem(item))} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">{isArchivedItem(item) ? "Restore" : "Archive"}</button><button onClick={() => void act("Delete")} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button></>}
             {own && section !== propertySlug && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
+            {PASSPORT_KINDS[section] && !(item.actions ?? []).includes("Download home report") && <button onClick={() => setPassport("download")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Download Digital Passport</button>}
+            {PASSPORT_KINDS[section] && <button onClick={() => setPassport("share")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Share Passport</button>}
           </div>
         )}
-        {PASSPORT_KINDS[section] && <div className="mt-2 flex flex-wrap gap-2">
-          {section !== "my-home" && <button onClick={() => setPassport("download")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Download passport</button>}
-          <button onClick={() => setPassport("share")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Share passport</button>
+        {!(item.actions || own) && PASSPORT_KINDS[section] && <div className="mt-6 flex flex-wrap gap-2">
+          <button onClick={() => setPassport("download")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Download Digital Passport</button>
+          <button onClick={() => setPassport("share")} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Share Passport</button>
         </div>}
         </>}
       </section>

@@ -42,7 +42,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
   };
   useEffect(() => { if (open && mode === "share") void loadShares(); }, [open, mode]);
 
-  const html = useMemo(() => buildPassportHtml(item, added, owner, { reportType, include, privacy }, kind, whole), [item, added, owner, reportType, include, privacy, kind, whole]);
+  const html = useMemo(() => buildPassportHtml(item, added, owner, { reportType, include, privacy }, kind, whole, section), [item, added, owner, reportType, include, privacy, kind, whole, section]);
   const fmtLabel = FORMATS.find(([f]) => f === format)![1];
 
   const pickType = (t: string) => { setReportType(t); if (t !== "Custom Report") setInclude(REPORT_TYPES[t]!); };
