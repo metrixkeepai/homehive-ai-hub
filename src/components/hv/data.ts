@@ -6,6 +6,7 @@ import {
 export type Tone = "success" | "warning" | "primary" | "muted" | "danger";
 export type Item = {
   id: string;
+  propertyId?: string | null;
   title: string;
   subtitle: string;
   status?: [string, Tone];
