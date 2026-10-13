@@ -5,7 +5,7 @@ export function accountNavigation(business: boolean): NavGroup[] {
   const groups: [string, string[]][] = [
     [business ? "Organisation & inventory" : "Home & belongings", ["my-home", ...(business ? ["locations"] : []), "rooms", "assets", "vehicles"]],
     ["Protection & paperwork", ["documents", "warranties", "renewals", "insurance"]],
-    ["Care & activity", ["maintenance", "tasks", "timeline", "services"]],
+    ["Care & activity", ["calendar", "maintenance", "tasks", "timeline", "services"]],
     [business ? "People & intelligence" : "Household & intelligence", [business ? "team" : "family", ...(business ? ["roles"] : []), "agents", "messages", "integrations"]],
     ["Account", sections.filter((s) => s.group === "account").map((s) => s.slug)],
   ];

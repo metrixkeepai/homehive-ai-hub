@@ -190,6 +190,11 @@ export const sections: Section[] = [
     ],
   },
   {
+    slug: "calendar", title: "Calendar", group: "main", icon: CalendarClock,
+    intro: "Every warranty, renewal, service and deadline across your properties in one calendar.",
+    kpis: [], items: [],
+  },
+  {
     slug: "tasks", title: "Tasks", group: "main", icon: ListChecks,
     intro: "Everything that needs a human decision.",
     kpis: [["Open", "7"], ["Due this week", "3"], ["Completed", "41"]],
