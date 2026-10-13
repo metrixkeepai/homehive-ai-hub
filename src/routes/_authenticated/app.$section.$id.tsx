@@ -10,6 +10,8 @@ import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
 import { GoogleIntegration, GoogleOverviewFields, googleConnectorFor } from "@/components/hv/GoogleIntegration";
 import { PassportModal, PASSPORT_KINDS } from "@/components/hv/PassportModal";
+import { PropertyContents, PropertyEditButton, PropertySelect, usePropertyActions } from "@/components/hv/Properties";
+import { PROPERTY_SLUGS, isArchivedItem } from "@/components/hv/store";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
@@ -25,7 +27,8 @@ const tabs = ["Overview", "Items", "Evidence", "Related", "Activity", "AI insigh
 function Detail() {
   const { section, id } = Route.useParams();
   const s = getSection(section);
-  const { added, remove, update, profile, email } = useStore();
+  const { added, remove, update, profile, email, properties, propertySlug, current } = useStore();
+  const { setArchived, del } = usePropertyActions();
   const [proposal, setProposal] = useState<Proposed | null>(null);
   const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
@@ -54,6 +57,7 @@ function Detail() {
   ] : [];
   const fv = (a: { fields: [string, string][] }, k: string) => a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
   const act = async (a: string) => {
+    if (a === "Delete" && own && section === propertySlug) { if (await del(section, item)) navigate({ to: "/app/$section", params: { section } }); return; }
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) { await remove(section, id); toast.success("Deleted"); navigate({ to: "/app/$section", params: { section } }); return; }
     if (a === "Download home report") { setPassport("download"); return; }
     setDone((d) => [...d, a]);
@@ -87,7 +91,8 @@ function Detail() {
               <button onClick={async () => { const t = prompt("Rename document", item.title)?.trim(); if (!t || t === item.title) return; if (await update(id, { ...item, title: t })) toast.success("Document renamed"); else toast.error("Couldn't rename — please try again"); }} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">Rename</button>
               {(() => { const arch = item.fields.some(([k, v]) => k === "Status" && /^archived$/i.test(v)); return <button onClick={async () => { const fields: [string, string][] = [...item.fields.filter(([k]) => k !== "Status"), ...(arch ? [] : [["Status", "Archived"] as [string, string]])]; if (await update(id, { ...item, fields })) toast.success(arch ? "Document restored" : "Document archived", { description: arch ? undefined : "It's hidden from Documents unless you tick Show archived." }); }} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">{arch ? "Unarchive" : "Archive"}</button>; })()}
             </>}
-            {own && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
+            {own && section === propertySlug && <><PropertyEditButton item={item} /><button onClick={() => void setArchived(item, !isArchivedItem(item))} className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold">{isArchivedItem(item) ? "Restore" : "Archive"}</button><button onClick={() => void act("Delete")} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button></>}
+            {own && section !== propertySlug && <button onClick={() => { if (confirm(`Delete “${item.title}”? This can't be undone.`)) void act("Delete"); }} className="rounded-full border border-destructive/50 px-4 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive/10">Delete</button>}
           </div>
         )}
         {PASSPORT_KINDS[section] && <div className="mt-2 flex flex-wrap gap-2">
@@ -98,6 +103,8 @@ function Detail() {
       </section>
       {passport && <PassportModal open mode={passport} onClose={() => setPassport(null)} section={section} item={item} added={added} owner={profile?.display_name || email || "you"} />}
 
+      {own && section === propertySlug && <section className="rounded-3xl border bg-card p-6 shadow-soft"><h2 className="mb-4 font-display text-xl">In this {current.type !== "individual" ? "location" : "property"}</h2><PropertyContents propertyId={id} /></section>}
+      {own && !PROPERTY_SLUGS.includes(section) && s.group === "main" && properties.length > 0 && <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card px-5 py-3 text-sm shadow-soft"><span className="font-medium">{current.type !== "individual" ? "Location" : "Property"}</span><PropertySelect value={item.propertyId ?? null} onChange={async (v) => { if (await update(id, { ...item, propertyId: v })) toast.success(v ? `Moved to ${properties.find((p) => p.id === v)?.title}` : "Marked as unassigned"); else toast.error("Couldn't update — please try again"); }} className="rounded-xl border bg-background px-3 py-2" /></div>}
       <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
         {shownTabs.map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm ${tab === t ? "bg-primary font-semibold text-primary-foreground" : "text-muted-foreground"}`}>{t}</button>

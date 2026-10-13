@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { extractRecords, type Extracted } from "@/lib/capture.functions";
 import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
+import { PropertySelect, useDefaultProperty } from "./Properties";
 import { useStore } from "./store";
 import { usePlanGate } from "./Upgrade";
 import { deriveContractDates, isAutoRenew, noticeDeadline } from "@/lib/contract-dates";
@@ -69,6 +70,9 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   const [summary, setSummary] = useState("");
   const [recs, setRecs] = useState<Rec[]>([]);
   const [location, setLocation] = useState("");
+  const defaultProperty = useDefaultProperty();
+  const [propertyId, setPropertyId] = useState<string | null | undefined>(undefined);
+  const { properties } = useStore();
   const [room, setRoom] = useState("");
   const [saved, setSaved] = useState<{ section: string; id: string; title: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -162,7 +166,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
       if (location) fields.push(["Location", location]);
       if (room && !fields.some(([k]) => k === "Room")) fields.push(["Room", room]);
       fields.push(["Captured via", mode?.label ?? "Add anything"]);
-      const id = await addReturning(r.section, { id: "", title: r.title.trim(), subtitle: r.subtitle, fields });
+      const id = await addReturning(r.section, { id: "", title: r.title.trim(), subtitle: r.subtitle, fields, propertyId: propertyId === undefined ? defaultProperty : propertyId });
       if (id) out.push({ section: r.section, id, title: r.title, rel: r.relates_to ?? "" });
     }
     const newDoc = doc && out.find((o) => o.section === "documents");
@@ -256,7 +260,12 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
             <div className="space-y-4">
               <p className="rounded-2xl bg-secondary p-4 text-sm">{summary}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {biz && (
+                {properties.length > 0 && (
+                  <label className="text-xs font-medium text-muted-foreground sm:col-span-2">{biz ? "Location / property" : "Property"}
+                    <PropertySelect value={propertyId === undefined ? defaultProperty : propertyId} onChange={setPropertyId} className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground" />
+                  </label>
+                )}
+                {biz && !properties.length && (
                   <label className="text-xs font-medium text-muted-foreground">Location
                     <select value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground">
                       <option value="">{locations.length ? "Choose location" : "No locations yet"}</option>
