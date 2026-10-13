@@ -6,6 +6,7 @@ import {
 export type Tone = "success" | "warning" | "primary" | "muted" | "danger";
 export type Item = {
   id: string;
+  propertyId?: string | null;
   title: string;
   subtitle: string;
   status?: [string, Tone];
@@ -187,6 +188,11 @@ export const sections: Section[] = [
       { id: "insurance-agent", title: "Insurance Agent", subtitle: "Keeps you claim-ready", status: ["Idle", "muted"], fields: [["Last run", "Yesterday"]], links: [["insurance", "home-policy"]], actions: ["Run now"] },
       { id: "vehicle-agent", title: "Vehicle Agent", subtitle: "MOT, tax and service", status: ["Idle", "muted"], fields: [["Last run", "Today 07:00"]], links: [["vehicles", "golf"]], actions: ["Run now"] },
     ],
+  },
+  {
+    slug: "calendar", title: "Calendar", group: "main", icon: CalendarClock,
+    intro: "Every warranty, renewal, service and deadline across your properties in one calendar.",
+    kpis: [], items: [],
   },
   {
     slug: "tasks", title: "Tasks", group: "main", icon: ListChecks,

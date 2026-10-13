@@ -15,6 +15,11 @@ export function sectionLimit(slug: string, plan?: string | null): { max: number;
 }
 
 
+/** Section slugs that hold properties / locations (top of the Property → Room → Asset hierarchy). */
+export const PROPERTY_SLUGS = ["my-home", "locations"];
+export const propertySlugFor = (business: boolean) => (business ? "locations" : "my-home");
+export const isArchivedItem = (i: Item) => i.fields.some(([k, v]) => k === "Status" && v === "Archived");
+
 export type Profile = {
   display_name: string | null; avatar_url: string | null; household: string | null;
   account_type: "individual" | "business" | "enterprise"; plan: string; plan_source: string | null; business_type: string | null; org_size: string | null; branches: number | null; trial_ends_at: string | null; org_name: string | null; sector: string | null; job_title: string | null;
@@ -36,13 +41,16 @@ type Ctx = {
   switchWorkspace: (id: string | null) => void;
   createWorkspace: (name: string, type: Workspace["type"]) => Promise<boolean>;
   reload: () => Promise<void>;
+  /** Saved properties/locations in the current workspace (archived included). */
+  properties: Item[];
+  propertySlug: string;
 };
 const personal: Workspace = { id: null, name: "Personal", type: "individual" };
-const StoreCtx = createContext<Ctx>({ added: {}, add: async () => false, addReturning: async () => null, remove: async () => {}, update: async () => false, profile: null, email: "", saveProfile: async () => false, workspaces: [], current: { id: null, name: "Personal", type: "individual" }, switchWorkspace: () => {}, createWorkspace: async () => false, reload: async () => {} });
+const StoreCtx = createContext<Ctx>({ added: {}, add: async () => false, addReturning: async () => null, remove: async () => {}, update: async () => false, profile: null, email: "", saveProfile: async () => false, workspaces: [], current: { id: null, name: "Personal", type: "individual" }, switchWorkspace: () => {}, createWorkspace: async () => false, reload: async () => {}, properties: [], propertySlug: "my-home" });
 
-type Row = { id: string; workspace_id?: string | null; section: string; title: string; subtitle: string; fields: unknown; created_at: string };
+type Row = { id: string; workspace_id?: string | null; property_id?: string | null; section: string; title: string; subtitle: string; fields: unknown; created_at: string };
 const toItem = (r: Row): Item => ({
-  id: r.id, title: r.title, subtitle: r.subtitle || "Saved",
+  id: r.id, propertyId: r.property_id ?? null, title: r.title, subtitle: r.subtitle || "Saved",
   status: ["Saved", "primary"], fields: (r.fields as [string, string][]) ?? [], actions: ["Delete"],
   timeline: [[new Date(r.created_at).toLocaleDateString(), "Added by you"]],
 });
@@ -63,7 +71,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!u.user) return;
     setEmail(u.user.email ?? "");
     const [{ data: rows }, { data: p }, { data: ws }] = await Promise.all([
-      supabase.from("home_items").select("id,workspace_id,section,title,subtitle,fields,created_at").order("created_at", { ascending: false }),
+      supabase.from("home_items").select("id,workspace_id,property_id,section,title,subtitle,fields,created_at").order("created_at", { ascending: false }),
       supabase.from("profiles").select("display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,country,bio,plan,plan_source,business_type,org_size,branches,trial_ends_at").eq("id", u.user.id).maybeSingle(),
       supabase.from("workspaces").select("id,name,type").order("created_at"),
     ]);
@@ -90,14 +98,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setRawWs((w) => [...w, data as Workspace]); switchWorkspace(data.id); return true;
   };
 
+  const propertySlug = propertySlugFor(current.type !== "individual");
+  const properties = added[propertySlug] ?? [];
   const add = async (slug: string, item: Item): Promise<boolean> => (await addReturning(slug, item)) !== null;
   const addReturning = async (slug: string, item: Item): Promise<string | null> => {
     const plan = profile?.plan ?? "free";
-    const gate = checkAdd(effective(plan, published[plan]), slug, allRows.filter((r) => r.section === slug).length);
+    const count = allRows.filter((r) => r.section === slug && (r.workspace_id ?? null) === current.id).length;
+    if (PROPERTY_SLUGS.includes(slug)) {
+      const max = planByKey(plan).limits.places;
+      if (Number.isFinite(max) && count >= max) { openUpgrade({ ok: false, reason: "limit", feature: "locations", max, label: slug === "locations" ? "locations" : "properties" }); return null; }
+    }
+    const gate = PROPERTY_SLUGS.includes(slug) && slug !== "locations" ? { ok: true as const } : checkAdd(effective(plan, published[plan]), slug, count);
     if (!gate.ok) { openUpgrade(gate); return null; }
     const { data, error } = await supabase.from("home_items")
-      .insert({ workspace_id: current.id, section: slug, title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields })
-      .select("id,workspace_id,section,title,subtitle,fields,created_at").single();
+      .insert({ workspace_id: current.id, property_id: PROPERTY_SLUGS.includes(slug) ? null : item.propertyId ?? null, section: slug, title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields })
+      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at").single();
     if (error || !data) return null;
     setAllRows((r) => [data as Row, ...r]);
     return data.id;
@@ -108,7 +123,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setAllRows((r) => r.filter((x) => x.id !== id)); void slug;
   };
   const update = async (id: string, item: Item) => {
-    const { data, error } = await supabase.from("home_items").update({ title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields }).eq("id", id).select("id,workspace_id,section,title,subtitle,fields,created_at").single();
+    const { data, error } = await supabase.from("home_items").update({ title: item.title.slice(0, 200), subtitle: item.subtitle.slice(0, 500), fields: item.fields, ...(item.propertyId !== undefined ? { property_id: item.propertyId } : {}) }).eq("id", id).select("id,workspace_id,property_id,section,title,subtitle,fields,created_at").single();
     if (error || !data) return false;
     setAllRows((rows) => rows.map((row) => row.id === id ? data as Row : row));
     return true;
@@ -121,7 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return !error;
   };
 
-  return <StoreCtx.Provider value={{ added, add, addReturning, remove, update, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load }}>{children}<UpgradeModal /></StoreCtx.Provider>;
+  return <StoreCtx.Provider value={{ added, add, addReturning, remove, update, profile, email, saveProfile, workspaces, current, switchWorkspace, createWorkspace, reload: load, properties, propertySlug }}>{children}<UpgradeModal /></StoreCtx.Provider>;
 }
 export const useStore = () => useContext(StoreCtx);
 

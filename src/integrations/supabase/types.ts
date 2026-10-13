@@ -291,6 +291,7 @@ export type Database = {
           created_at: string
           fields: Json
           id: string
+          property_id: string | null
           section: string
           subtitle: string
           title: string
@@ -301,6 +302,7 @@ export type Database = {
           created_at?: string
           fields?: Json
           id?: string
+          property_id?: string | null
           section: string
           subtitle?: string
           title: string
@@ -311,6 +313,7 @@ export type Database = {
           created_at?: string
           fields?: Json
           id?: string
+          property_id?: string | null
           section?: string
           subtitle?: string
           title?: string
@@ -318,6 +321,13 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "home_items_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "home_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "home_items_workspace_id_fkey"
             columns: ["workspace_id"]

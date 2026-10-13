@@ -24,3 +24,4 @@
 - Google (Gmail, Calendar, Drive) uses per-user App User Connectors: each user's connection key is stored encrypted in app_user_connections (service-role only) and every Google call runs in src/lib/google.functions.ts, so tokens never reach the browser.
 - Plan product access comes from the feature catalogue in src/lib/entitlements.ts (defaults per plan tier) overridden by the latest approved plan_versions.entitlements; benefits text stays marketing-only so copy edits never change access.
 - Shared passports store a frozen HTML snapshot in passport_shares and guests read it only via the open_passport_share function, so a link never exposes live workspace data.
+- Multi-property: property records live in home_items sections my-home (individual) / locations (business); other records link via home_items.property_id (trigger checks same owner), and the Smart Calendar derives events from ISO date fields on saved records rather than storing its own events.

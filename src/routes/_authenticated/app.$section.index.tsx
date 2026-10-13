@@ -8,6 +8,8 @@ import { TrackingPage } from "@/components/hv/Tracking";
 import { COUNTRIES } from "@/lib/countries";
 import { BillingPage } from "@/components/hv/Billing";
 import { ViewToggle, useViewMode } from "@/components/hv/ViewToggle";
+import { PropertiesPage, PropertySelect, useDefaultProperty } from "@/components/hv/Properties";
+import { PROPERTY_SLUGS } from "@/components/hv/store";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
@@ -32,7 +34,10 @@ function SectionPage() {
   const { section } = Route.useParams();
   const search = Route.useSearch();
   const s = getSection(section);
-  const { added, add, remove } = useStore();
+  const { added, add, remove, propertySlug, properties, current } = useStore();
+  const defaultProperty = useDefaultProperty();
+  const [propertyId, setPropertyId] = useState<string | null | undefined>(undefined);
+  const [propFilter, setPropFilter] = useState("all");
   const [open, setOpen] = useState(!!search.add);
   const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
@@ -41,8 +46,12 @@ function SectionPage() {
   const [view, setView] = useViewMode(section);
   if (!s) return <Missing />;
   if (section === "billing") return <BillingPage />;
+  if (section === propertySlug) return <PropertiesPage key={section} slug={section} />;
+  const propertyAware = !PROPERTY_SLUGS.includes(section) && s.group === "main" && !!s.addLabel;
+  const propName = (id?: string | null) => properties.find((p) => p.id === id)?.title;
   if (section === "warranties" || section === "renewals") return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
   const items = [...(added[s.slug] ?? []), ...(s.slug === "profile" ? [] : s.items)].filter((i) => (i.title + i.subtitle + " " + i.fields.map(([, v]) => v).join(" ")).toLowerCase().includes(filter.toLowerCase()))
+    .filter((i) => !propertyAware || propFilter === "all" || (propFilter === "none" ? !i.propertyId && added[s.slug]?.some((x) => x.id === i.id) : i.propertyId === propFilter))
     .filter((i) => section !== "documents" || ((docType === "All" || docTypeOf(i) === docType) && (showArchived || !isArchived(i))));
   const docTypes = section === "documents" ? ["All", ...Array.from(new Set([...(added["documents"] ?? []), ...s.items].map(docTypeOf))).sort()] : [];
 
@@ -52,10 +61,10 @@ function SectionPage() {
     const first = fields[0] ?? "";
     const title = form[first]?.trim();
     if (!title) { toast.error(`Please enter ${first.toLowerCase()}`); return; }
-    const ok = await add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"] });
+    const ok = await add(s.slug, { id: `new-${Date.now()}`, title, subtitle: fields.slice(1).map((f) => form[f]).filter(Boolean).join(" · ") || "Just added", status: ["New", "primary"], fields: fields.map((f) => [f, form[f] || "—"]), actions: ["Edit"], propertyId: propertyAware ? (propertyId === undefined ? defaultProperty : propertyId) : null });
     if (!ok) { toast.error("Couldn't save — please try again"); return; }
     toast.success(`${title} saved to your MatrixKeep`);
-    setForm({}); setOpen(false);
+    setForm({}); setPropertyId(undefined); setOpen(false);
   };
 
   return (
@@ -79,7 +88,7 @@ function SectionPage() {
         ))}
       </div>
 
-      {s.slug !== "profile" && <div className="flex items-center gap-3"><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${s.title.toLowerCase()}…`} className="min-w-0 flex-1 rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" /><ViewToggle mode={view} onChange={setView} /></div>}
+      {s.slug !== "profile" && <div className="flex items-center gap-3"><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${s.title.toLowerCase()}…`} className="min-w-0 flex-1 rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" />{propertyAware && properties.length > 0 && <select aria-label="Filter by property" value={propFilter} onChange={(e) => setPropFilter(e.target.value)} className="rounded-full border bg-card px-4 py-2.5 text-sm"><option value="all">All {current.type !== "individual" ? "locations" : "properties"}</option>{properties.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}<option value="none">Unassigned</option></select>}<ViewToggle mode={view} onChange={setView} /></div>}
       {section === "documents" && <div className="flex flex-wrap items-center gap-2">{docTypes.map((t) => <button key={t} onClick={() => setDocType(t)} className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${docType === t ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:border-primary"}`}>{t}</button>)}<label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived</label></div>}
 
       {view === "table" && s.slug !== "profile" ? (
@@ -100,6 +109,7 @@ function SectionPage() {
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{i.title}</p>
               <p className="mt-0.5 truncate text-sm text-muted-foreground">{i.subtitle}</p>
+              {propertyAware && propName(i.propertyId) && <p className="mt-1 text-xs text-primary">{propName(i.propertyId)}</p>}
               {i.status && <span className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${toneClass(i.status[1])}`}>{i.status[0]}</span>}
             </div>
             {i.value && <p className="font-display text-xl">{i.value}</p>}
@@ -120,6 +130,7 @@ function SectionPage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <form onSubmit={submit} className="animate-rise w-full max-w-md space-y-4 rounded-3xl bg-card p-7 shadow-glow" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between"><h3 className="font-display text-2xl">{s.addLabel}</h3><button type="button" aria-label="Close" onClick={() => setOpen(false)}><X className="h-5 w-5" /></button></div>
+            {propertyAware && properties.length > 0 && <label className="block text-sm font-medium">{current.type !== "individual" ? "Location" : "Property"}<PropertySelect value={propertyId === undefined ? defaultProperty : propertyId} onChange={setPropertyId} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal" /></label>}
             {s.addFields.map((f) => (
               <label key={f} className="block text-sm font-medium">{f}
                 <input value={form[f] ?? ""} onChange={(e) => setForm({ ...form, [f]: e.target.value })} className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring" />
