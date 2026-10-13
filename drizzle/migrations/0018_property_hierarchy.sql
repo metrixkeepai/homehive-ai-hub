@@ -1,0 +1,18 @@
+ALTER TABLE public.home_items ADD COLUMN IF NOT EXISTS property_id uuid REFERENCES public.home_items(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS home_items_property_id_idx ON public.home_items(property_id);
+WITH one AS (
+  SELECT user_id, workspace_id, (array_agg(id))[1] AS pid
+  FROM public.home_items WHERE section IN ('my-home','locations')
+  GROUP BY user_id, workspace_id HAVING count(*) = 1
+)
+UPDATE public.home_items h SET property_id = one.pid FROM one
+WHERE h.user_id = one.user_id AND h.workspace_id IS NOT DISTINCT FROM one.workspace_id
+  AND h.section NOT IN ('my-home','locations') AND h.property_id IS NULL;
+CREATE OR REPLACE FUNCTION public.check_property_owner() RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF NEW.property_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.home_items p WHERE p.id = NEW.property_id AND p.user_id = NEW.user_id AND p.section IN ('my-home','locations')) THEN
+    RAISE EXCEPTION 'Property not found';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER home_items_property_owner BEFORE INSERT OR UPDATE OF property_id ON public.home_items FOR EACH ROW EXECUTE FUNCTION public.check_property_owner();
