@@ -44,6 +44,7 @@ import { Route as SuperAdminLoginRouteImport } from './routes/super-admin_.login
 import { Route as UseCasesIndexRouteImport } from './routes/use-cases.index'
 import { Route as UseCasesSlugRouteImport } from './routes/use-cases.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
+import { Route as AuthenticatedAppCalendarRouteImport } from './routes/_authenticated/app.calendar'
 import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
 import { Route as SuperAdminBillingIndexRouteImport } from './routes/super-admin.billing.index'
 import { Route as SuperAdminBillingKindRouteImport } from './routes/super-admin.billing.$kind'
@@ -234,6 +235,12 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const AuthenticatedAppCalendarRoute =
+  AuthenticatedAppCalendarRouteImport.update({
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AuthenticatedAppRoute,
+  } as any)
 const AuthenticatedAppPlansRoute = AuthenticatedAppPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -343,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/industries/': typeof IndustriesIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
+  '/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
@@ -390,6 +398,7 @@ export interface FileRoutesByTo {
   '/industries': typeof IndustriesIndexRoute
   '/super-admin': typeof SuperAdminIndexRoute
   '/use-cases': typeof UseCasesIndexRoute
+  '/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
@@ -442,6 +451,7 @@ export interface FileRoutesById {
   '/industries/': typeof IndustriesIndexRoute
   '/super-admin/': typeof SuperAdminIndexRoute
   '/use-cases/': typeof UseCasesIndexRoute
+  '/_authenticated/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/industries/'
     | '/super-admin/'
     | '/use-cases/'
+    | '/app/calendar'
     | '/app/plans'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
@@ -541,6 +552,7 @@ export interface FileRouteTypes {
     | '/industries'
     | '/super-admin'
     | '/use-cases'
+    | '/app/calendar'
     | '/app/plans'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
@@ -592,6 +604,7 @@ export interface FileRouteTypes {
     | '/industries/'
     | '/super-admin/'
     | '/use-cases/'
+    | '/_authenticated/app/calendar'
     | '/_authenticated/app/plans'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
@@ -881,6 +894,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/_authenticated/app/calendar': {
+      id: '/_authenticated/app/calendar'
+      path: '/calendar'
+      fullPath: '/app/calendar'
+      preLoaderRoute: typeof AuthenticatedAppCalendarRouteImport
+      parentRoute: typeof AuthenticatedAppRoute
+    }
     '/_authenticated/app/plans': {
       id: '/_authenticated/app/plans'
       path: '/plans'
@@ -983,6 +1003,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAppRouteChildren {
+  AuthenticatedAppCalendarRoute: typeof AuthenticatedAppCalendarRoute
   AuthenticatedAppPlansRoute: typeof AuthenticatedAppPlansRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppSectionIdRoute: typeof AuthenticatedAppSectionIdRoute
@@ -990,6 +1011,7 @@ interface AuthenticatedAppRouteChildren {
 }
 
 const AuthenticatedAppRouteChildren: AuthenticatedAppRouteChildren = {
+  AuthenticatedAppCalendarRoute: AuthenticatedAppCalendarRoute,
   AuthenticatedAppPlansRoute: AuthenticatedAppPlansRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppSectionIdRoute: AuthenticatedAppSectionIdRoute,
