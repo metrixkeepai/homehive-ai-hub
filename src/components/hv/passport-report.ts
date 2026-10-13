@@ -31,15 +31,18 @@ function keepField(k: string, p: Privacy) {
 }
 
 /** Records relevant to a single subject: for the property, all saved records; otherwise those that mention it. */
-function related(subject: Item, slug: SectionSlug, added: Record<string, Item[]>, whole: boolean) {
+const PROPERTY_SECTIONS = ["my-home", "locations"];
+export function related(subject: Item, slug: SectionSlug, added: Record<string, Item[]>, whole: boolean, subjectSection?: string) {
   const list = added[slug] ?? [];
+  // A property/location passport only ever contains records linked to that exact property.
+  if (subjectSection && PROPERTY_SECTIONS.includes(subjectSection)) return list.filter((i) => i.id !== subject.id && i.propertyId === subject.id);
   if (whole) return list;
   const t = subject.title.toLowerCase();
   return list.filter((i) => i.id !== subject.id && i.fields.some(([, v]) => (v ?? "").toLowerCase().includes(t)));
 }
 
 /** Builds a self-contained HTML passport from the subject plus the user's own saved records. */
-export function buildPassportHtml(subject: Item, added: Record<string, Item[]>, owner: string, opts: PassportOptions, kindLabel = "Home Digital Passport", whole = true) {
+export function buildPassportHtml(subject: Item, added: Record<string, Item[]>, owner: string, opts: PassportOptions, kindLabel = "Home Digital Passport", whole = true, subjectSection?: string) {
   const p = opts.privacy;
   const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const fields = (f: [string, string][]) => {
@@ -48,7 +51,7 @@ export function buildPassportHtml(subject: Item, added: Record<string, Item[]>, 
   };
   const include = opts.include.filter((s) => p.insurance || s !== "insurance");
   const parts = include.map((slug) => {
-    const list = related(subject, slug, added, whole);
+    const list = related(subject, slug, added, whole, subjectSection);
     if (!list.length) return "";
     const title = PASSPORT_SECTIONS.find(([s]) => s === slug)?.[1] ?? sections.find((s) => s.slug === slug)?.title ?? slug;
     return `<h2>${esc(title)} <span>(${list.length})</span></h2>${list.map((i) => `<div class="rec"><h3>${esc(i.title)}</h3><p>${esc(i.subtitle)}</p>${fields(i.fields)}</div>`).join("")}`;
