@@ -41,7 +41,7 @@ export function useDefaultProperty() {
 }
 
 type Form = { name: string; type: string; address: string; city: string; postcode: string; country: string; notes: string };
-function PropertyForm({ item, onClose }: { item?: Item; onClose: () => void }) {
+function PropertyForm({ item, onClose }: { item?: Item | undefined; onClose: () => void }) {
   const { add, update, propertySlug, current, profile } = useStore();
   const biz = current.type !== "individual";
   const noun = biz ? "location" : "property";
