@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MatrixKeep — Perfect Production Task Report (Target 10/10)</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --ink: #1a1f24;
+      --muted: #5c6570;
+      --line: #d9d4c8;
+      --card: #ffffff;
+      --accent: #0f5c4c;
+      --accent-soft: #e6f2ef;
+      --danger: #8b1e1e;
+      --danger-bg: #f8eaea;
+      --warn: #8a5a00;
+      --warn-bg: #fff4df;
+      --ok: #1f6b3a;
+      --ok-bg: #e8f6ec;
+      --info: #1a4d7c;
+      --info-bg: #e8f1f8;
+      --p0: #8b1e1e;
+      --p1: #8a5a00;
+      --p2: #1a4d7c;
+      --p3: #3d4450;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #e8efe8 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #efe8df 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
+    header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 28px;
+      margin-bottom: 32px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .lead { color: var(--muted); max-width: 720px; margin: 0 0 20px; font-size: 1.05rem; }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 10px 18px;
+      font-size: 13px; color: var(--muted);
+    }
+    .meta strong { color: var(--ink); }
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin: 28px 0;
+    }
+    @media (max-width: 800px) {
+      .scores { grid-template-columns: repeat(2, 1fr); }
+    }
+    .score {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .score .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .score .now { font-size: 1.6rem; font-weight: 700; }
+    .score .target { font-size: 12px; color: var(--ok); margin-top: 4px; }
+    .score.bad .now { color: var(--danger); }
+    .score.warn .now { color: var(--warn); }
+    .score.good .now { color: var(--ok); }
+    .callout {
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 20px 0;
+      border: 1px solid var(--line);
+    }
+    .callout.danger { background: var(--danger-bg); border-color: #e0bdbd; }
+    .callout.warn { background: var(--warn-bg); border-color: #ebd7a8; }
+    .callout.info { background: var(--info-bg); border-color: #b9d0e5; }
+    .callout.ok { background: var(--ok-bg); border-color: #b9dcc6; }
+    .callout h3 { margin: 0 0 6px; font-size: 15px; }
+    .callout p { margin: 0; color: var(--ink); font-size: 14px; }
+    h2 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.45rem;
+      margin: 40px 0 8px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 28px 0 10px;
+      color: var(--ink);
+    }
+    .section-intro { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 22px;
+    }
+    .toc ol { margin: 8px 0 0; padding-left: 22px; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 13.5px;
+      margin-bottom: 8px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      background: #f0ede6;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #faf9f6; }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge.p0 { background: var(--danger-bg); color: var(--p0); }
+    .badge.p1 { background: var(--warn-bg); color: var(--p1); }
+    .badge.p2 { background: var(--info-bg); color: var(--p2); }
+    .badge.p3 { background: #eceff3; color: var(--p3); }
+    .badge.pending { background: #fff4df; color: var(--warn); }
+    .badge.done { background: var(--ok-bg); color: var(--ok); }
+    .badge.crit { background: var(--danger-bg); color: var(--danger); }
+    .badge.high { background: var(--warn-bg); color: var(--warn); }
+    .badge.med { background: var(--info-bg); color: var(--info); }
+    .badge.save { background: var(--accent-soft); color: var(--accent); }
+    .task-block {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+    .task-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      padding: 12px 16px;
+      background: #faf8f3;
+      border-bottom: 1px solid var(--line);
+    }
+    .task-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .task-title { font-weight: 650; flex: 1; min-width: 200px; }
+    .task-body { padding: 14px 16px 16px; }
+    .task-body p { margin: 0 0 8px; font-size: 14px; }
+    .task-body ul { margin: 6px 0 0; padding-left: 20px; font-size: 13.5px; color: var(--muted); }
+    .task-body li { margin: 3px 0; }
+    .path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      background: #f0ede6;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .card h4 { margin: 0 0 8px; font-size: 14px; }
+    .card p, .card li { font-size: 13.5px; color: var(--muted); }
+    .card ul { margin: 0; padding-left: 18px; }
+    .summary-bar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin: 16px 0 8px;
+    }
+    .pill-stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+    .pill-stat b { color: var(--ink); }
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .check { list-style: none; padding: 0; margin: 0; }
+    .check li {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .check li:last-child { border-bottom: none; }
+    .box {
+      width: 16px; height: 16px; border: 1.5px solid var(--muted);
+      border-radius: 3px; flex-shrink: 0; margin-top: 2px;
+    }
+    @media print {
+      body { background: white; }
+      .task-block, table, .card, .callout, .score { break-inside: avoid; }
+      .wrap { padding: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">MatrixKeep · Production Engineering Report</p>
+      <h1>Perfect Production Task Plan — Target All Scores 10/10</h1>
+      <p class="lead">
+        Complete pending-task backlog to make MatrixKeep production-perfect:
+        secure, feature-complete, efficient on the server, and cost-controlled.
+        No Python backend required — stay on TanStack Start + Supabase + Stripe.
+      </p>
+      <div class="meta">
+        <span><strong>App:</strong> MatrixKeep (code v5)</span>
+        <span><strong>Stack:</strong> React 19 · TanStack Start · Supabase · Stripe · Drizzle · Lovable AI</span>
+        <span><strong>Generated:</strong> 11 Oct 2026</span>
+        <span><strong>Status:</strong> All tasks below are <em>pending</em> unless marked otherwise</span>
+      </div>
+    </header>
+
+    <div class="scores">
+      <div class="score bad"><div class="label">Overall launch</div><div class="now">4 → 10</div><div class="target">Target: 10/10</div></div>
+      <div class="score bad"><div class="label">Features</div><div class="now">3 → 10</div><div class="target">Target: 10/10</div></div>
+      <div class="score warn"><div class="label">Security</div><div class="now">5 → 10</div><div class="target">Target: 10/10</div></div>
+      <div class="score bad"><div class="label">Ops / reliability</div><div class="now">4 → 10</div><div class="target">Target: 10/10</div></div>
+      <div class="score good"><div class="label">Stack fitness</div><div class="now">8 → 10</div><div class="target">Target: 10/10</div></div>
+    </div>
+
+    <div class="callout danger">
+      <h3>Current verdict</h3>
+      <p>Not production-ready. Demo data, plan self-elevation, client-only AI limits, stub CTAs, and unfinished billing lifecycle block a public launch. After completing this report’s P0–P2 work, scores can reach 10/10.</p>
+    </div>
+
+    <div class="summary-bar">
+      <span class="pill-stat"><b>72</b> total tasks</span>
+      <span class="pill-stat"><b>14</b> P0 blockers</span>
+      <span class="pill-stat"><b>18</b> P1 launch</span>
+      <span class="pill-stat"><b>22</b> P2 efficiency / cost</span>
+      <span class="pill-stat"><b>18</b> P3 polish / scale</span>
+    </div>
+
+    <nav class="toc" id="toc">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#score-map">How each score reaches 10/10</a></li>
+        <li><a href="#p0">P0 — Ship blockers (must finish first)</a></li>
+        <li><a href="#p1">P1 — Feature &amp; billing completeness</a></li>
+        <li><a href="#p2">P2 — Server efficiency &amp; cost control</a></li>
+        <li><a href="#p3">P3 — Perfect ops, QA, scale polish</a></li>
+        <li><a href="#services">Production services to add</a></li>
+        <li><a href="#env">Environment &amp; secrets checklist</a></li>
+        <li><a href="#acceptance">Final 10/10 acceptance checklist</a></li>
+      </ol>
+    </nav>
+
+    <!-- SCORE MAP -->
+    <h2 id="score-map">1. How each score reaches 10/10</h2>
+    <p class="section-intro">Every pending area mapped to the score it lifts.</p>
+    <table>
+      <thead>
+        <tr><th>Score area</th><th>Now</th><th>What must be true for 10/10</th><th>Primary task IDs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Feature completeness</td>
+          <td>3/10</td>
+          <td>No demo data for real users; no stub CTAs; billing lifecycle complete; contact/email real; unfinished nav hidden or built; marketing matches product</td>
+          <td>P0-02…05, P1-01…12</td>
+        </tr>
+        <tr>
+          <td>Security</td>
+          <td>5/10</td>
+          <td>Privileged profile columns locked; server-side entitlements; SSRF blocked; secrets gitignored; webhook hardened; returnUrl allowlisted</td>
+          <td>P0-01, P0-03, P0-06, P0-07, P2-10…14</td>
+        </tr>
+        <tr>
+          <td>Ops / reliability</td>
+          <td>4/10</td>
+          <td>CI, Sentry, rate limits, CDN/WAF, backups, uptime, migrate scripts, runbooks</td>
+          <td>P2-01…09, P3-01…08</td>
+        </tr>
+        <tr>
+          <td>Stack fitness</td>
+          <td>8/10</td>
+          <td>Indexes + scoped queries; dual Stripe key model documented; Nitro beta risk accepted/monitored; no unused cron dead code</td>
+          <td>P2-15…22, P3-09…12</td>
+        </tr>
+        <tr>
+          <td>Overall launch</td>
+          <td>4/10</td>
+          <td>All above green + live Stripe + Auth email + load/cost budgets met</td>
+          <td>All + Acceptance</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- P0 -->
+    <h2 id="p0">2. P0 — Ship blockers <span class="badge p0">14 tasks · pending</span></h2>
+    <p class="section-intro">Do these before any real paying user. Completing P0 alone lifts Overall ≈ 4 → ~7.</p>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-01</span>
+        <span class="task-title">Lock privileged <span class="path">profiles</span> columns at the database</span>
+        <span class="badge p0">P0</span><span class="badge crit">Critical</span><span class="badge pending">Pending</span><span class="badge save">Security</span>
+      </div>
+      <div class="task-body">
+        <p>Users can currently UPDATE their own row and set <code>plan</code>, <code>plan_source</code>, <code>suspended</code>, trial/voucher fields. Only <code>limit_overrides</code> is protected.</p>
+        <ul>
+          <li>Add trigger (like <span class="path">0009_protect_limit_overrides.sql</span>) or column privileges so only <code>service_role</code> / SECURITY DEFINER RPCs may change billing fields</li>
+          <li>Route Free downgrade / voucher / Stripe webhook through server RPCs only</li>
+          <li>Files: <span class="path">drizzle/migrations/</span>, <span class="path">src/components/hv/store.tsx</span>, <span class="path">app.plans.tsx</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-02</span>
+        <span class="task-title">Remove demo household from signed-in product</span>
+        <span class="badge p0">P0</span><span class="badge crit">Critical</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Home always shows “Demo household · sample data” with fake KPIs. Section lists merge <span class="path">data.ts</span> samples with real <code>home_items</code>.</p>
+        <ul>
+          <li>Stop merging sample items in <span class="path">app.$section.index.tsx</span></li>
+          <li>Rebuild <span class="path">app.index.tsx</span> from real workspace aggregates + empty states</li>
+          <li>Optional: “Explore demo” toggle — off by default for production accounts</li>
+          <li>Keep warranties/renewals pattern (already real-only) as the model</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-03</span>
+        <span class="task-title">Server-side plan entitlements + AI quotas</span>
+        <span class="badge p0">P0</span><span class="badge high">High</span><span class="badge pending">Pending</span><span class="badge save">Cost control</span>
+      </div>
+      <div class="task-body">
+        <p>Upgrade UI can be bypassed; Sera / capture / speech / live relay use shared AI key with no plan check. This is the #1 operating-cost risk.</p>
+        <ul>
+          <li>Shared server helper: resolve plan + entitlements + daily/monthly AI caps before any model call</li>
+          <li>Apply in <span class="path">sera.functions.ts</span>, <span class="path">capture.functions.ts</span>, <span class="path">speech.functions.ts</span>, <span class="path">live-relay.server.ts</span></li>
+          <li>Enforce asset/document/location/team limits on insert server-side (not only <code>checkAdd</code> in store)</li>
+          <li>Return clear 402/403 with upgrade code — never silent success</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-04</span>
+        <span class="task-title">Kill or honestly label stub CTAs (<code>actionToast</code>)</span>
+        <span class="badge p0">P0</span><span class="badge high">High</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Detail-page actions claim warranty protected, booking requested, file preparing, Connect success — with no persistence.</p>
+        <ul>
+          <li>Audit all actions in <span class="path">app.$section.$id.tsx</span> and sample items in <span class="path">data.ts</span></li>
+          <li>Implemented → wire real handler; not implemented → disable + “Coming soon” (no success toast)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-05</span>
+        <span class="task-title">Finish subscription lifecycle UX</span>
+        <span class="badge p0">P0</span><span class="badge high">High</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p><code>createPortalSession</code> exists but is unused. Billing copy still says cards aren’t connected. Free switch may leave Stripe active.</p>
+        <ul>
+          <li>Wire Customer Portal on Billing + Plans (“Manage billing / Cancel”)</li>
+          <li>Define upgrade / downgrade / cancel rules (open item in <span class="path">roadmap.md</span>)</li>
+          <li>Downgrade to Free must cancel or schedule cancel of Stripe subscription</li>
+          <li>Fix contradictory copy in <span class="path">Billing.tsx</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-06</span>
+        <span class="task-title">Secrets hygiene before any git/publish</span>
+        <span class="badge p0">P0</span><span class="badge high">High</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Add <code>.env*</code> to <span class="path">.gitignore</span></li>
+          <li>Add <span class="path">.env.example</span> with key names only (no values)</li>
+          <li>Remove <span class="path">code v5.zip</span> from deploy artifacts or strip env files from it</li>
+          <li>Rotate keys if this zip was shared outside the team</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-07</span>
+        <span class="task-title">Block capture image SSRF / URL abuse</span>
+        <span class="badge p0">P0</span><span class="badge high">High</span><span class="badge pending">Pending</span><span class="badge save">Cost</span>
+      </div>
+      <div class="task-body">
+        <p><span class="path">capture.server.ts</span> accepts arbitrary <code>image</code> strings including <code>https://</code> URLs the AI gateway may fetch.</p>
+        <ul>
+          <li>Allow only <code>data:image/…</code> and <code>data:application/pdf</code> (or signed storage URLs from your bucket)</li>
+          <li>Reject everything else with 400</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-08</span>
+        <span class="task-title">Stripe live go-live checklist</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Set <code>VITE_PAYMENTS_CLIENT_TOKEN</code> = <code>pk_live_…</code></li>
+          <li>Configure <code>STRIPE_LIVE_API_KEY</code> + live webhook secret; sandbox for staging</li>
+          <li>Also configure admin <code>STRIPE_SECRET_KEY</code> path used by Super Admin reports</li>
+          <li>Confirm <span class="path">PaymentTestModeBanner</span> disappears in production</li>
+          <li>End-to-end: subscribe → webhook activates plan → portal cancel → plan returns to free</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-09</span>
+        <span class="task-title">Supabase Auth email deliverability</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Custom SMTP (or Resend SMTP) on Supabase project</li>
+          <li>SPF / DKIM / DMARC for matrixkeep.com</li>
+          <li>Verify password reset + admin invite emails arrive (not spam)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-10</span>
+        <span class="task-title">Webhook → user binding stronger than metadata alone</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Plan activation uses <code>subscription.metadata.userId</code>. Also bind via existing <code>subscriptions.user_id</code> / Stripe customer already linked to that user before writing plan fields.</p>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-11</span>
+        <span class="task-title">Allowlist checkout / portal <code>returnUrl</code></span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Reject return URLs that are not your production (and staging) origins to prevent post-payment phishing redirects.</p>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-12</span>
+        <span class="task-title">Honest reminders messaging (ICS only today)</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Product correctly downloads ICS; marketing/features claim push-style alerts. Align all copy until email/push exist. Fix decorative always-unread bell on <span class="path">app.tsx</span>.</p>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-13</span>
+        <span class="task-title">Hide unfinished account surfaces from production nav</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Until implemented: Family invites, Team invites, Roles enforcement, Messages, Agents Pause/Run, Security 2FA, Privacy export/delete, Services booking — hide via feature flags (fail-closed) or remove from <span class="path">navigation.ts</span> / <span class="path">data.ts</span>.</p>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P0-14</span>
+        <span class="task-title">Remove Outlook / WhatsApp from sold entitlements until shipped</span>
+        <span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Keep Google only. Mark Outlook/WhatsApp as roadmap in marketing; do not list as active plan benefits in <span class="path">entitlements.ts</span> / plans UI.</p>
+      </div>
+    </div>
+
+    <!-- P1 -->
+    <h2 id="p1">3. P1 — Feature &amp; billing completeness <span class="badge p1">18 tasks · pending</span></h2>
+    <p class="section-intro">Required to push Features 3 → 10 and Overall toward 9–10.</p>
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Task</th><th>Why</th><th>Key files / notes</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge p1">P1-01</span></td>
+          <td>Wire Resend for contact form + branded transactional mail</td>
+          <td>Contact is mailto-only today</td>
+          <td><span class="path">contact.tsx</span>; admin lists <code>RESEND_API_KEY</code> but unused</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-02</span></td>
+          <td>Implement real <code>probe("email")</code> health check</td>
+          <td>Ops UI currently always “Setup required”</td>
+          <td><span class="path">admin-ops.functions.ts</span></td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-03</span></td>
+          <td>Empty states for every section (rooms, assets, vehicles, docs…)</td>
+          <td>After demo removal, UX must guide first add</td>
+          <td>Section index + AddAnything entry points</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-04</span></td>
+          <td>Home KPIs from real aggregates (counts, values, due soon)</td>
+          <td>Replace hardcoded 248 / £34.4k / Health 86</td>
+          <td><span class="path">app.index.tsx</span>; prefer SQL aggregates not full table scan</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-05</span></td>
+          <td>AddAnything room picker: user rooms only (no sample names)</td>
+          <td>Avoid fake room targets</td>
+          <td><span class="path">AddAnything.tsx</span></td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-06</span></td>
+          <td>Use <code>FeatureGate</code> for Sera voice, Add anything, Google</td>
+          <td>Helper exists but unused; flags fail-open today</td>
+          <td><span class="path">Feature.tsx</span>; default unknown flags to <strong>off</strong> in production</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-07</span></td>
+          <td>Seed known feature-flag keys in DB</td>
+          <td>Predictable ops control</td>
+          <td><code>sera.voice</code>, <code>google_integrations</code>, <code>evidence_ai</code>, etc.</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-08</span></td>
+          <td>Invoice / payment history on Billing from Stripe</td>
+          <td>Users need receipts after pay</td>
+          <td>Portal covers most; optional list in-app</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-09</span></td>
+          <td>Webhook event idempotency store</td>
+          <td>Avoid double plan writes on Stripe retries</td>
+          <td>Table <code>stripe_events(id)</code> unique; skip if seen</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-10</span></td>
+          <td>Optional: email due reminders (cron)</td>
+          <td>Only if you want push beyond ICS — else keep P0-12 honesty</td>
+          <td>Use <span class="path">cron-auth.ts</span> (exists unused) + Resend</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-11</span></td>
+          <td>Family / workspace invite MVP (or permanently hide)</td>
+          <td>Sold on Family plan benefits</td>
+          <td>Invite email + membership table + RLS</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-12</span></td>
+          <td>Privacy export + account delete (GDPR baseline)</td>
+          <td>Demo actions today</td>
+          <td>Server job: zip home_items + evidence; auth.deleteUser path</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-13</span></td>
+          <td>2FA / MFA via Supabase (or remove Security claims)</td>
+          <td>Sample says 2FA On</td>
+          <td>Supabase MFA or honest “not available”</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-14</span></td>
+          <td>Align public marketing pages with real capabilities</td>
+          <td>features / pricing / plans overclaim</td>
+          <td><span class="path">features.tsx</span>, <span class="path">plans.ts</span>, site content</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-15</span></td>
+          <td>Super Admin: Stripe connected in prod (no Setup Required)</td>
+          <td>Revenue/billing pages blank otherwise</td>
+          <td>Secrets present + probe green</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-16</span></td>
+          <td>Remove Super Admin link from public footer (or restrict)</td>
+          <td>Unnecessary disclosure</td>
+          <td><span class="path">Site.tsx</span></td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-17</span></td>
+          <td>Harden <code>has_role</code> so users can’t probe other UUIDs</td>
+          <td>Info disclosure</td>
+          <td>Bind to <code>auth.uid()</code> or revoke EXECUTE from authenticated</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p1">P1-18</span></td>
+          <td>Document dual Stripe key model (connector vs <code>STRIPE_SECRET_KEY</code>)</td>
+          <td>Misconfig risk in ops</td>
+          <td>Runbook in repo or Lovable mem</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- P2 COST -->
+    <h2 id="p2">4. P2 — Server efficiency &amp; operating cost <span class="badge p2">22 tasks · pending</span></h2>
+    <p class="section-intro">These turn Ops 4 → 10 and Stack 8 → 10 while cutting AI, DB, and bandwidth spend.</p>
+
+    <div class="callout ok">
+      <h3>Cost principle</h3>
+      <p>Never load what you won’t show. Never call AI without a quota. Cache flags/plans. Put indexes under every filter. Rate-limit the expensive edges first (AI, voice, capture, auth).</p>
+    </div>
+
+    <h3>4.1 Database &amp; query efficiency</h3>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P2-01</span>
+        <span class="task-title">Stop loading all <code>home_items</code> then filtering in memory</span>
+        <span class="badge p2">P2</span><span class="badge save">High savings</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p><span class="path">store.tsx</span> fetches the user’s entire table then filters by workspace client-side. At scale this burns Postgres IO, bandwidth, and browser memory.</p>
+        <ul>
+          <li>Query with <code>.eq("workspace_id", activeId)</code> (and null personal workspace rule) in Supabase</li>
+          <li>Paginate section lists (cursor/limit) instead of full dump</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P2-02</span>
+        <span class="task-title">Add missing indexes</span>
+        <span class="badge p2">P2</span><span class="badge save">High savings</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li><code>home_items (workspace_id)</code></li>
+          <li><code>home_items (user_id, workspace_id, section)</code></li>
+          <li><code>evidence_files (item_id)</code></li>
+          <li><code>evidence_files (user_id, created_at)</code></li>
+          <li>Any admin date-range filters used in <span class="path">admin-ops.functions.ts</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P2-03</span>
+        <span class="task-title">Home / admin aggregates via SQL, not <code>select("*")</code> into JS</span>
+        <span class="badge p2">P2</span><span class="badge save">Savings</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Replace large in-memory reductions (5k–10k row pulls) with Postgres <code>count</code>, <code>sum</code>, RPC views. Cap admin list endpoints with pagination.</p>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">P2-04</span>
+        <span class="task-title">Cache plan entitlements + feature flags (short TTL)</span>
+        <span class="badge p2">P2</span><span class="badge save">Savings</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <p>Avoid re-reading <code>plan_versions</code> / flags on every AI request. In-memory TTL (30–60s) per process or Upstash Redis for multi-instance.</p>
+      </div>
+    </div>
+
+    <h3>4.2 AI cost control (largest variable bill)</h3>
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Task</th><th>Cost impact</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge p2">P2-05</span></td>
+          <td>Hard daily/monthly AI token + request caps per plan (server)</td>
+          <td>Stops free-tier runaway spend</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-06</span></td>
+          <td>Per-user rate limit: Sera, capture, speech, /api/live (e.g. Upstash)</td>
+          <td>Abuse + burst protection</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-07</span></td>
+          <td>Shrink max payloads (speech ~14MB, capture ~7MB) to plan-tier limits</td>
+          <td>Less gateway + storage cost</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-08</span></td>
+          <td>Use cheapest adequate model per task; route heavy vision only when needed</td>
+          <td>Unit-cost reduction</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-09</span></td>
+          <td>Batch / debounce Google import AI loops; hard cap items per sync (already partially capped)</td>
+          <td>Lower sync cost</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-10</span></td>
+          <td>Alert Super Admin when AI spend / user exceeds threshold</td>
+          <td>Early cost detection</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>4.3 Edge, CDN, storage</h3>
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Task</th><th>Why</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge p2">P2-11</span></td>
+          <td>Put Cloudflare (or host CDN) in front: cache static assets aggressively</td>
+          <td>Lower origin CPU/bandwidth</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-12</span></td>
+          <td>WAF + bot rules on /auth, AI endpoints, webhook</td>
+          <td>Block scrapers &amp; credential stuffing</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-13</span></td>
+          <td>Evidence storage: size quotas server-side + lifecycle (archive/delete old)</td>
+          <td>Storage bill control</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-14</span></td>
+          <td>Image compression before upload (client) + WebP where possible</td>
+          <td>Less storage + AI vision tokens</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-15</span></td>
+          <td>Signed URL TTL short; no public bucket listing</td>
+          <td>Security + less hotlinking cost</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>4.4 Observability &amp; CI (ops 10/10)</h3>
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Task</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge p2">P2-16</span></td>
+          <td>Add Sentry (client error boundary + Nitro <span class="path">server.ts</span> / server fns). Lovable hooks alone are not enough.</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-17</span></td>
+          <td>Structured logs (request id, user id hash, route, duration, AI tokens) — replace bare <code>console.error</code></td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-18</span></td>
+          <td>GitHub Actions: <code>lint</code> + <code>test</code> + <code>build</code> on every PR</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-19</span></td>
+          <td><code>package.json</code> scripts: <code>db:generate</code>, <code>db:migrate</code>; document <code>LOVABLE_DB_MIGRATION_URL</code></td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-20</span></td>
+          <td>Uptime monitor on /, /auth, webhook health, /api/live handshake</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-21</span></td>
+          <td>Supabase PITR enabled + quarterly restore drill documented</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge p2">P2-22</span></td>
+          <td>Webhook signature compare with <code>timingSafeEqual</code> (match <span class="path">cron-auth.ts</span> pattern)</td>
+          <td><span class="badge pending">Pending</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- P3 -->
+    <h2 id="p3">5. P3 — Perfect polish, QA, scale <span class="badge p3">18 tasks · pending</span></h2>
+    <p class="section-intro">Takes you from “production OK” to “perfect 10/10” across quality and long-term efficiency.</p>
+
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Task</th><th>Category</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge p3">P3-01</span></td><td>Tests: Stripe webhook plan activation + cancel</td><td>QA</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-02</span></td><td>Tests: voucher redeem edge cases</td><td>QA</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-03</span></td><td>Tests: “no sample data on home” for authenticated user</td><td>QA</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-04</span></td><td>Tests: store CRUD + workspace filter</td><td>QA</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-05</span></td><td>Tests: server entitlement denial for Free on paid AI</td><td>QA</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-06</span></td><td>Load test: home_items query p95 &lt; 200ms at expected N users</td><td>Perf</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-07</span></td><td>Load test: AI endpoints under rate limit (expect 429, not 500)</td><td>Perf</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-08</span></td><td>Bundle analysis: code-split Super Admin + heavy charts</td><td>Perf / cost</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-09</span></td><td>Admin email map: stop paginating up to 20×1000 Auth users; use DB profiles index</td><td>Perf</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-10</span></td><td>Virus / malware scan on evidence uploads (ClamAV or vendor)</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-11</span></td><td>Content Security Policy + security headers</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-12</span></td><td>Dependency audit in CI (<code>npm audit</code> / bun equivalent) + Dependabot</td><td>Ops</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-13</span></td><td>Staging environment parity (Stripe sandbox, separate Supabase)</td><td>Ops</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-14</span></td><td>Incident runbook: Stripe down, AI gateway down, Supabase outage</td><td>Ops</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-15</span></td><td>Legal: privacy policy, terms, cookie banner if required</td><td>Compliance</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-16</span></td><td>Accessibility pass on auth + main app flows (WCAG AA basics)</td><td>Product</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-17</span></td><td>Mobile QA: capture, checkout, tracking ICS download</td><td>Product</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-18</span></td><td>Cost dashboard: monthly AI $ + Stripe fees + Supabase size in Super Admin</td><td>Cost</td><td><span class="badge pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- SERVICES -->
+    <h2 id="services">6. Production services to add</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Must add</h4>
+        <ul>
+          <li><strong>Sentry</strong> — durable errors (client + server)</li>
+          <li><strong>Upstash Rate Limit</strong> — AI / auth / live / webhook</li>
+          <li><strong>Resend</strong> — contact + product email</li>
+          <li><strong>Cloudflare CDN + WAF</strong> — edge cache &amp; abuse</li>
+          <li><strong>GitHub Actions</strong> — CI gate</li>
+          <li><strong>UptimeRobot / Better Stack</strong> — synthetic checks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Keep (do not replace)</h4>
+        <ul>
+          <li>TanStack Start + Nitro (TypeScript backend — no Python needed)</li>
+          <li>Supabase Auth + Postgres + Storage</li>
+          <li>Drizzle migrations</li>
+          <li>Stripe (sandbox + live)</li>
+          <li>Lovable AI gateway (with quotas)</li>
+          <li>Google App User Connectors</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout info" style="margin-top:16px">
+      <h3>Optional later (not required for 10/10)</h3>
+      <p>Outlook / WhatsApp integrations, push notifications (FCM/APNs), Redis general cache, separate Python workers — only if product roadmap needs them. Do not add Python just for “backend.”</p>
+    </div>
+
+    <!-- ENV -->
+    <h2 id="env">7. Environment &amp; secrets checklist</h2>
+    <table>
+      <thead>
+        <tr><th>Variable / secret</th><th>Purpose</th><th>Prod required?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>VITE_SUPABASE_URL</code> / publishable key</td><td>Client DB/auth</td><td>Yes</td></tr>
+        <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Admin, webhooks, Google crypto store</td><td>Yes (server only)</td></tr>
+        <tr><td><code>VITE_PAYMENTS_CLIENT_TOKEN</code> (<code>pk_live_</code>)</td><td>Stripe.js</td><td>Yes</td></tr>
+        <tr><td><code>STRIPE_LIVE_API_KEY</code> + webhook secret</td><td>Checkout via Lovable connector</td><td>Yes</td></tr>
+        <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Super Admin Stripe reports</td><td>Yes for admin figures</td></tr>
+        <tr><td><code>LOVABLE_API_KEY</code></td><td>Sera / capture / speech</td><td>Yes</td></tr>
+        <tr><td><code>APP_USER_CONNECTION_KEY_SECRET</code></td><td>Encrypt Google tokens</td><td>Yes if Google on</td></tr>
+        <tr><td><code>RESEND_API_KEY</code></td><td>Transactional / contact</td><td>Yes after P1-01</td></tr>
+        <tr><td><code>LOVABLE_CRON_SECRET</code></td><td>Scheduled jobs</td><td>Yes if reminders cron</td></tr>
+        <tr><td><code>SENTRY_DSN</code></td><td>Error monitoring</td><td>Yes after P2-16</td></tr>
+        <tr><td><code>UPSTASH_REDIS_*</code></td><td>Rate limits</td><td>Yes after P2-06</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ACCEPTANCE -->
+    <h2 id="acceptance">8. Final 10/10 acceptance checklist</h2>
+    <p class="section-intro">Sign off only when every box is true in production.</p>
+    <ul class="check">
+      <li><span class="box"></span> Signed-in user with empty account sees empty states — zero sample rooms/assets/agents</li>
+      <li><span class="box"></span> Direct Supabase update cannot set <code>profiles.plan</code> to a paid tier</li>
+      <li><span class="box"></span> Free user hitting Sera/capture/speech gets blocked server-side within quota rules</li>
+      <li><span class="box"></span> Live Stripe subscribe → plan active → portal cancel → plan free (E2E)</li>
+      <li><span class="box"></span> No success toasts for unfinished features; Coming soon is clearly labeled</li>
+      <li><span class="box"></span> Contact form delivers to inbox via Resend (or documented alternative)</li>
+      <li><span class="box"></span> Password reset + invite emails deliver (SPF/DKIM green)</li>
+      <li><span class="box"></span> <code>home_items</code> queries scoped + indexed; no full-table client filter</li>
+      <li><span class="box"></span> Rate limits return 429 under abuse; AI spend alert configured</li>
+      <li><span class="box"></span> Sentry receives a test error from client and server</li>
+      <li><span class="box"></span> CI green on main; migrations scripted</li>
+      <li><span class="box"></span> Backup restore drill completed once</li>
+      <li><span class="box"></span> Marketing / pricing / entitlements match shipped features only</li>
+      <li><span class="box"></span> PaymentTestModeBanner absent; Super Admin Stripe connected</li>
+      <li><span class="box"></span> Cost dashboard reviewed: AI + storage + DB within budget</li>
+    </ul>
+
+    <div class="callout warn">
+      <h3>Suggested timeline (aggressive)</h3>
+      <p><strong>Week 1:</strong> P0 (14) — security, demo strip, AI quotas, billing portal, secrets.<br />
+      <strong>Week 2:</strong> P1 (18) — Resend, flags, GDPR basics, marketing honesty, admin Stripe.<br />
+      <strong>Week 3:</strong> P2 (22) — indexes, rate limits, CDN, Sentry, CI, AI cost controls.<br />
+      <strong>Week 4:</strong> P3 (18) — tests, load, a11y, runbooks, cost dashboard → declare 10/10.</p>
+    </div>
+
+    <div class="callout ok">
+      <h3>Bottom line</h3>
+      <p><strong>72 pending tasks</strong> across P0–P3. No Python backend. Keep TypeScript/TanStack Start. Biggest efficiency wins: server AI quotas (P0-03), scoped DB queries + indexes (P2-01/02), rate limits (P2-06), CDN (P2-11). Complete acceptance checklist before calling production “perfect.”</p>
+    </div>
+
+    <footer>
+      MatrixKeep Production Perfect Task Report · Target all scores 10/10 · Generated from full code analysis of code v5 ·
+      File: <code>reports/production-perfect-10-tasks.html</code> · Open in any browser · Print-friendly
+    </footer>
+  </div>
+</body>
+</html>

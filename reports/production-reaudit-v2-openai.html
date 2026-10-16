@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MatrixKeep / HomeHive — Production Re-Audit v2 + OpenAI Migration</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --ink: #171c22;
+      --muted: #5a6570;
+      --line: #d6d0c4;
+      --card: #fff;
+      --accent: #0b5f4f;
+      --accent-soft: #e4f3ef;
+      --danger: #8b1e1e;
+      --danger-bg: #f8eaea;
+      --warn: #8a5a00;
+      --warn-bg: #fff4df;
+      --ok: #1f6b3a;
+      --ok-bg: #e8f6ec;
+      --info: #1a4d7c;
+      --info-bg: #e8f1f8;
+      --ai: #5b2d8e;
+      --ai-bg: #f3eafb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 70% 45% at 0% 0%, #e5efe8 0%, transparent 55%),
+        radial-gradient(ellipse 50% 35% at 100% 0%, #ebe4f3 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 80px; }
+    header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 28px; }
+    .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+    h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.7rem, 3.8vw, 2.45rem); margin: 0 0 12px; line-height: 1.15; letter-spacing: -.02em; }
+    .lead { color: var(--muted); max-width: 760px; margin: 0 0 16px; font-size: 1.05rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 13px; color: var(--muted); }
+    .meta strong { color: var(--ink); }
+    .scores { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; margin: 24px 0; }
+    @media (max-width: 860px) { .scores { grid-template-columns: repeat(2,1fr); } }
+    .score { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+    .score .label { font-size: 12px; color: var(--muted); }
+    .score .now { font-size: 1.45rem; font-weight: 700; margin-top: 4px; }
+    .score .delta { font-size: 12px; margin-top: 4px; }
+    .score.bad .now { color: var(--danger); }
+    .score.warn .now { color: var(--warn); }
+    .score.good .now { color: var(--ok); }
+    .score .delta.flat { color: var(--muted); }
+    .score .delta.up { color: var(--ok); }
+    .callout { border-radius: 12px; padding: 16px 18px; margin: 18px 0; border: 1px solid var(--line); }
+    .callout h3 { margin: 0 0 6px; font-size: 15px; }
+    .callout p { margin: 0; font-size: 14px; }
+    .callout.danger { background: var(--danger-bg); border-color: #e0bdbd; }
+    .callout.warn { background: var(--warn-bg); border-color: #ebd7a8; }
+    .callout.ok { background: var(--ok-bg); border-color: #b9dcc6; }
+    .callout.info { background: var(--info-bg); border-color: #b9d0e5; }
+    .callout.ai { background: var(--ai-bg); border-color: #d4bde8; }
+    h2 { font-family: Georgia, serif; font-size: 1.4rem; margin: 40px 0 8px; }
+    h3 { font-size: 1.05rem; margin: 26px 0 10px; }
+    .section-intro { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+    .toc { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; }
+    .toc ol { margin: 8px 0 0; padding-left: 22px; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13.5px; margin: 8px 0 16px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #efece4; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #faf9f6; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+    .badge.open { background: var(--danger-bg); color: var(--danger); }
+    .badge.partial { background: var(--warn-bg); color: var(--warn); }
+    .badge.fixed { background: var(--ok-bg); color: var(--ok); }
+    .badge.new { background: var(--info-bg); color: var(--info); }
+    .badge.p0 { background: var(--danger-bg); color: var(--danger); }
+    .badge.p1 { background: var(--warn-bg); color: var(--warn); }
+    .badge.p2 { background: var(--info-bg); color: var(--info); }
+    .badge.p3 { background: #eceff3; color: #3d4450; }
+    .badge.ai { background: var(--ai-bg); color: var(--ai); }
+    .badge.save { background: var(--accent-soft); color: var(--accent); }
+    .badge.pending { background: #fff4df; color: var(--warn); }
+    .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #efece4; padding: 2px 6px; border-radius: 4px; }
+    .task-block { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; overflow: hidden; }
+    .task-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 12px 16px; background: #faf8f3; border-bottom: 1px solid var(--line); }
+    .task-id { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; color: var(--accent); }
+    .task-title { font-weight: 650; flex: 1; min-width: 200px; }
+    .task-body { padding: 14px 16px 16px; font-size: 14px; }
+    .task-body ul { margin: 6px 0 0; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .card h4 { margin: 0 0 8px; font-size: 14px; }
+    .card ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; }
+    .summary-bar { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .pill-stat { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 13px; }
+    .check { list-style: none; padding: 0; margin: 0; }
+    .check li { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .check li:last-child { border-bottom: none; }
+    .box { width: 16px; height: 16px; border: 1.5px solid var(--muted); border-radius: 3px; flex-shrink: 0; margin-top: 2px; }
+    code { font-family: ui-monospace, Menlo, monospace; font-size: .92em; }
+    footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+    @media print {
+      body { background: #fff; }
+      .task-block, table, .card, .callout, .score { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">HomeHive / MatrixKeep · Production Re-Audit v2</p>
+      <h1>Updated production analysis — all prior scenarios + OpenAI API recommendation</h1>
+      <p class="lead">
+        Full re-run of the Oct&nbsp;11 code-analyst review against the updated
+        <strong>homehive-ai-hub</strong> tree. This revision adds a
+        <strong>complete page + API inventory</strong> (every route file and server function),
+        with production readiness and <strong>pending work</strong> per surface.
+        Also includes prior scorecard, blockers, 10/10 task backlog, cost/efficiency work,
+        and a plan to replace Lovable AI with <strong>direct OpenAI API</strong>.
+      </p>
+      <div class="meta">
+        <span><strong>Codebase:</strong> homehive-ai-hub (updated)</span>
+        <span><strong>Prior report:</strong> 11 Oct 2026</span>
+        <span><strong>This report:</strong> 12 Oct 2026</span>
+        <span><strong>Agents:</strong> Security · Features · Ops/AI</span>
+        <span><strong>AI today:</strong> Lovable gateway (<code>LOVABLE_API_KEY</code>)</span>
+        <span><strong>AI target:</strong> Direct OpenAI (<code>OPENAI_API_KEY</code>)</span>
+      </div>
+    </header>
+
+    <div class="scores">
+      <div class="score bad">
+        <div class="label">Overall launch</div>
+        <div class="now">4 → 10</div>
+        <div class="delta flat">vs prior: still ~4/10 (no P0 closed)</div>
+      </div>
+      <div class="score bad">
+        <div class="label">Features</div>
+        <div class="now">4 → 10</div>
+        <div class="delta up">+1 vs prior 3 (passports, doc intel, tracking honesty)</div>
+      </div>
+      <div class="score warn">
+        <div class="label">Security</div>
+        <div class="now">5 → 10</div>
+        <div class="delta flat">unchanged — all 8 prior issues still open</div>
+      </div>
+      <div class="score bad">
+        <div class="label">Ops / cost</div>
+        <div class="now">4 → 10</div>
+        <div class="delta flat">~3.5–4/10 — AI still Lovable-only</div>
+      </div>
+      <div class="score good">
+        <div class="label">Stack fitness</div>
+        <div class="now">8 → 10</div>
+        <div class="delta flat">keep TS stack; migrate AI vendor</div>
+      </div>
+    </div>
+
+    <div class="callout danger">
+      <h3>Verdict (re-audit)</h3>
+      <p>
+        <strong>Still not production-ready.</strong> Product progress is real (digital passports, document intelligence,
+        tracking honesty, Stripe checkout, Google gating), but <strong>zero of the eight prior security blockers were fixed</strong>,
+        demo data still fills signed-in Home/sections, billing portal is still unused, and all AI still runs through
+        Lovable’s gateway. For production efficiency and cost control, <strong>connect OpenAI directly</strong> and drop Lovable for AI.
+      </p>
+    </div>
+
+    <div class="callout ai">
+      <h3>AI recommendation (new vs prior report)</h3>
+      <p>
+        Today: <code>LOVABLE_API_KEY</code> → <code>https://ai.gateway.lovable.dev</code> for Sera, capture, speech, and live voice
+        (models <code>openai/gpt-6-astra</code>, <code>gpt-transcribe</code>, <code>gpt-live-1</code>).
+        <strong>Production target: direct OpenAI with <code>OPENAI_API_KEY</code></strong> —
+        lower/ clearer cost, spend limits, no gateway markup, standard billing, easier rate limits.
+        Keep Lovable only for hosting / Stripe·Google connectors until those are migrated separately.
+      </p>
+    </div>
+
+    <div class="summary-bar">
+      <span class="pill-stat"><b>0 / 8</b> prior security blockers fixed</span>
+      <span class="pill-stat"><b>~+1</b> features score (passports etc.)</span>
+      <span class="pill-stat"><b>4</b> test files (was 3)</span>
+      <span class="pill-stat"><b>78</b> pending tasks to 10/10</span>
+      <span class="pill-stat"><b>AI-01…AI-10</b> OpenAI migration track</span>
+    </div>
+
+    <nav class="toc">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#method">Coverage method — what was / wasn’t crawled</a></li>
+        <li><a href="#inventory">Full page &amp; API inventory + pending production work</a></li>
+        <li><a href="#delta">What changed since the first report</a></li>
+        <li><a href="#prior-security">Prior security scenarios — status</a></li>
+        <li><a href="#prior-features">Prior feature scenarios — status</a></li>
+        <li><a href="#prior-ops">Prior ops / cost scenarios — status</a></li>
+        <li><a href="#openai">OpenAI API connection plan (replace Lovable AI)</a></li>
+        <li><a href="#tasks-p0">Full pending tasks P0–P3 (+ AI track)</a></li>
+        <li><a href="#services">Services keep / add / replace</a></li>
+        <li><a href="#acceptance">10/10 acceptance checklist</a></li>
+      </ol>
+    </nav>
+
+    <!-- METHOD -->
+    <h2 id="method">0. Coverage method — honest answer</h2>
+    <div class="callout warn">
+      <h3>Did the first re-audit walk every page/API?</h3>
+      <p>
+        <strong>Not as a browser crawl of every URL.</strong> The Oct&nbsp;12 agents analysed the codebase thematically
+        (security, features, ops/AI) with file evidence. They did <em>not</em> open each marketing page in a browser
+        or hit every Super Admin screen live. <strong>This update adds the missing inventory:</strong>
+        all <strong>50 route files</strong>, <strong>3 HTTP API endpoints</strong>, and
+        <strong>50+ createServerFn APIs</strong>, each tagged Ready / Partial / Demo / Pending for production.
+      </p>
+    </div>
+    <div class="callout ok">
+      <h3>Were pending production tasks included?</h3>
+      <p>
+        <strong>Yes.</strong> The report already had P0–P3 + AI-01…AI-10 pending work (~78 tasks).
+        Below, pending work is also listed <em>per page and per API</em> so nothing is only in a generic backlog.
+      </p>
+    </div>
+
+    <!-- INVENTORY -->
+    <h2 id="inventory">0b. Full page &amp; API inventory + pending production work</h2>
+    <p class="section-intro">
+      Status key:
+      <span class="badge fixed">Ready</span> = usable in prod with config ·
+      <span class="badge partial">Partial</span> = real core, gaps remain ·
+      <span class="badge open">Demo / stub</span> = sample data or toast-only ·
+      <span class="badge pending">Pending work</span> = must finish before calling production-perfect.
+    </p>
+
+    <h3>A. Public / marketing pages</h3>
+    <table>
+      <thead>
+        <tr><th>Route</th><th>File</th><th>Prod status</th><th>Pending for production</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/</code></td><td><span class="path">index.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Align plan/feature claims with shipped product; remove overclaims (push, WhatsApp)</td></tr>
+        <tr><td><code>/about</code></td><td><span class="path">about.tsx</span></td><td><span class="badge fixed">Ready</span></td><td>Content review only</td></tr>
+        <tr><td><code>/features</code></td><td><span class="path">features.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Rewrite “notifications before due” until email/push exists</td></tr>
+        <tr><td><code>/how-it-works</code></td><td><span class="path">how-it-works.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Match passport/email transfer claims to Resend reality</td></tr>
+        <tr><td><code>/pricing</code></td><td><span class="path">pricing.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Ensure prices = <span class="path">plans.ts</span> + live Stripe products</td></tr>
+        <tr><td><code>/individual</code> <code>/business</code> <code>/enterprise</code></td><td>audience pages</td><td><span class="badge partial">Partial</span></td><td>Strip unsold features from CTAs</td></tr>
+        <tr><td><code>/industries</code> <code>/industries/$slug</code></td><td>industries.*</td><td><span class="badge fixed">Ready</span></td><td>Content QA</td></tr>
+        <tr><td><code>/use-cases</code> <code>/use-cases/$slug</code></td><td>use-cases.*</td><td><span class="badge fixed">Ready</span></td><td>Content QA</td></tr>
+        <tr><td><code>/security</code></td><td><span class="path">security.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Don’t claim controls you haven’t shipped (2FA, etc.)</td></tr>
+        <tr><td><code>/contact</code></td><td><span class="path">contact.tsx</span></td><td><span class="badge partial">Partial</span></td><td><strong>Pending:</strong> Resend server submit (today mailto only)</td></tr>
+        <tr><td><code>/auth</code></td><td><span class="path">auth.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Auth SMTP deliverability; rate-limit sign-up; voucher edge cases</td></tr>
+        <tr><td><code>/reset-password</code></td><td><span class="path">reset-password.tsx</span></td><td><span class="badge partial">Partial</span></td><td>Custom SMTP + SPF/DKIM verified in prod</td></tr>
+        <tr><td><code>/p/$token</code></td><td><span class="path">p.$token.tsx</span></td><td><span class="badge fixed">Ready</span></td><td>TTL/revoke QA; passport email send still pending (roadmap)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>B. Signed-in app pages</h3>
+    <table>
+      <thead>
+        <tr><th>Route / section</th><th>Prod status</th><th>Pending for production</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/app</code> Home</td><td><span class="badge open">Demo</span></td><td><strong>P0:</strong> Remove demo KPIs/sample “Today”; build from real aggregates + empty state</td></tr>
+        <tr><td><code>/app/plans</code></td><td><span class="badge partial">Partial</span></td><td>Wire portal; Free must cancel Stripe; lock plan writes to server</td></tr>
+        <tr><td><code>/app/my-home</code> Property</td><td><span class="badge open">Demo+real</span></td><td>Stop merging sample property; empty state; CRUD already possible via home_items</td></tr>
+        <tr><td><code>/app/rooms</code> <code>/assets</code> <code>/vehicles</code> <code>/documents</code></td><td><span class="badge open">Demo+real</span></td><td><strong>P0:</strong> Real-only lists; server-side plan caps on insert</td></tr>
+        <tr><td><code>/app/warranties</code> <code>/renewals</code></td><td><span class="badge fixed">Ready*</span></td><td>*Best-in-app: real dates + ICS. Pending: email/push if sold; Google Cal optional</td></tr>
+        <tr><td><code>/app/maintenance</code> <code>/tasks</code> <code>/timeline</code> <code>/services</code></td><td><span class="badge open">Demo/stub</span></td><td>Hide or implement; booking/complete actions are toasts today</td></tr>
+        <tr><td><code>/app/insurance</code></td><td><span class="badge open">Demo</span></td><td>Claim packs / policies — implement or unship from nav</td></tr>
+        <tr><td><code>/app/family</code> (individual)</td><td><span class="badge open">Demo/stub</span></td><td><strong>Pending:</strong> real invites + permissions or remove</td></tr>
+        <tr><td><code>/app/team</code> <code>/roles</code> <code>/locations</code> (business)</td><td><span class="badge open">Demo/partial</span></td><td>Locations may store as home_items; team invite + RBAC enforcement pending</td></tr>
+        <tr><td><code>/app/agents</code> <code>/messages</code></td><td><span class="badge open">Demo/stub</span></td><td>Pause/Run/Reply are toasts; hide until real agent jobs exist</td></tr>
+        <tr><td><code>/app/integrations</code></td><td><span class="badge partial">Partial</span></td><td>Google OK (flagged). Outlook/WhatsApp: remove Connect success / entitlements until built</td></tr>
+        <tr><td><code>/app/billing</code></td><td><span class="badge partial">Partial</span></td><td>Usage meters real; fix “cards not connected” copy; add Manage via portal</td></tr>
+        <tr><td><code>/app/profile</code> + account sections (security, privacy, notifications…)</td><td><span class="badge open">Mostly demo</span></td><td>2FA, export/delete, push settings: implement or honest “not available”</td></tr>
+        <tr><td>Detail <code>/app/$section/$id</code></td><td><span class="badge partial">Partial</span></td><td>CRUD/evidence/passport download/share real paths exist; <strong>many action buttons still stub toasts</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h3>C. Super Admin pages</h3>
+    <table>
+      <thead>
+        <tr><th>Route</th><th>Prod status</th><th>Pending for production</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/super-admin/login</code> + layout</td><td><span class="badge fixed">Ready</span></td><td>Ensure has_role checked; remove public footer link to admin</td></tr>
+        <tr><td><code>/super-admin/</code> dashboard</td><td><span class="badge partial">Partial</span></td><td>Charts need live data; verify after Stripe connected</td></tr>
+        <tr><td>subscribers / $id</td><td><span class="badge fixed">Ready</span></td><td>Usage overrides OK; don’t rely on client plan fields</td></tr>
+        <tr><td>subscriptions, vouchers, plans, flags</td><td><span class="badge fixed">Ready</span></td><td>Ops QA; seed production flags fail-closed</td></tr>
+        <tr><td>billing / payments / revenue / reports</td><td><span class="badge partial">Partial</span></td><td><strong>Pending:</strong> <code>STRIPE_SECRET_KEY</code> in prod or Setup Required forever</td></tr>
+        <tr><td>ai / api / infrastructure / integrations / health / audit</td><td><span class="badge partial">Partial</span></td><td>After OpenAI migrate: rename lovable_ai probe; wire Resend probe; real cost sources (AWS/Azure optional)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>D. HTTP APIs (explicit routes)</h3>
+    <table>
+      <thead>
+        <tr><th>API</th><th>File</th><th>Prod status</th><th>Pending for production</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST /api/public/payments/webhook</code></td>
+          <td><span class="path">webhook.ts</span></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>timingSafeEqual; event idempotency; stronger user binding; don’t 200 on bad env; live webhook secret</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/oauth/google/return</code></td>
+          <td><span class="path">return.ts</span></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Fix X-Forwarded-Host spoof on localhost; allowlist origins</td>
+        </tr>
+        <tr>
+          <td><code>/api/live</code> (WebSocket)</td>
+          <td><span class="path">live-relay.server.ts</span> via <span class="path">server.ts</span></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td><strong>Pending:</strong> auth before upgrade; OpenAI migrate; rate limit; shrink record context; server quota</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>E. Server functions (createServerFn APIs) — full list</h3>
+    <table>
+      <thead>
+        <tr><th>Module</th><th>Functions</th><th>Prod status</th><th>Pending</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="path">sera.functions.ts</span></td>
+          <td><code>askSera</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>OpenAI direct; plan quota; context trim; rate limit</td>
+        </tr>
+        <tr>
+          <td><span class="path">capture.functions.ts</span></td>
+          <td><code>extractRecords</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>OpenAI; data:-only images; quota; payload caps</td>
+        </tr>
+        <tr>
+          <td><span class="path">speech.functions.ts</span></td>
+          <td><code>transcribeToEnglish</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>OpenAI Whisper path; size limits; quota</td>
+        </tr>
+        <tr>
+          <td><span class="path">payments.functions.ts</span></td>
+          <td><code>createCheckoutSession</code>, <code>createPortalSession</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td><strong>Portal unused in UI</strong>; allowlist returnUrl; live keys</td>
+        </tr>
+        <tr>
+          <td><span class="path">billing.functions.ts</span></td>
+          <td><code>billingData</code></td>
+          <td><span class="badge fixed">Ready</span></td>
+          <td>Copy/UX align with portal</td>
+        </tr>
+        <tr>
+          <td><span class="path">google.functions.ts</span></td>
+          <td>status, connect, complete, disconnect, syncGmail, syncCalendar, listDrive, importDrive</td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>OAuth host fix; sync cost caps; feature-flag fail-closed</td>
+        </tr>
+        <tr>
+          <td><span class="path">features.functions.ts</span></td>
+          <td><code>myFeatures</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Fail-closed unknown keys in production</td>
+        </tr>
+        <tr>
+          <td><span class="path">vouchers.functions.ts</span></td>
+          <td>create / list / detail</td>
+          <td><span class="badge fixed">Ready</span></td>
+          <td>Admin QA</td>
+        </tr>
+        <tr>
+          <td><span class="path">dashboard.functions.ts</span></td>
+          <td><code>dashboardCharts</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Perf: aggregates not huge selects</td>
+        </tr>
+        <tr>
+          <td><span class="path">account-usage.functions.ts</span></td>
+          <td>usage, setLimitOverride</td>
+          <td><span class="badge fixed">Ready</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><span class="path">admin.functions.ts</span></td>
+          <td>overview, subscribers CRUD, plan override, suspend, trial, vouchers, audit, passwords, createAccount…</td>
+          <td><span class="badge fixed">Ready</span></td>
+          <td>has_role probe harden; Auth email map pagination</td>
+        </tr>
+        <tr>
+          <td><span class="path">admin-ops.functions.ts</span></td>
+          <td>payments/revenue/aiUsage/rates/infra/plans/flags/integrations/health/apiUsage</td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Stripe/OpenAI/Resend secrets; real probes after migrate</td>
+        </tr>
+        <tr>
+          <td><span class="path">reports.functions.ts</span></td>
+          <td><code>runReport</code></td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Setup Required until provider keys present</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <h3>Inventory totals</h3>
+      <p>
+        <strong>~50</strong> route modules · <strong>3</strong> HTTP/WS APIs · <strong>~50+</strong> server functions ·
+        <strong>~20+</strong> app section slugs in nav.
+        Production-ready end-to-end today (with secrets): roughly warranties/renewals tracking, Google connect (flagged),
+        passport guest view, checkout create, Super Admin core CRUD.
+        Everything else is Partial / Demo / Pending as above.
+      </p>
+    </div>
+
+    <div class="summary-bar">
+      <span class="pill-stat"><b>Yes</b> — pending tasks were already in report</span>
+      <span class="pill-stat"><b>Now</b> — pending also mapped per page/API</span>
+      <span class="pill-stat"><b>~78+</b> backlog items toward 10/10</span>
+    </div>
+
+    <!-- DELTA -->
+    <h2 id="delta">1. What changed since the first report (11 Oct → 12 Oct)</h2>
+    <p class="section-intro">Compared against the original production-perfect report and three re-audit agents on <span class="path">homehive-ai-hub</span>.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>Improved / newly finished</h4>
+        <ul>
+          <li>Digital passports: download, expiring share links, guest <span class="path">/p/$token</span></li>
+          <li>Document intelligence: contract dates, filters, rename/archive, more file types</li>
+          <li>Tracking UI honestly says email/push not enabled (ICS + optional Google Cal)</li>
+          <li>Contact form honest “Open email to send” (still mailto)</li>
+          <li>Google integrations gated via <code>useFeature("google_integrations")</code></li>
+          <li>Evidence AI gated via feature flag</li>
+          <li>+1 test file: <span class="path">contract-dates.test.ts</span> (4 total)</li>
+          <li>AI usage logging + Super Admin cost UI scaffolding</li>
+          <li>Roadmap passports section largely checked</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Not fixed (still blocking production)</h4>
+        <ul>
+          <li>Profile plan self-elevation via RLS</li>
+          <li>AI / entitlements not enforced on server</li>
+          <li>Demo household still on signed-in Home + most sections</li>
+          <li><code>actionToast</code> stub CTAs</li>
+          <li>Stripe Customer Portal unused; Free ≠ cancel Stripe</li>
+          <li><code>.env</code> still not gitignored (now confirmed <em>tracked</em>)</li>
+          <li>Capture image SSRF allowlist missing</li>
+          <li>No CI, Sentry, Resend send path, rate limits</li>
+          <li>All AI still Lovable gateway (not OpenAI direct)</li>
+          <li><code>home_items</code> still full-table load + missing workspace indexes</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <h2 id="prior-security">2. Prior security scenarios — re-check</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Prior finding</th><th>Status</th><th>Severity</th><th>Evidence / note</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>S1</td>
+          <td>Self-elevate <code>profiles.plan</code> / suspended via RLS</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Critical</td>
+          <td>Only <code>limit_overrides</code> protected (<span class="path">0009</span>). Client <code>saveProfile</code> can write plan fields.</td>
+        </tr>
+        <tr>
+          <td>S2</td>
+          <td>AI / entitlements client-side only</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td>Sera, capture, speech, live-relay: auth only. Usage logged, not capped.</td>
+        </tr>
+        <tr>
+          <td>S3</td>
+          <td><code>.env</code> not gitignored</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td><code>.env</code> + <code>.env.development</code> are <strong>git-tracked</strong>.</td>
+        </tr>
+        <tr>
+          <td>S4</td>
+          <td>Capture image non-data URL (SSRF)</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td><span class="path">capture.server.ts</span> passes arbitrary <code>image_url</code>.</td>
+        </tr>
+        <tr>
+          <td>S5</td>
+          <td>Stripe webhook: no timingSafeEqual / idempotency</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td><code>.includes()</code> compare; no <code>event.id</code> store.</td>
+        </tr>
+        <tr>
+          <td>S6</td>
+          <td>Open checkout <code>returnUrl</code></td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td><span class="path">payments.functions.ts</span> — unchecked origin.</td>
+        </tr>
+        <tr>
+          <td>S7</td>
+          <td>Google OAuth <code>X-Forwarded-Host</code> on localhost</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>High</td>
+          <td><span class="path">google.functions.ts</span></td>
+        </tr>
+        <tr>
+          <td>S8</td>
+          <td><code>has_role</code> probeable for any UUID</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Med–High</td>
+          <td><span class="path">0005_super_admin.sql</span> GRANT to authenticated.</td>
+        </tr>
+        <tr>
+          <td>N1</td>
+          <td><span class="badge new">New</span> Direct <code>home_items</code> insert bypasses plan caps</td>
+          <td><span class="badge open">Open</span></td>
+          <td>High</td>
+          <td>RLS allows insert-own; caps only in browser <code>checkAdd</code>.</td>
+        </tr>
+        <tr>
+          <td>N2</td>
+          <td><span class="badge new">New</span> Trial replay by clearing <code>trial_ends_at</code></td>
+          <td><span class="badge open">Open</span></td>
+          <td>High</td>
+          <td>Depends on S1 — reset trial field then re-call trial RPC.</td>
+        </tr>
+        <tr>
+          <td>N3</td>
+          <td><span class="badge new">New</span> <code>/api/live</code> upgrades before auth</td>
+          <td><span class="badge open">Open</span></td>
+          <td>Medium</td>
+          <td>Auth on <code>app.start</code>; WS upgrade earlier.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- FEATURES -->
+    <h2 id="prior-features">3. Prior feature scenarios — re-check</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Prior finding</th><th>Status</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>F1</td>
+          <td>Demo household / sample data on signed-in UI</td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Warranties/renewals + Billing real-only. Home + most sections still merge <span class="path">data.ts</span>. Demo badge remains.</td>
+        </tr>
+        <tr>
+          <td>F2</td>
+          <td><code>actionToast</code> stub CTAs</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Success toasts without persistence.</td>
+        </tr>
+        <tr>
+          <td>F3</td>
+          <td>Outlook / WhatsApp sold but Coming soon</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Still in entitlements + UI.</td>
+        </tr>
+        <tr>
+          <td>F4</td>
+          <td>Contact mailto-only</td>
+          <td><span class="badge partial">Honest but open</span></td>
+          <td>Copy fixed; still no Resend/server inbox.</td>
+        </tr>
+        <tr>
+          <td>F5</td>
+          <td>Reminders ICS vs push claims</td>
+          <td><span class="badge partial">Partial</span></td>
+          <td>Tracking footer honest; marketing / sample notifications still overclaim.</td>
+        </tr>
+        <tr>
+          <td>F6</td>
+          <td>Billing portal unused; Free vs Stripe cancel</td>
+          <td><span class="badge open">Still open</span></td>
+          <td><code>createPortalSession</code> still unused; Billing copy still says cards not connected.</td>
+        </tr>
+        <tr>
+          <td>F7</td>
+          <td><code>FeatureGate</code> unused; flags fail-open</td>
+          <td><span class="badge partial">Partial</span></td>
+          <td><code>useFeature</code> used for Google/Evidence; <code>FeatureGate</code> still unused; unknown keys default ON.</td>
+        </tr>
+        <tr>
+          <td>F8</td>
+          <td>Thin tests</td>
+          <td><span class="badge partial">Slightly better</span></td>
+          <td>3 → 4 files; still no billing/auth/portal tests.</td>
+        </tr>
+        <tr>
+          <td>F9</td>
+          <td>Family / 2FA / messages / agents stubs</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Still demo / toast-only.</td>
+        </tr>
+        <tr>
+          <td>F10</td>
+          <td>Roadmap open items</td>
+          <td><span class="badge open">Still open</span></td>
+          <td>Cancel/upgrade logic; email domain; WhatsApp alerts; relationship-graph remainder.</td>
+        </tr>
+        <tr>
+          <td>F+</td>
+          <td><span class="badge new">New progress</span> Passports + doc intelligence</td>
+          <td><span class="badge fixed">Shipped</span></td>
+          <td>Download, share links, guest view, contract dates — real value added.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- OPS -->
+    <h2 id="prior-ops">4. Prior ops / efficiency scenarios — re-check</h2>
+    <table>
+      <thead>
+        <tr><th>Area</th><th>Status</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>CI (GitHub Actions)</td><td><span class="badge open">Still open</span></td><td>No workflows</td></tr>
+        <tr><td>Rate limits (AI/auth/live)</td><td><span class="badge open">Still open</span></td><td>Only reacts to gateway 429/402</td></tr>
+        <tr><td>Sentry / APM</td><td><span class="badge open">Still open</span></td><td>Lovable editor hooks only</td></tr>
+        <tr><td>Resend wired</td><td><span class="badge open">Still open</span></td><td>Key listed; no send path</td></tr>
+        <tr><td><code>home_items</code> scoped query</td><td><span class="badge open">Still open</span></td><td>Full load → client filter</td></tr>
+        <tr><td>DB indexes (workspace / evidence)</td><td><span class="badge open">Still open</span></td><td>Only <code>(user_id, section)</code></td></tr>
+        <tr><td>Dual/triple Stripe key model</td><td><span class="badge open">Still open</span></td><td>Connector keys + <code>STRIPE_SECRET_KEY</code> + Vite pk</td></tr>
+        <tr><td>Lovable AI gateway</td><td><span class="badge open">Still open</span></td><td><strong>Replace with OpenAI — see §5</strong></td></tr>
+        <tr><td>AI usage log / admin cost UI</td><td><span class="badge partial">Partial</span></td><td>Logging exists; not enforced as quota</td></tr>
+      </tbody>
+    </table>
+
+    <!-- OPENAI -->
+    <h2 id="openai">5. OpenAI API connection plan — replace Lovable AI</h2>
+    <p class="section-intro">
+      Strong recommendation for production: stop calling <code>ai.gateway.lovable.dev</code> for Sera / capture / speech / live.
+      Use OpenAI’s API directly with your own key and spend controls.
+    </p>
+
+    <div class="callout ai">
+      <h3>Why switch (cost + efficiency)</h3>
+      <p>
+        Lovable gateway adds an extra hop, opaque credits, and likely markup. Direct OpenAI gives invoiceable list pricing,
+        org spend limits, standard SDKs, and simpler rate limiting. Combined with cheaper models + smaller record context
+        (today Sera dumps ~150 items, live ~300 into <code>gpt-6-astra</code>), this is the largest operating-cost win available.
+      </p>
+    </div>
+
+    <h3>Current AI map (Lovable)</h3>
+    <table>
+      <thead>
+        <tr><th>Surface</th><th>File</th><th>Endpoint today</th><th>Model today</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sera chat</td><td><span class="path">sera.functions.ts</span></td><td><code>ai.gateway.lovable.dev/v1/responses</code></td><td><code>openai/gpt-6-astra</code></td></tr>
+        <tr><td>Capture / Add anything</td><td><span class="path">capture.server.ts</span></td><td>same Responses API</td><td><code>openai/gpt-6-astra</code></td></tr>
+        <tr><td>Speech</td><td><span class="path">speech.functions.ts</span></td><td>transcriptions + responses</td><td><code>gpt-transcribe</code> → <code>gpt-6-astra</code></td></tr>
+        <tr><td>Live voice</td><td><span class="path">live-relay.server.ts</span></td><td>WS live sessions + Responses via AI SDK</td><td><code>gpt-live-1</code> + <code>gpt-6-astra</code></td></tr>
+        <tr><td>Health probe</td><td><span class="path">admin-ops.functions.ts</span></td><td><code>/v1/models</code> with <code>Lovable-API-Key</code></td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Target AI map (direct OpenAI)</h3>
+    <table>
+      <thead>
+        <tr><th>Change</th><th>Do this</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Secret</td><td>Add <code>OPENAI_API_KEY</code> (server-only). Stop requiring <code>LOVABLE_API_KEY</code> for AI paths.</td></tr>
+        <tr><td>Base URL</td><td><code>https://api.openai.com/v1</code> (SDK default).</td></tr>
+        <tr><td>Auth header</td><td><code>Authorization: Bearer sk-…</code>. Remove <code>Lovable-API-Key</code> / <code>X-Lovable-AIG-*</code>.</td></tr>
+        <tr><td>Model IDs</td><td>Strip <code>openai/</code> prefix → e.g. <code>gpt-4.1</code> / <code>gpt-4.1-mini</code> / Whisper / Realtime (map carefully to current OpenAI catalogue).</td></tr>
+        <tr><td>Live voice</td><td>Point <code>@ai-sdk/openai</code> <code>createOpenAI({ apiKey, baseURL })</code> at OpenAI; retest WebSocket relay.</td></tr>
+        <tr><td>Credits UX</td><td>Replace Lovable <code>402</code> “credits” with your plan meters + OpenAI billing errors.</td></tr>
+        <tr><td>Keep Lovable for now</td><td>Stripe/Google <code>connector-gateway.lovable.dev</code> can stay until a later payments/Google migration.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>OpenAI migration tasks <span class="badge ai">AI track</span></h3>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-01</span>
+        <span class="task-title">Create OpenAI project + API key + monthly spend limit</span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span><span class="badge save">Cost</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Org billing, hard monthly cap, separate keys for staging vs production</li>
+          <li>Store only in host secrets — never in git / Vite</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-02</span>
+        <span class="task-title">Add shared server client <code>src/lib/openai.server.ts</code></span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Read <code>OPENAI_API_KEY</code>; throw if missing</li>
+          <li>Export helpers for Responses, transcription, live session</li>
+          <li>Central place for model IDs + timeouts + retries</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-03</span>
+        <span class="task-title">Migrate Sera + capture + speech off Lovable gateway</span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Rewrite fetch URLs/headers in <span class="path">sera.functions.ts</span>, <span class="path">capture.server.ts</span>, <span class="path">speech.functions.ts</span></li>
+          <li>Keep response-shape parsing compatible with existing UI</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-04</span>
+        <span class="task-title">Migrate live voice relay to OpenAI Realtime / Live API</span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Update <span class="path">live-relay.server.ts</span> baseURL + auth</li>
+          <li>End-to-end test mic session, tool calls over user records</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-05</span>
+        <span class="task-title">Downshift models for cost (do not use flagship for everything)</span>
+        <span class="badge ai">AI</span><span class="badge p1">P1</span><span class="badge pending">Pending</span><span class="badge save">High savings</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Default Sera Q&amp;A → cheaper chat model</li>
+          <li>Reserve strongest vision/reasoning model for hard capture only</li>
+          <li>Speech: Whisper / gpt-transcribe class → then light cleanup model</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-06</span>
+        <span class="task-title">Shrink prompt context (150–300 full records → top-N / search)</span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span><span class="badge save">High savings</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Retrieve only relevant <code>home_items</code> (text search / section filter)</li>
+          <li>Summarize fields; hard token budget per request</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-07</span>
+        <span class="task-title">Server-side AI quotas + Upstash rate limits (with OpenAI)</span>
+        <span class="badge ai">AI</span><span class="badge p0">P0</span><span class="badge pending">Pending</span><span class="badge save">Cost</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Enforce plan entitlements before every OpenAI call</li>
+          <li>Per-user RPM/RPD; return 429 with upgrade CTA</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-08</span>
+        <span class="task-title">Update Super Admin health probe → OpenAI <code>/v1/models</code></span>
+        <span class="badge ai">AI</span><span class="badge p1">P1</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Rename integration from <code>lovable_ai</code> → <code>openai</code></li>
+          <li>Needs: <code>["OPENAI_API_KEY"]</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-09</span>
+        <span class="task-title">Log OpenAI usage (tokens, model, $ estimate) into <code>ai_usage_log</code></span>
+        <span class="badge ai">AI</span><span class="badge p1">P1</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Map usage from OpenAI response headers/body</li>
+          <li>Alert when daily spend &gt; threshold</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="task-block">
+      <div class="task-head">
+        <span class="task-id">AI-10</span>
+        <span class="task-title">Remove Lovable AI dependency from AI paths + docs/env example</span>
+        <span class="badge ai">AI</span><span class="badge p1">P1</span><span class="badge pending">Pending</span>
+      </div>
+      <div class="task-body">
+        <ul>
+          <li>Delete gateway URLs from AI modules</li>
+          <li>Update <span class="path">.env.example</span>, AGENTS.md, admin catalogue</li>
+          <li>Keep <code>LOVABLE_API_KEY</code> only if still required for Stripe/Google connectors</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout ok">
+      <h3>Expected cost impact</h3>
+      <p>
+        Direct OpenAI + cheaper default models + context trim typically cuts AI variable cost far more than
+        “stay on Lovable and keep dumping full household JSON into Astra.” Do AI-01…AI-07 before open beta.
+      </p>
+    </div>
+
+    <!-- TASKS -->
+    <h2 id="tasks-p0">6. Full pending tasks to reach all scores 10/10</h2>
+    <p class="section-intro">Includes everything from the first report that is still pending, plus new items and the OpenAI track. Status of all rows below: <span class="badge pending">Pending</span> unless noted.</p>
+
+    <h3>P0 — Ship blockers (must finish first)</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Lifts</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge p0">P0-01</span></td><td>Lock privileged profiles columns (plan, plan_source, suspended, trial, voucher) to service_role / SECURITY DEFINER</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-02</span></td><td>Remove demo household from signed-in Home + stop merging <span class="path">data.ts</span> samples into section lists</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-03</span></td><td>Server-side entitlements on AI + home_items writes</td><td>Security + Cost</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-04</span></td><td>Kill / honestly label stub <code>actionToast</code> CTAs</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-05</span></td><td>Wire Stripe Customer Portal; Free downgrade cancels Stripe</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-06</span></td><td>Gitignore + untrack <code>.env*</code>; rotate exposed keys; add <span class="path">.env.example</span></td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-07</span></td><td>Allowlist capture images to <code>data:</code> / signed storage URLs only</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-08</span></td><td>Stripe live go-live checklist (pk_live, webhooks, admin key, banner gone)</td><td>Overall</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-09</span></td><td>Supabase Auth SMTP + SPF/DKIM</td><td>Ops</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-10</span></td><td>Webhook user binding stronger than metadata alone + event idempotency</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-11</span></td><td>Allowlist checkout/portal <code>returnUrl</code> origins</td><td>Security</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-12</span></td><td>Align all marketing/notifications with ICS-only (until email/push ships)</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-13</span></td><td>Hide unfinished nav (Family invites, Messages, Agents pause, fake 2FA, etc.) or implement</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p0">P0-14</span></td><td>Remove Outlook/WhatsApp from sold entitlements until built</td><td>Features</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge ai">AI-01…07</span></td><td><strong>OpenAI direct connection + quotas + context trim</strong> (see §5)</td><td>Ops + Cost</td><td><span class="badge pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>P1 — Feature completeness &amp; trust</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge p1">P1-01</span></td><td>Wire Resend for contact + branded mail (replace mailto for production support)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-02</span></td><td>Real email health probe in Super Admin</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-03</span></td><td>Empty states for every section after demo removal</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-04</span></td><td>Home KPIs from SQL aggregates (not hardcoded 248 / £34.4k)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-05</span></td><td>AddAnything room picker = user rooms only</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-06</span></td><td>Use FeatureGate; fail-closed unknown flags in production</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-07</span></td><td>Seed known feature-flag keys</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-08</span></td><td>Billing invoices / manage card UX via portal</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-09</span></td><td>timingSafeEqual on Stripe webhook signatures</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-10</span></td><td>Optional: email due reminders cron (or keep ICS-only honesty)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-11</span></td><td>Family/workspace invite MVP or permanently hide</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-12</span></td><td>Privacy export + account delete (GDPR)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-13</span></td><td>Supabase MFA or remove 2FA claims</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-14</span></td><td>Align marketing pages with shipped capabilities</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-15</span></td><td>Super Admin Stripe connected in prod</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-16</span></td><td>Remove public Super Admin footer link</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-17</span></td><td>Harden <code>has_role</code> to auth.uid() only</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-18</span></td><td>Document dual Stripe key model / unify</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-19</span></td><td>Fix Google OAuth X-Forwarded-Host spoof</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p1">P1-20</span></td><td>Passport email sending (roadmap blocked on email domain) via Resend</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge ai">AI-08…10</span></td><td>Admin probe, usage $, remove Lovable AI from AI modules</td><td><span class="badge pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>P2 — Server efficiency &amp; operating cost</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Savings</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge p2">P2-01</span></td><td>Query <code>home_items</code> by workspace in Supabase (not full table + client filter)</td><td><span class="badge save">High</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-02</span></td><td>Indexes: workspace_id, (user_id, workspace_id, section), evidence_files(item_id), (user_id, created_at)</td><td><span class="badge save">High</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-03</span></td><td>SQL aggregates for Home/admin — no select(*) into JS for 5k–10k rows</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-04</span></td><td>Cache entitlements + feature flags (short TTL / Redis)</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-05</span></td><td>Hard daily/monthly AI caps per plan (server) — after OpenAI migrate</td><td><span class="badge save">High</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-06</span></td><td>Upstash rate limit: AI, auth, /api/live, webhook</td><td><span class="badge save">High</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-07</span></td><td>Shrink max speech/capture payloads by plan tier</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-08</span></td><td>Authenticate /api/live before WS upgrade</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-09</span></td><td>Cloudflare CDN + WAF</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-10</span></td><td>Evidence compress + storage lifecycle policies</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-11</span></td><td>Sentry client + Nitro/server</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-12</span></td><td>Structured logs (request id, tokens, duration)</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-13</span></td><td>GitHub Actions: lint + test + build</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-14</span></td><td>db:migrate scripts + document LOVABLE_DB_MIGRATION_URL</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-15</span></td><td>Uptime monitor on critical routes</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-16</span></td><td>Supabase PITR + restore drill</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-17</span></td><td>Paginate section lists / admin Auth user map</td><td><span class="badge save">Med</span></td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p2">P2-18</span></td><td>Webhook bad-env must not ack 200 silently</td><td>—</td><td><span class="badge pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>P3 — Perfect polish / scale</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge p3">P3-01…05</span></td><td>Tests: webhook, voucher, no-sample-home, store CRUD, server AI denial</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-06…07</span></td><td>Load tests: home_items p95; AI 429 under abuse</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-08</span></td><td>Bundle-split Super Admin + charts</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-09</span></td><td>Virus scan on evidence uploads</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-10</span></td><td>CSP + security headers</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-11</span></td><td>Dependabot / audit in CI</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-12</span></td><td>Staging parity (Stripe sandbox + separate Supabase)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-13</span></td><td>Incident runbooks (Stripe / OpenAI / Supabase down)</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-14</span></td><td>Legal pages + cookie compliance if required</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-15</span></td><td>a11y + mobile QA on capture/checkout/passports</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-16</span></td><td>Cost dashboard: OpenAI $ + Stripe fees + storage in Super Admin</td><td><span class="badge pending">Pending</span></td></tr>
+        <tr><td><span class="badge p3">P3-17</span></td><td>Optional later: Outlook / WhatsApp / push — only after email domain + Business APIs</td><td><span class="badge pending">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- SERVICES -->
+    <h2 id="services">7. Services — keep / add / replace</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Keep</h4>
+        <ul>
+          <li>React 19 + TanStack Start + Nitro (no Python backend)</li>
+          <li>Supabase Auth + Postgres + Storage</li>
+          <li>Drizzle migrations</li>
+          <li>Stripe (finish portal + live keys)</li>
+          <li>Google App User Connectors (can stay on Lovable connector for now)</li>
+          <li>Lovable hosting (optional) for the app shell</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Add / replace</h4>
+        <ul>
+          <li><strong>Replace AI:</strong> Lovable AI gateway → <strong>OpenAI API</strong></li>
+          <li>Add: Sentry, Upstash rate limit, Resend, Cloudflare CDN/WAF</li>
+          <li>Add: GitHub Actions CI, uptime monitor</li>
+          <li>Add: OpenAI org spend limits + usage alerts</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ACCEPTANCE -->
+    <h2 id="acceptance">8. Final 10/10 acceptance checklist</h2>
+    <ul class="check">
+      <li><span class="box"></span> Empty signed-in account shows empty states — zero demo rooms/assets/agents</li>
+      <li><span class="box"></span> Direct Supabase update cannot set paid <code>profiles.plan</code></li>
+      <li><span class="box"></span> AI calls use <code>OPENAI_API_KEY</code> → <code>api.openai.com</code> (no Lovable AI gateway on Sera/capture/speech/live)</li>
+      <li><span class="box"></span> Free user blocked server-side on AI over quota; rate limit returns 429</li>
+      <li><span class="box"></span> Prompt context bounded (no 150–300 full-record dumps)</li>
+      <li><span class="box"></span> Live Stripe subscribe → portal cancel → plan free (E2E)</li>
+      <li><span class="box"></span> No success toasts for unfinished features</li>
+      <li><span class="box"></span> Contact / passport email via Resend (or explicit product decision)</li>
+      <li><span class="box"></span> <code>home_items</code> workspace-scoped + indexed</li>
+      <li><span class="box"></span> <code>.env*</code> untracked; secrets rotated</li>
+      <li><span class="box"></span> Sentry receives client + server test errors</li>
+      <li><span class="box"></span> CI green; backup restore drilled</li>
+      <li><span class="box"></span> Marketing matches shipped features only</li>
+      <li><span class="box"></span> Monthly OpenAI + storage + DB cost within budget</li>
+    </ul>
+
+    <div class="callout warn">
+      <h3>Suggested order (updated)</h3>
+      <p>
+        <strong>Week 1:</strong> P0 security + strip demo + billing portal + <strong>AI-01…AI-07 OpenAI migrate</strong>.<br />
+        <strong>Week 2:</strong> P1 honesty (flags, Resend, GDPR, marketing) + AI-08…10 cleanup.<br />
+        <strong>Week 3:</strong> P2 indexes, CDN, Sentry, CI, rate limits.<br />
+        <strong>Week 4:</strong> P3 tests/load/runbooks → declare 10/10.
+      </p>
+    </div>
+
+    <div class="callout danger">
+      <h3>Bottom line</h3>
+      <p>
+        Re-audit confirms product additions (passports, doc intel) but <strong>prior production blockers remain open</strong>.
+        Features ≈ <strong>4/10</strong>, Security <strong>5/10</strong>, Ops <strong>4/10</strong>, Overall <strong>4/10</strong>.
+        Highest leverage for production efficiency: <strong>direct OpenAI API + server quotas + context trim + DB query scoping</strong>.
+        No Python backend required.
+      </p>
+    </div>
+
+    <footer>
+      HomeHive / MatrixKeep Production Re-Audit v2 · 12 Oct 2026 · Prior report scenarios included ·
+      OpenAI migration recommended over Lovable AI gateway ·
+      File: <code>homehive-ai-hub/reports/production-reaudit-v2-openai.html</code> ·
+      Earlier report kept at <code>reports/production-perfect-10-tasks.html</code>
+    </footer>
+  </div>
+</body>
+</html>

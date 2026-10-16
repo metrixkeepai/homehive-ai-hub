@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MatrixKeep — Live Browser &amp; API Pass (Detailed)</title>
+  <style>
+    :root {
+      --bg: #f3f0e8; --ink: #161b21; --muted: #5a6570; --line: #d5cfc2;
+      --card: #fff; --ok: #1f6b3a; --ok-bg: #e8f6ec; --warn: #8a5a00; --warn-bg: #fff4df;
+      --bad: #8b1e1e; --bad-bg: #f8eaea; --info: #1a4d7c; --info-bg: #e8f1f8; --accent: #0b5f4f;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink);
+      background: radial-gradient(ellipse 70% 40% at 0% 0%, #e4efe8, transparent 55%), var(--bg); line-height: 1.5; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 36px 18px 72px; }
+    h1 { font-family: Georgia, serif; font-size: clamp(1.6rem, 3.5vw, 2.3rem); margin: 0 0 10px; letter-spacing: -.02em; }
+    h2 { font-family: Georgia, serif; font-size: 1.35rem; margin: 36px 0 8px; }
+    h3 { font-size: 1.05rem; margin: 22px 0 8px; }
+    .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+    .lead { color: var(--muted); max-width: 780px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; color: var(--muted); margin: 14px 0 20px; }
+    .meta strong { color: var(--ink); }
+    .callout { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin: 14px 0; }
+    .callout h3 { margin: 0 0 6px; font-size: 14px; }
+    .callout p { margin: 0; font-size: 14px; }
+    .callout.bad { background: var(--bad-bg); }
+    .callout.warn { background: var(--warn-bg); }
+    .callout.ok { background: var(--ok-bg); }
+    .callout.info { background: var(--info-bg); }
+    .scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+    @media (max-width: 800px) { .scores { grid-template-columns: 1fr 1fr; } }
+    .score { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+    .score .l { font-size: 12px; color: var(--muted); }
+    .score .v { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; overflow: hidden; font-size: 13.5px; margin: 10px 0 18px; }
+    th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #efece3; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+      padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .badge.pass { background: var(--ok-bg); color: var(--ok); }
+    .badge.fail { background: var(--bad-bg); color: var(--bad); }
+    .badge.warn { background: var(--warn-bg); color: var(--warn); }
+    .badge.block { background: #eceff3; color: #3d4450; }
+    .badge.pend { background: var(--warn-bg); color: var(--warn); }
+    code, .path { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .path { background: #efece3; padding: 1px 5px; border-radius: 4px; }
+    .toc { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+    .toc ol { margin: 6px 0 0; padding-left: 20px; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+    .card h4 { margin: 0 0 8px; font-size: 14px; }
+    .card ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; }
+    .check { list-style: none; padding: 0; }
+    .check li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .box { width: 15px; height: 15px; border: 1.5px solid var(--muted); border-radius: 3px; flex-shrink: 0; margin-top: 2px; }
+    footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">HomeHive / MatrixKeep · Live verification report</p>
+    <h1>Detailed live browser &amp; API pass</h1>
+    <p class="lead">
+      This report is from a <strong>real running local server</strong> and browser session — not code reading alone.
+      Dev server: <code>http://127.0.0.1:5174</code> (Vite/TanStack Start). Date: <strong>12 Oct 2026</strong>.
+    </p>
+    <div class="meta">
+      <span><strong>Method:</strong> HTTP crawl of 35+ routes + Cursor browser UI pass</span>
+      <span><strong>Auth:</strong> No test user credentials — signed-in app verified as redirect-only</span>
+      <span><strong>Raw data:</strong> <span class="path">reports/live-crawl-raw.json</span></span>
+      <span><strong>Companion:</strong> <span class="path">reports/production-reaudit-v2-openai.html</span></span>
+    </div>
+
+    <div class="scores">
+      <div class="score"><div class="l">Public pages loaded</div><div class="v" style="color:var(--ok)">17/17</div></div>
+      <div class="score"><div class="l">Auth gates working</div><div class="v" style="color:var(--ok)">Yes</div></div>
+      <div class="score"><div class="l">Signed-in UI live-tested</div><div class="v" style="color:var(--warn)">Blocked</div></div>
+      <div class="score"><div class="l">APIs probed</div><div class="v">4/4</div></div>
+    </div>
+
+    <div class="callout warn">
+      <h3>Scope honesty</h3>
+      <p>
+        <strong>Done live:</strong> all major marketing pages, contact, auth, reset-password, passport guest page,
+        /app → auth redirect, /super-admin → login redirect, webhook / Google return / live APIs.<br />
+        <strong>Not done live (needs login):</strong> Home demo data, warranties UI, Stripe checkout, Google connect,
+        Sera chat, Super Admin dashboards. Those remain from code audit + are listed as pending verification below.
+      </p>
+    </div>
+
+    <nav class="toc">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#env">Environment &amp; how the pass was run</a></li>
+        <li><a href="#public">Public / marketing pages (live)</a></li>
+        <li><a href="#auth">Auth &amp; gates (live)</a></li>
+        <li><a href="#passport">Passport guest page (live)</a></li>
+        <li><a href="#app-block">Signed-in app — blocked + pending checks</a></li>
+        <li><a href="#admin">Super Admin (live gate + pending)</a></li>
+        <li><a href="#apis">HTTP / WebSocket APIs (live)</a></li>
+        <li><a href="#claims">Marketing claims vs product (live findings)</a></li>
+        <li><a href="#pending">All pending production work from this pass</a></li>
+        <li><a href="#next">Next steps to finish 100% live coverage</a></li>
+      </ol>
+    </nav>
+
+    <h2 id="env">1. Environment &amp; how the pass was run</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Install</td><td><span class="badge pass">Pass</span> <code>bun install</code> — 564 packages</td></tr>
+        <tr><td>Dev server</td><td><span class="badge pass">Pass</span> Vite ready on <code>127.0.0.1:5174</code> (5173 was a different app: GuardianOS)</td></tr>
+        <tr><td>Node warning</td><td><span class="badge warn">Warn</span> Node 20.17.0 — Vite wants 20.19+ or 22.12+</td></tr>
+        <tr><td>Env present</td><td><span class="badge warn">Warn</span> Supabase publishable keys only in <code>.env</code>; AI/Stripe secrets not in local env for full AI/billing live tests</td></tr>
+        <tr><td>Browser</td><td><span class="badge pass">Pass</span> Cursor IDE browser against 5174</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="public">2. Public / marketing pages (live)</h2>
+    <p style="color:var(--muted);font-size:14px">All returned HTTP 200 with MatrixKeep titles (not empty shells).</p>
+    <table>
+      <thead>
+        <tr><th>URL</th><th>HTTP</th><th>Title / H1 observed</th><th>Live result</th><th>Pending for production</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/</code></td><td>200</td><td>Keep What Matters. Know What’s Next.</td>
+          <td><span class="badge pass">Pass</span> Hero, CTAs, plans, Sera demo, footer</td>
+          <td>Remove public <strong>Super Admin</strong> footer link; soften “Reminder sent” timeline claim until email/push exists</td>
+        </tr>
+        <tr>
+          <td><code>/about</code></td><td>200</td><td>About — MatrixKeep</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Content QA only</td>
+        </tr>
+        <tr>
+          <td><code>/features</code></td><td>200</td><td>Capture it once. We’ll keep it.</td>
+          <td><span class="badge warn">Pass w/ claims</span> Live text includes <strong>“Smart reminders — Notifications before things are due.”</strong></td>
+          <td><strong>Pending:</strong> Change to ICS / calendar language until push/email shipped</td>
+        </tr>
+        <tr>
+          <td><code>/how-it-works</code></td><td>200</td><td>How it works — MatrixKeep</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Align share/transfer email claims with Resend (not live yet)</td>
+        </tr>
+        <tr>
+          <td><code>/pricing</code></td><td>200</td><td>Know exactly what you get. Start free.</td>
+          <td><span class="badge warn">Pass w/ oversell</span> Live: Free/Home/Home+/Family prices; sells Family roles, claim packs, maintenance reminders, vehicle passport</td>
+          <td>Audit comparison matrix vs shipped features; don’t sell Outlook/WhatsApp/roles until built</td>
+        </tr>
+        <tr>
+          <td><code>/individual</code> <code>/business</code> <code>/enterprise</code></td><td>200</td><td>Audience pages</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Align CTAs with real capabilities</td>
+        </tr>
+        <tr>
+          <td><code>/industries</code> + <code>/industries/healthcare</code></td><td>200</td><td>Industries / Healthcare</td>
+          <td><span class="badge pass">Pass</span> Slug page resolves</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/use-cases</code> + <code>/use-cases/home-inventory</code></td><td>200</td><td>Use cases / Home inventory</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>/security</code></td><td>200</td><td>Security &amp; privacy</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Don’t claim 2FA / controls not shipped</td>
+        </tr>
+        <tr>
+          <td><code>/contact</code></td><td>200</td><td>Let’s talk.</td>
+          <td><span class="badge warn">Partial</span> Form visible; button <strong>“Open email to send”</strong>; copy says opens email app to hello@matrixkeep.com</td>
+          <td><strong>Pending:</strong> Resend/server inbox for production support tickets</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="auth">3. Auth &amp; access gates (live)</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th><th>Evidence</th><th>Pending</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>/auth</code> loads</td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Browser: “Welcome back”, Sign in / Create account, Google button, Email + Password</td>
+          <td>Verify Google OAuth end-to-end in staging; Auth SMTP deliverability</td>
+        </tr>
+        <tr>
+          <td><code>/reset-password</code></td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>HTTP 200, reset UI present</td>
+          <td>Custom SMTP + SPF/DKIM in production</td>
+        </tr>
+        <tr>
+          <td>Unauthenticated <code>/app</code></td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Browser redirected to <code>/auth</code> within ~1.5s</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>Unauthenticated <code>/app/*</code> sections</td>
+          <td><span class="badge pass">Pass</span> (shell)</td>
+          <td>HTTP 200 tiny shells (~3.4KB) — client gate same as /app</td>
+          <td>Live content only after login (see §5)</td>
+        </tr>
+        <tr>
+          <td>Unauthenticated <code>/super-admin</code></td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Browser redirected to <code>/super-admin/login</code> (“RESTRICTED AREA”)</td>
+          <td>Remove Super Admin from public marketing footer</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="passport">4. Passport guest page (live)</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>/p/invalid-token</code></td>
+          <td><span class="badge pass">Pass</span></td>
+          <td>Shows loading then: <em>“This link isn't available. It may have expired or been revoked by its owner.”</em> — privacy-safe, no data leak</td>
+        </tr>
+        <tr>
+          <td>Valid token share view</td>
+          <td><span class="badge block">Not tested</span></td>
+          <td>Needs a real share token from a signed-in account</td>
+        </tr>
+        <tr>
+          <td>Passport email delivery</td>
+          <td><span class="badge pend">Pending</span></td>
+          <td>Roadmap: blocked on email domain / Resend</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="app-block">5. Signed-in app — blocked in this pass + what still needs live checks</h2>
+    <div class="callout bad">
+      <h3>Blocker</h3>
+      <p>No MatrixKeep test credentials were available in this environment. Every <code>/app/*</code> URL redirects to <code>/auth</code>. Demo-data and stub-CTA issues from the code audit <strong>could not be re-confirmed visually</strong> in this pass.</p>
+    </div>
+
+    <h3>Pending live checks (provide a test login to complete)</h3>
+    <table>
+      <thead><tr><th>Page / flow</th><th>Expected risk (from code)</th><th>Live status</th><th>Pending production work</th></tr></thead>
+      <tbody>
+        <tr><td>Home <code>/app</code></td><td>Demo household KPIs / sample Today</td><td><span class="badge block">Needs login</span></td><td>Strip demo; real aggregates; empty state</td></tr>
+        <tr><td>Rooms / Assets / Vehicles / Documents lists</td><td>Sample items merged with real</td><td><span class="badge block">Needs login</span></td><td>Real-only lists; server plan caps</td></tr>
+        <tr><td>Warranties / Renewals</td><td>Real-only + ICS (code says ready)</td><td><span class="badge block">Needs login</span></td><td>Confirm ICS download + “no push” footer live</td></tr>
+        <tr><td>Detail actions</td><td>actionToast stubs</td><td><span class="badge block">Needs login</span></td><td>Disable fake success toasts</td></tr>
+        <tr><td>Plans + Stripe checkout</td><td>Checkout wired; portal unused</td><td><span class="badge block">Needs login + Stripe keys</span></td><td>Wire portal; live keys; Free cancels Stripe</td></tr>
+        <tr><td>Billing</td><td>“Cards not connected” copy conflict</td><td><span class="badge block">Needs login</span></td><td>Fix copy; Manage billing button</td></tr>
+        <tr><td>Integrations</td><td>Google real; Outlook/WhatsApp coming soon</td><td><span class="badge block">Needs login</span></td><td>Hide Connect success; remove from entitlements</td></tr>
+        <tr><td>Family / Agents / Messages / Tasks…</td><td>Demo / stub</td><td><span class="badge block">Needs login</span></td><td>Hide or implement</td></tr>
+        <tr><td>Sera / Add anything / Voice</td><td>Lovable AI gateway</td><td><span class="badge block">Needs login + AI key</span></td><td><strong>Migrate to OpenAI API</strong>; server quotas</td></tr>
+        <tr><td>Passport download/share create</td><td>UI exists in detail</td><td><span class="badge block">Needs login</span></td><td>E2E create link → open <code>/p/$token</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="admin">6. Super Admin (live gate)</h2>
+    <table>
+      <thead><tr><th>Check</th><th>Result</th><th>Pending</th></tr></thead>
+      <tbody>
+        <tr><td><code>/super-admin/login</code></td><td><span class="badge pass">Pass</span> Login form renders</td><td>—</td></tr>
+        <tr><td>Unauth → redirect login</td><td><span class="badge pass">Pass</span></td><td>—</td></tr>
+        <tr><td>Dashboard / billing / AI / health after login</td><td><span class="badge block">Needs admin user</span></td><td>Connect Stripe + OpenAI probes; Setup Required until secrets set</td></tr>
+        <tr><td>Public footer “Super Admin”</td><td><span class="badge fail">Fail (exposure)</span> Visible on marketing pages live</td><td>Remove from public Site footer</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="apis">7. HTTP / WebSocket APIs (live)</h2>
+    <table>
+      <thead><tr><th>API</th><th>Method</th><th>HTTP</th><th>Body / behaviour</th><th>Verdict</th><th>Pending</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>/api/public/payments/webhook</code></td>
+          <td>GET</td><td>200</td><td>Returns HTML app shell (not a JSON health endpoint)</td>
+          <td><span class="badge warn">Odd</span></td>
+          <td>Prefer 405 Method Not Allowed for GET</td>
+        </tr>
+        <tr>
+          <td><code>/api/public/payments/webhook?env=sandbox</code></td>
+          <td>POST <code>{}</code></td>
+          <td>400</td><td><code>Webhook error</code> (expected without Stripe signature)</td>
+          <td><span class="badge pass">Pass</span> rejects bad payload</td>
+          <td>timingSafeEqual; event idempotency; live secret; don’t 200 on bad env</td>
+        </tr>
+        <tr>
+          <td><code>/api/oauth/google/return</code></td>
+          <td>GET</td><td>200</td><td>“Failed: Google connection was cancelled” + postMessage script</td>
+          <td><span class="badge pass">Pass</span> safe failure UI</td>
+          <td>Fix X-Forwarded-Host spoof risk (code)</td>
+        </tr>
+        <tr>
+          <td><code>/api/live</code></td>
+          <td>GET</td><td>503</td><td><code>Live runtime unavailable</code></td>
+          <td><span class="badge warn">Expected locally</span></td>
+          <td>Needs WS-capable prod runtime; auth before upgrade; OpenAI migrate; rate limit</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <h3>Server functions not HTTP-crawled</h3>
+      <p>
+        ~50 <code>createServerFn</code> endpoints (Sera, capture, speech, payments, Google, admin…) are invoked from the signed-in SPA.
+        They require auth cookies/tokens — listed as pending live verification after you provide a test account.
+        Full inventory remains in <span class="path">production-reaudit-v2-openai.html</span> §0b.
+      </p>
+    </div>
+
+    <h2 id="claims">8. Marketing claims vs product (confirmed live)</h2>
+    <table>
+      <thead><tr><th>Live claim / UI</th><th>Where seen</th><th>Product reality</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>“Smart reminders — Notifications before things are due”</td>
+          <td><code>/features</code> browser</td>
+          <td>Tracking = ICS (+ optional Google Cal); no push/email</td>
+          <td><span class="badge pend">Pending copy fix</span></td>
+        </tr>
+        <tr>
+          <td>Homepage timeline “Reminder sent 2 weeks before”</td>
+          <td><code>/</code> browser</td>
+          <td>Implies delivery that isn’t wired</td>
+          <td><span class="badge pend">Pending copy fix</span></td>
+        </tr>
+        <tr>
+          <td>Family roles / claim packs / vehicle passport sold</td>
+          <td><code>/pricing</code> browser</td>
+          <td>Partially stubbed / plan-gated / incomplete</td>
+          <td><span class="badge pend">Pending entitlement honesty</span></td>
+        </tr>
+        <tr>
+          <td>Contact “Open email to send”</td>
+          <td><code>/contact</code> browser</td>
+          <td>Honest mailto — OK for now</td>
+          <td><span class="badge pend">Pending Resend for prod</span></td>
+        </tr>
+        <tr>
+          <td>Footer “Super Admin”</td>
+          <td>All marketing pages</td>
+          <td>Public disclosure of admin entry</td>
+          <td><span class="badge pend">Pending remove</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="pending">9. Pending production work from this live pass (+ prior audit still open)</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h4>Confirmed live — fix now</h4>
+        <ul>
+          <li>Remove Super Admin link from public footer</li>
+          <li>Rewrite Features “Notifications before due” → ICS/calendar wording</li>
+          <li>Rewrite homepage “Reminder sent” marketing vignette</li>
+          <li>Contact: plan Resend (or keep mailto but don’t imply ticketing)</li>
+          <li>Webhook GET should not look like a page (405)</li>
+          <li>Upgrade Node to Vite-supported version in prod images</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Still pending from code audit (not live-disproven)</h4>
+        <ul>
+          <li>P0: lock profiles.plan RLS; strip demo data; server AI quotas</li>
+          <li>P0: Stripe portal + cancel lifecycle</li>
+          <li>P0: .env gitignore/untrack; capture SSRF allowlist</li>
+          <li>AI-01…10: migrate Lovable AI → <strong>direct OpenAI API</strong></li>
+          <li>P2: indexes, scoped queries, rate limits, Sentry, CI</li>
+          <li>Hide Family/Agents/Messages stubs or build them</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Priority backlog (live-pass additions numbered LP-)</h3>
+    <table>
+      <thead><tr><th>ID</th><th>Task</th><th>Source</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge pend">LP-01</span></td><td>Provide staging test user + admin user for remaining live crawl</td><td>This pass blocker</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-02</span></td><td>Remove Super Admin from public footer (confirmed live)</td><td>Browser</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-03</span></td><td>Fix Features + Home reminder/notification overclaims (confirmed live)</td><td>Browser</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-04</span></td><td>Wire Resend for contact (mailto confirmed live)</td><td>Browser</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-05</span></td><td>Re-run live pass on all <code>/app/*</code> after login; screenshot demo vs empty</td><td>Blocked</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-06</span></td><td>Live Stripe sandbox checkout + portal cancel E2E</td><td>Needs keys+login</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-07</span></td><td>Live Sera/capture after OpenAI key wired</td><td>Needs AI key</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-08</span></td><td>Live passport create → guest open → revoke</td><td>Needs login</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-09</span></td><td>Live Super Admin Stripe/OpenAI health green</td><td>Needs admin+secrets</td><td><span class="badge pend">Pending</span></td></tr>
+        <tr><td><span class="badge pend">LP-10</span></td><td>Prod Node ≥20.19; ensure /api/live WS runtime</td><td>Server logs + 503</td><td><span class="badge pend">Pending</span></td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="next">10. Next steps to finish 100% live coverage</h2>
+    <ul class="check">
+      <li><span class="box"></span> Share a <strong>staging individual</strong> email/password (or magic link) for /app crawl</li>
+      <li><span class="box"></span> Share a <strong>super-admin</strong> account for Control Centre crawl</li>
+      <li><span class="box"></span> Set local/staging secrets: <code>OPENAI_API_KEY</code> (preferred) or <code>LOVABLE_API_KEY</code>, Stripe sandbox keys</li>
+      <li><span class="box"></span> Re-run this agent to produce <strong>Live Pass Part 2</strong> with screenshots of Home (demo?), checkout, Sera, admin health</li>
+    </ul>
+
+    <div class="callout ok">
+      <h3>Bottom line</h3>
+      <p>
+        <strong>Public site is live and healthy</strong> (17/17 marketing/content routes OK). Auth gates work.
+        Passport invalid-token UX is good. APIs reject bad webhook / show safe Google cancel / live returns 503 locally.
+        <strong>Signed-in product was not visually verified</strong> without credentials — production blockers from the code audit
+        (demo data, stubs, plan RLS, Lovable AI → OpenAI) remain pending. This pass adds concrete live-confirmed copy/footer fixes (LP-02…04).
+      </p>
+    </div>
+
+    <footer>
+      Live Browser Pass Detailed · MatrixKeep homehive-ai-hub · 12 Oct 2026 · Server http://127.0.0.1:5174 ·
+      Files: <code>reports/live-browser-pass-detailed.html</code>, <code>reports/live-crawl-raw.json</code> ·
+      Prior code audit: <code>reports/production-reaudit-v2-openai.html</code>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,448 @@
+[
+  {
+    "kind": "page",
+    "path": "/",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep — Keep What Matters. Know What’s Next.",
+    "h1": "Keep What Matters. Know What’s Next.",
+    "signals": [
+      "super_admin_footer",
+      "push_claim",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 81056
+  },
+  {
+    "kind": "page",
+    "path": "/about",
+    "status": 200,
+    "location": null,
+    "title": "About — MatrixKeep",
+    "h1": "Keep what matters. Know what’s next.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 22869
+  },
+  {
+    "kind": "page",
+    "path": "/features",
+    "status": 200,
+    "location": null,
+    "title": "Features — MatrixKeep",
+    "h1": "Capture it once. We’ll keep it.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 35720
+  },
+  {
+    "kind": "page",
+    "path": "/how-it-works",
+    "status": 200,
+    "location": null,
+    "title": "How it works — MatrixKeep",
+    "h1": "From one photo to a living memory.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 32205
+  },
+  {
+    "kind": "page",
+    "path": "/pricing",
+    "status": 200,
+    "location": null,
+    "title": "Pricing — MatrixKeep",
+    "h1": "Know exactly what you get. Start free.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 71572
+  },
+  {
+    "kind": "page",
+    "path": "/individual",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep for Individuals — your home, remembered by AI",
+    "h1": "Your home, remembered.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 41584
+  },
+  {
+    "kind": "page",
+    "path": "/business",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep for Business — assets, warranties and renewals under control",
+    "h1": "Every asset, every site, under control.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 42406
+  },
+  {
+    "kind": "page",
+    "path": "/enterprise",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep Enterprise — agentic asset and renewal intelligence",
+    "h1": "Agentic intelligence, at scale.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 41979
+  },
+  {
+    "kind": "page",
+    "path": "/industries",
+    "status": 200,
+    "location": null,
+    "title": "Industries — MatrixKeep",
+    "h1": "Built for the way your industry works.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 29950
+  },
+  {
+    "kind": "page",
+    "path": "/industries/healthcare",
+    "status": 200,
+    "location": null,
+    "title": "Healthcare &amp; clinics — MatrixKeep",
+    "h1": "Healthcare &amp; clinics",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 34913
+  },
+  {
+    "kind": "page",
+    "path": "/use-cases",
+    "status": 200,
+    "location": null,
+    "title": "Use cases — MatrixKeep",
+    "h1": "One memory. Many jobs.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 29822
+  },
+  {
+    "kind": "page",
+    "path": "/use-cases/home-inventory",
+    "status": 200,
+    "location": null,
+    "title": "Home inventory — MatrixKeep",
+    "h1": "Home inventory",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 34360
+  },
+  {
+    "kind": "page",
+    "path": "/security",
+    "status": 200,
+    "location": null,
+    "title": "Security &amp; privacy — MatrixKeep",
+    "h1": "Private by design. Yours alone.",
+    "signals": [
+      "super_admin_footer",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 25989
+  },
+  {
+    "kind": "page",
+    "path": "/contact",
+    "status": 200,
+    "location": null,
+    "title": "Contact — MatrixKeep",
+    "h1": "Let’s talk.",
+    "signals": [
+      "super_admin_footer",
+      "mailto_only",
+      "sign_in_form",
+      "passport_page"
+    ],
+    "bytes": 17441
+  },
+  {
+    "kind": "page",
+    "path": "/auth",
+    "status": 200,
+    "location": null,
+    "title": "Sign in — MatrixKeep AI",
+    "h1": "Welcome back",
+    "signals": [
+      "sign_in_form",
+      "redirect_auth_hint"
+    ],
+    "bytes": 13422
+  },
+  {
+    "kind": "page",
+    "path": "/reset-password",
+    "status": 200,
+    "location": null,
+    "title": "Reset your password — MatrixKeep",
+    "h1": "Forgot your password?",
+    "signals": [
+      "sign_in_form"
+    ],
+    "bytes": 5212
+  },
+  {
+    "kind": "page",
+    "path": "/p/invalid-token",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep Digital Passport",
+    "h1": "",
+    "signals": [
+      "passport_page"
+    ],
+    "bytes": 5746
+  },
+  {
+    "kind": "page",
+    "path": "/app",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3446
+  },
+  {
+    "kind": "page",
+    "path": "/app/plans",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3456
+  },
+  {
+    "kind": "page",
+    "path": "/app/rooms",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/assets",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/warranties",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/renewals",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/billing",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/integrations",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/family",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/agents",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/messages",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/app/profile",
+    "status": 200,
+    "location": null,
+    "title": "MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin/login",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre sign in — MatrixKeep",
+    "h1": "MatrixKeep Control Centre",
+    "signals": [
+      "sign_in_form",
+      "redirect_auth_hint"
+    ],
+    "bytes": 7881
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre — MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3444
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin/subscribers",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre — MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3472
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin/payments",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre — MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3460
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin/ai",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre — MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3448
+  },
+  {
+    "kind": "page",
+    "path": "/super-admin/health",
+    "status": 200,
+    "location": null,
+    "title": "Control Centre — MatrixKeep",
+    "h1": "",
+    "signals": [],
+    "bytes": 3456
+  },
+  {
+    "kind": "api",
+    "path": "/api/public/payments/webhook",
+    "method": "GET",
+    "status": 200,
+    "body": "<!DOCTYPE html><html lang=\"en\" data-tsd-source=\"/src/routes/__root.tsx:110:5\"><head data-tsd-source=\"/src/routes/__root.tsx:111:7\"><meta charSet=\"utf-8\"/><meta name=\"viewport\" cont"
+  },
+  {
+    "kind": "api",
+    "path": "/api/public/payments/webhook?env=sandbox",
+    "method": "POST",
+    "status": 400,
+    "body": "Webhook error"
+  },
+  {
+    "kind": "api",
+    "path": "/api/oauth/google/return",
+    "method": "GET",
+    "status": 200,
+    "body": "<!DOCTYPE html><html><head><title>Finishing connection…</title></head><body style=\"font-family:system-ui;padding:2rem\"> <p>Failed: Google connection was cancelled</p> <script> cons"
+  },
+  {
+    "kind": "api",
+    "path": "/api/live",
+    "method": "GET",
+    "status": 503,
+    "body": "Live runtime unavailable"
+  }
+]
