@@ -5,11 +5,11 @@ import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { myFeatures } from "@/lib/features.functions";
 
-/** True unless a Super Admin feature switch turns this key off for the user. */
+/** Only an explicit enabled feature switch grants access. */
 export function useFeature(key: string) {
   const fn = useServerFn(myFeatures);
   const { data } = useQuery({ queryKey: ["my-features"], queryFn: () => fn(), staleTime: 60_000 });
-  return data?.[key] ?? true;
+  return data?.[key] ?? false;
 }
 
 export function Locked({ name }: { name: string }) {
@@ -18,11 +18,24 @@ export function Locked({ name }: { name: string }) {
       <Lock className="h-6 w-6 text-primary" />
       <p className="font-semibold">{name} isn't included in your current plan</p>
       <p className="text-sm text-muted-foreground">Upgrade to unlock it for your account.</p>
-      <Link to="/app/plans" className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">See upgrade options</Link>
+      <Link
+        to="/app/plans"
+        className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+      >
+        See upgrade options
+      </Link>
     </div>
   );
 }
 
-export function FeatureGate({ flag, name, children }: { flag: string; name: string; children: ReactNode }) {
+export function FeatureGate({
+  flag,
+  name,
+  children,
+}: {
+  flag: string;
+  name: string;
+  children: ReactNode;
+}) {
   return useFeature(flag) ? <>{children}</> : <Locked name={name} />;
 }

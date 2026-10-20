@@ -1,26 +1,11 @@
-# MatrixKeep
+# MatrixKeep Production
 
-Implement exactly the screenshot and nothing else
+Private, isolated production repository for MatrixKeep.
 
-This project was built with [Lovable](https://lovable.dev).
+This repository starts a new history. No commits, tags or refs from the original source repository are imported.
 
-**Live app**: https://homehive-ai-hub.lovable.app
+Production release status: NOT APPROVED. The application snapshot and hardening work are being prepared. Do not connect production deployments until CI, security, integration and staging release gates pass.
 
-## Build with Lovable
+Stack: React, TanStack Start, Nitro, TypeScript, Supabase and Stripe.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/d9e9be84-0788-4045-8daf-034761894e0d).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+Real environment files and secrets must remain outside Git. Use .env.example and environment-specific provider secret stores.

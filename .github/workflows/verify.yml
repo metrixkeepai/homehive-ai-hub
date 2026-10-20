@@ -1,0 +1,43 @@
+name: Verify hardening
+on:
+  push:
+    branches: [production-hardening, main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+      - name: Product tests
+        if: ${{ !cancelled() }}
+        run: npm test
+      - name: Security tests
+        if: ${{ !cancelled() }}
+        run: npm run test:security
+      - name: Database permissions and billing tests
+        if: ${{ !cancelled() }}
+        run: npm run test:database
+      - name: Dependency audit
+        if: ${{ !cancelled() }}
+        run: bun audit --audit-level high
+      - name: Build Node runtime
+        if: ${{ !cancelled() }}
+        run: npm run build

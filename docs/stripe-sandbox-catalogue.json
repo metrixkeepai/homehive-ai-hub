@@ -1,0 +1,216 @@
+{
+  "environment": "sandbox",
+  "account": "acct_1UL3RlCfqoYLoWw0",
+  "prices": [
+    {
+      "id": "price_1UQ6TJCfqoYLoWw0vAgD0GQb",
+      "product": "matrixkeep_home",
+      "lookup_key": "home_monthly",
+      "unit_amount": 499,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6TPCfqoYLoWw0aaljQTIJ",
+      "product": "matrixkeep_home",
+      "lookup_key": "home_yearly",
+      "unit_amount": 4900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6TWCfqoYLoWw0zfJ2fHfM",
+      "product": "matrixkeep_plus",
+      "lookup_key": "plus_monthly",
+      "unit_amount": 999,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6TdCfqoYLoWw073lhGz5m",
+      "product": "matrixkeep_plus",
+      "lookup_key": "plus_yearly",
+      "unit_amount": 9900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6ToCfqoYLoWw02IaB3hQd",
+      "product": "matrixkeep_family",
+      "lookup_key": "family_monthly",
+      "unit_amount": 1499,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6TvCfqoYLoWw0eN9ojAJu",
+      "product": "matrixkeep_family",
+      "lookup_key": "family_yearly",
+      "unit_amount": 14900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6U1CfqoYLoWw0jRMxsjSl",
+      "product": "matrixkeep_business_starter",
+      "lookup_key": "business_starter_monthly",
+      "unit_amount": 1900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6U9CfqoYLoWw0zy1hqjak",
+      "product": "matrixkeep_business_starter",
+      "lookup_key": "business_starter_yearly",
+      "unit_amount": 19000,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UHCfqoYLoWw0t9LpJdbL",
+      "product": "matrixkeep_business",
+      "lookup_key": "business_monthly",
+      "unit_amount": 2900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UOCfqoYLoWw0ynPXDwtI",
+      "product": "matrixkeep_business",
+      "lookup_key": "business_yearly",
+      "unit_amount": 29000,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UVCfqoYLoWw0iwMHIFjQ",
+      "product": "matrixkeep_business_pro",
+      "lookup_key": "business_pro_monthly",
+      "unit_amount": 7900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UcCfqoYLoWw0HF1A2CTa",
+      "product": "matrixkeep_business_pro",
+      "lookup_key": "business_pro_yearly",
+      "unit_amount": 79000,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UjCfqoYLoWw03EhmLOxl",
+      "product": "matrixkeep_business_scale",
+      "lookup_key": "business_scale_monthly",
+      "unit_amount": 14900,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "month",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    },
+    {
+      "id": "price_1UQ6UpCfqoYLoWw0VSITYMYS",
+      "product": "matrixkeep_business_scale",
+      "lookup_key": "business_scale_yearly",
+      "unit_amount": 149000,
+      "currency": "gbp",
+      "recurring": {
+        "interval": "year",
+        "interval_count": 1,
+        "meter": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "livemode": false
+    }
+  ]
+}

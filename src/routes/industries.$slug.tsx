@@ -10,12 +10,20 @@ export const Route = createFileRoute("/industries/$slug")({
   },
   head: ({ loaderData }) => {
     const s = industries.find((x) => x.slug === loaderData?.slug);
-    if (!s) return { meta: [{ title: "Not found — MatrixKeep" }, { name: "robots", content: "noindex" }] };
-    return { meta: [
-      { title: `${s.t} — MatrixKeep` }, { name: "description", content: s.lead },
-      { property: "og:title", content: `${s.t} — MatrixKeep` }, { property: "og:description", content: s.short },
-      { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
-    ] };
+    if (!s)
+      return {
+        meta: [{ title: "Not found — MatrixKeep" }, { name: "robots", content: "noindex" }],
+      };
+    return {
+      meta: [
+        { title: `${s.t} — MatrixKeep` },
+        { name: "description", content: s.lead },
+        { property: "og:title", content: `${s.t} — MatrixKeep` },
+        { property: "og:description", content: s.short },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
   },
   component: Page,
 });

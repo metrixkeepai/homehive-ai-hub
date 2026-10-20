@@ -27,8 +27,3 @@
 - [x] Document intelligence: contract/renewal extraction, date calc, more file types
 - [x] Old Office/TIFF reading, multi-point reminders, duplicates, versions, rename/archive, document type filters
 - [ ] Automatic email and WhatsApp alerts — blocked: email domain / WhatsApp Business account
-# Multi-property & Smart Calendar
-- [x] Add/edit/archive/delete properties and locations with plan limits
-- [x] Link rooms, assets and records to a property (forms, Add anything, detail page, filters, Unassigned)
-- [x] Smart Calendar with month/list views, filters, upcoming panel, .ics export
-- [ ] Calendar email/push alerts — blocked: email domain

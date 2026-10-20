@@ -5,17 +5,28 @@ const val = (f: [string, string][], k: string) => f.find(([l]) => l === k)?.[1];
 
 describe("contract date calculation", () => {
   it("derives expiry from start + 12 month term and a 90 day notice deadline", () => {
-    const f = deriveContractDates([["Start date", "2026-01-01"], ["Term", "12 months"], ["Notice period", "90 days"]]);
+    const f = deriveContractDates([
+      ["Start date", "2026-01-01"],
+      ["Term", "12 months"],
+      ["Notice period", "90 days"],
+    ]);
     expect(val(f, "Renewal date")).toBe("2027-01-01");
     expect(val(f, "Notice deadline")).toBe("2026-10-03");
   });
   it("uses an explicit end date and 3 month notice", () => {
-    const f = deriveContractDates([["End date", "2027-12-31"], ["Notice period", "3 months"]]);
+    const f = deriveContractDates([
+      ["End date", "2027-12-31"],
+      ["Notice period", "3 months"],
+    ]);
     expect(val(f, "Renewal date")).toBe("2027-12-31");
     expect(val(f, "Notice deadline")).toBe("2027-09-30");
   });
   it("keeps a stated notice deadline", () => {
-    const f = deriveContractDates([["Renewal date", "2027-03-31"], ["Notice period", "90 days"], ["Notice deadline", "2026-12-31"]]);
+    const f = deriveContractDates([
+      ["Renewal date", "2027-03-31"],
+      ["Notice period", "90 days"],
+      ["Notice deadline", "2026-12-31"],
+    ]);
     expect(val(f, "Notice deadline")).toBe("2026-12-31");
   });
   it("parses periods", () => {
@@ -28,7 +39,14 @@ import { legacyText } from "./file-text";
 describe("old Office text", () => {
   it("pulls readable UTF-16 text out of binary files", () => {
     const t = "Tenancy ends 2027-10-31";
-    const b = new Uint8Array([0, 1, 2, ...Array.from(t).flatMap((c) => [c.charCodeAt(0), 0]), 0, 1]);
+    const b = new Uint8Array([
+      0,
+      1,
+      2,
+      ...Array.from(t).flatMap((c) => [c.charCodeAt(0), 0]),
+      0,
+      1,
+    ]);
     expect(legacyText(b)).toContain(t);
   });
 });

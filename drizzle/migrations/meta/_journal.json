@@ -131,8 +131,57 @@
     {
       "idx": 18,
       "version": "7",
-      "when": 1791921867116,
-      "tag": "0018_property_hierarchy",
+      "when": 1791897600000,
+      "tag": "0018_identity_workspace_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791897600019,
+      "tag": "0019_entitlement_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791897600020,
+      "tag": "0020_authoritative_entitlements",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791897600021,
+      "tag": "0021_billing_integrity",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791897600022,
+      "tag": "0022_upload_share_security",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791897600023,
+      "tag": "0023_expiring_entitlements",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791897600024,
+      "tag": "0024_ai_usage_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791897600025,
+      "tag": "0025_server_feature_flags",
       "breakpoints": true
     }
   ]

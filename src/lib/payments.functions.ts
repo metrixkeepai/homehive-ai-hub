@@ -1,115 +1,141 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
-
-type CheckoutSessionResult = { clientSecret: string } | { error: string };
-
-async function resolveOrCreateCustomer(
-  stripe: ReturnType<typeof createStripeClient>,
-  options: { email?: string; userId?: string },
-): Promise<string> {
-  if (options.userId && !/^[a-zA-Z0-9_-]+$/.test(options.userId)) {
-    throw new Error("Invalid userId");
-  }
-  if (options.userId) {
-    const found = await stripe.customers.search({
-      query: `metadata['userId']:'${options.userId}'`,
-      limit: 1,
-    });
-    if (found.data.length) return found.data[0]!.id;
-  }
-  if (options.email) {
-    const existing = await stripe.customers.list({ email: options.email, limit: 1 });
-    if (existing.data.length) {
-      const customer = existing.data[0]!;
-      if (options.userId && customer.metadata?.["userId"] !== options.userId) {
-        await stripe.customers.update(customer.id, {
-          metadata: { ...customer.metadata, userId: options.userId },
-        });
-      }
-      return customer.id;
-    }
-  }
-  const created = await stripe.customers.create({
-    ...(options.email && { email: options.email }),
-    ...(options.userId && { metadata: { userId: options.userId } }),
-  });
-  return created.id;
-}
+import { plans } from "./plans";
 
 export const createCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { priceId: string; returnUrl: string; environment: StripeEnv }) => {
-    if (!/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
-    return data;
-  })
-  .handler(async ({ data, context }): Promise<CheckoutSessionResult> => {
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        priceId: z.string().max(80),
+        returnUrl: z.string().max(2048),
+        environment: z.enum(["sandbox", "live"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ clientSecret: string } | { error: string }> => {
     try {
-      const { supabase, userId } = context;
-      const { data: { user } } = await supabase.auth.getUser();
+      const { trustedReturnUrl } = await import("./app-origin.server");
+      const returnUrl = trustedReturnUrl(data.returnUrl, "/app/plans");
+      const { customerForUser, validatedPrice } = await import("./stripe-billing.server");
       const stripe = createStripeClient(data.environment);
-
-      const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
-      if (!prices.data.length) throw new Error("Price not found");
-      const stripePrice = prices.data[0]!;
-      const isRecurring = stripePrice.type === "recurring";
-
-      const customerId = await resolveOrCreateCustomer(stripe, {
-        ...(user?.email && { email: user.email }),
-        userId,
+      const price = await validatedPrice(stripe, data.priceId);
+      const { data: profile, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("suspended")
+        .eq("id", context.userId)
+        .single();
+      if (profileError || !profile || profile.suspended) throw new Error("Account unavailable");
+      const { data: status, error: statusError } = await context.supabase
+        .from("plan_status")
+        .select("active")
+        .eq("plan_key", data.priceId.replace(/_(monthly|yearly)$/, ""))
+        .maybeSingle();
+      if (statusError || status?.active === false) throw new Error("Plan unavailable");
+      const {
+        data: { user },
+      } = await context.supabase.auth.getUser();
+      const customer = await customerForUser(stripe, context.userId, data.environment, user?.email);
+      const subscriptions = await stripe.subscriptions.list({
+        customer,
+        status: "all",
+        limit: 100,
       });
-
-      let productDescription: string | undefined;
-      if (!isRecurring) {
-        const productId = typeof stripePrice.product === "string"
-          ? stripePrice.product
-          : stripePrice.product.id;
-        const product = await stripe.products.retrieve(productId);
-        productDescription = product.name;
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        line_items: [{ price: stripePrice.id, quantity: 1 }],
-        mode: isRecurring ? "subscription" : "payment",
-        ui_mode: "embedded_page",
-        return_url: data.returnUrl,
-        customer: customerId,
-        ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
-        metadata: { userId },
-        ...(isRecurring && { subscription_data: { metadata: { userId } } }),
-      } as any);
-
-      return { clientSecret: session.client_secret ?? "" };
+      if (subscriptions.data.some((s) => !["canceled", "incomplete_expired"].includes(s.status)))
+        return { error: "Manage your existing subscription in Billing to change plans." };
+      const session = await stripe.checkout.sessions.create(
+        {
+          mode: "subscription",
+          ui_mode: "embedded_page",
+          customer,
+          line_items: [{ price: price.id, quantity: 1 }],
+          return_url: returnUrl,
+          client_reference_id: context.userId,
+          metadata: { userId: context.userId, app: "matrixkeep" },
+          subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
+          integration_identifier: "matrixkeep_production_qmxtabcn",
+        },
+        {
+          idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${Math.floor(Date.now() / 1_800_000)}`,
+        },
+      );
+      if (!session.client_secret) throw new Error("Checkout unavailable");
+      return { clientSecret: session.client_secret };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
   });
 
-type PortalSessionResult = { url: string } | { error: string };
-
 export const createPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { returnUrl?: string; environment: StripeEnv }) => data)
-  .handler(async ({ data, context }): Promise<PortalSessionResult> => {
-    const { supabase, userId } = context;
-
-    const { data: sub, error: subError } = await supabase
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", userId)
-      .eq("environment", data.environment)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (subError || !sub?.stripe_customer_id) throw new Error("No subscription found");
-
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        returnUrl: z.string().max(2048).optional(),
+        environment: z.enum(["sandbox", "live"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }): Promise<{ url: string } | { error: string }> => {
+    const { trustedReturnUrl } = await import("./app-origin.server");
+    const returnUrl = trustedReturnUrl(data.returnUrl, "/app/billing");
     try {
       const stripe = createStripeClient(data.environment);
-      const portal = await stripe.billingPortal.sessions.create({
-        customer: sub.stripe_customer_id,
-        ...(data.returnUrl && { return_url: data.returnUrl }),
+      const { existingCustomer } = await import("./stripe-billing.server");
+      const customer = await existingCustomer(context.userId, data.environment);
+      if (!customer) return { error: "No card-billed subscription found." };
+      const session = await stripe.billingPortal.sessions.create({
+        customer,
+        return_url: returnUrl,
       });
-      return { url: portal.url };
+      return { url: session.url };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
+export const chooseFreePlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ url?: string; ok?: boolean; error?: string }> => {
+    const { stripeEnvironment } = await import("./stripe.server");
+    const { existingCustomer } = await import("./stripe-billing.server");
+    const { getAppOrigin } = await import("./app-origin.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
+    try {
+      const environment = stripeEnvironment();
+      const customer = await existingCustomer(context.userId, environment);
+      const { data: profile, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("plan_source,suspended")
+        .eq("id", context.userId)
+        .single();
+      if (profileError || profile.suspended || (!customer && profile.plan_source === "stripe"))
+        throw new Error("Billing account needs reconciliation");
+      if (customer) {
+        const stripe = createStripeClient(environment);
+        const subscriptions = await stripe.subscriptions.list({
+          customer,
+          status: "all",
+          limit: 100,
+        });
+        if (
+          subscriptions.data.some((s) => !["canceled", "incomplete_expired"].includes(s.status))
+        ) {
+          const portal = await stripe.billingPortal.sessions.create({
+            customer,
+            return_url: `${getAppOrigin()}/app/billing`,
+          });
+          return { url: portal.url };
+        }
+      }
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({ plan: "free", plan_source: "self", updated_at: new Date().toISOString() })
+        .eq("id", context.userId);
+      if (error) throw new Error("Plan change failed");
+      return { ok: true };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
