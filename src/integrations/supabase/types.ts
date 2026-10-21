@@ -70,6 +70,7 @@ export type Database = {
       }
       ai_usage_log: {
         Row: {
+          audio_seconds: number
           cost_usd: number
           created_at: string
           error: string | null
@@ -81,8 +82,10 @@ export type Database = {
           ok: boolean
           output_tokens: number
           user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
+          audio_seconds?: number
           cost_usd?: number
           created_at?: string
           error?: string | null
@@ -94,8 +97,10 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
+          audio_seconds?: number
           cost_usd?: number
           created_at?: string
           error?: string | null
@@ -107,6 +112,7 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           user_id?: string | null
+          workspace_id?: string | null
         }
         Relationships: []
       }
@@ -146,6 +152,42 @@ export type Database = {
           reconnect_required?: boolean
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      billing_customers: {
+        Row: {
+          created_at: string
+          customer_id: string
+          environment: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          environment: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          environment?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_events: {
+        Row: {
+          created_at: string
+          event_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
         }
         Relationships: []
       }
@@ -376,39 +418,72 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_usage: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          units: number
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          units?: number
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          units?: number
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       passport_shares: {
         Row: {
           created_at: string
           expires_at: string
           html: string
           id: string
+          item_id: string | null
           revoked: boolean
           title: string
           token: string
           user_id: string
           views: number
+          workspace_id: string | null
         }
         Insert: {
           created_at?: string
           expires_at: string
           html: string
           id?: string
+          item_id?: string | null
           revoked?: boolean
           title: string
           token?: string
           user_id?: string
           views?: number
+          workspace_id?: string | null
         }
         Update: {
           created_at?: string
           expires_at?: string
           html?: string
           id?: string
+          item_id?: string | null
           revoked?: boolean
           title?: string
           token?: string
           user_id?: string
           views?: number
+          workspace_id?: string | null
         }
         Relationships: []
       }
@@ -868,6 +943,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_billing_event: {
+        Args: {
+          _created: number
+          _environment: string
+          _event: string
+          _paid: boolean
+          _plan: string
+          _subscription: Json
+        }
+        Returns: boolean
+      }
+      feature_enabled: {
+        Args: { _key: string; _user: string }
+        Returns: boolean
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -895,6 +985,15 @@ export type Database = {
         }[]
       }
       redeem_voucher: { Args: { _code: string }; Returns: string }
+      reserve_operation: {
+        Args: {
+          _feature: string
+          _units?: number
+          _user: string
+          _workspace: string
+        }
+        Returns: string
+      }
       start_business_trial: { Args: never; Returns: string }
     }
     Enums: {
