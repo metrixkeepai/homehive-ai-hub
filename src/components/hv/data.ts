@@ -38,6 +38,7 @@ export type Item = {
   value?: string;
   fields: [string, string][];
   links?: [string, string][]; // [sectionSlug, itemId]
+  propertyId?: string | null;
   timeline?: [string, string][];
   insight?: string;
   actions?: string[];

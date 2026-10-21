@@ -15,6 +15,10 @@ import { checkAdd, effective, type Entitlements } from "@/lib/entitlements";
 import { fetchPublished, openUpgrade, UpgradeModal } from "./Upgrade";
 import { editableProfilePatch } from "@/lib/profile";
 
+export const PROPERTY_SLUGS = ["my-home", "locations"];
+export const isArchivedItem = (i: { fields: [string, string][] }) =>
+  i.fields.some(([k, v]) => k === "Status" && v === "Archived");
+
 /** Plan capacity for a section, or null when the plan doesn't cap it. */
 export function sectionLimit(
   slug: string,
@@ -95,6 +99,8 @@ type Ctx = {
   reload: () => Promise<void>;
   findRecord: (section: string, id: string) => Promise<Item | null>;
   searchRecords: (text: string) => Promise<{ section: string; item: Item }[]>;
+  properties: Item[];
+  propertySlug: string;
 };
 const personal: Workspace = { id: null, name: "Personal", type: "individual" };
 const StoreCtx = createContext<Ctx>({
@@ -113,11 +119,14 @@ const StoreCtx = createContext<Ctx>({
   reload: async () => {},
   findRecord: async () => null,
   searchRecords: async () => [],
+  properties: [],
+  propertySlug: "my-home",
 });
 
 type Row = {
   id: string;
   workspace_id?: string | null;
+  property_id?: string | null;
   section: string;
   title: string;
   subtitle: string;
@@ -130,6 +139,7 @@ const toItem = (r: Row): Item => ({
   subtitle: r.subtitle || "Saved",
   status: ["Saved", "primary"],
   fields: (r.fields as [string, string][]) ?? [],
+  propertyId: r.property_id ?? null,
   actions: ["Delete"],
   timeline: [[new Date(r.created_at).toLocaleDateString(), "Added by you"]],
 });
@@ -162,7 +172,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setEmail(u.user.email ?? "");
     let query = supabase
       .from("home_items")
-      .select("id,workspace_id,section,title,subtitle,fields,created_at")
+      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
       .eq("user_id", u.user.id);
     query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
     const [records, { data: p, error: profileError }, { data: ws, error: workspaceError }] =
@@ -218,7 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (authError || !auth.user) throw new Error("Sign in to load records");
       let query = supabase
         .from("home_items")
-        .select("id,workspace_id,section,title,subtitle,fields,created_at")
+        .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
         .eq("user_id", auth.user.id)
         .eq("id", id)
         .eq("section", section);
@@ -239,7 +249,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (authError || !auth.user) throw new Error("Sign in to search records");
       let query = supabase
         .from("home_items")
-        .select("id,workspace_id,section,title,subtitle,fields,created_at")
+        .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
         .eq("user_id", auth.user.id);
       query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
       for (const word of words) query = query.or(`title.ilike.%${word}%,subtitle.ilike.%${word}%`);
@@ -265,6 +275,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     setAdded(map);
   }, [allRows, current.id]);
+  const propertySlug = current.type === "individual" ? "my-home" : "locations";
+  const properties = added[propertySlug] ?? [];
   const switchWorkspace = (id: string | null) => {
     ++loadSequence.current;
     setAllRows([]);
@@ -292,7 +304,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLoadingMore(true);
     let query = supabase
       .from("home_items")
-      .select("id,workspace_id,section,title,subtitle,fields,created_at");
+      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at");
     query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
     const { data, error } = await query
       .or(`created_at.lt.${last.created_at},and(created_at.eq.${last.created_at},id.gt.${last.id})`)
@@ -332,8 +344,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         title: item.title.slice(0, 200),
         subtitle: item.subtitle.slice(0, 500),
         fields: item.fields,
+        property_id: item.propertyId ?? null,
       })
-      .select("id,workspace_id,section,title,subtitle,fields,created_at")
+      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
       .single();
     if (error || !data) return null;
     setAllRows((r) => [data as Row, ...r]);
@@ -352,9 +365,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         title: item.title.slice(0, 200),
         subtitle: item.subtitle.slice(0, 500),
         fields: item.fields,
+        ...(item.propertyId !== undefined ? { property_id: item.propertyId } : {}),
       })
       .eq("id", id)
-      .select("id,workspace_id,section,title,subtitle,fields,created_at")
+      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
       .single();
     if (error || !data) return false;
     setAllRows((rows) => rows.map((row) => (row.id === id ? (data as Row) : row)));
@@ -391,6 +405,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         reload: load,
         findRecord,
         searchRecords,
+        properties,
+        propertySlug,
       }}
     >
       {children}
