@@ -8,7 +8,7 @@ export async function reserveOperation(
 ) {
   const { data, error } = await supabaseAdmin.rpc("reserve_operation", {
     _user: userId,
-    _workspace: workspaceId,
+    _workspace: workspaceId as string,
     _feature: feature,
     _units: units,
   });
