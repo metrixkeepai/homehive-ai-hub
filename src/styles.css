@@ -161,3 +161,17 @@
 
 @keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(520px); } }
 @utility animate-scan { animation: scan 3.2s ease-in-out infinite alternate; }
+
+/* Lovable Cloud injects a fixed marketing badge (#lovable-badge) on their hosted
+   domain (e.g. matrixkeep.com). Hide/remove it so it doesn't cover Ask Sera. */
+#lovable-badge,
+a[aria-label="Edit with Lovable"],
+a[href*="utm_source=lovable-badge"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}

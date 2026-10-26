@@ -42,6 +42,8 @@ export type Item = {
   timeline?: [string, string][];
   insight?: string;
   actions?: string[];
+  /** Linked property/location record id from `home_items.property_id`. */
+  propertyId?: string | null;
 };
 export type Section = {
   slug: string;
@@ -1267,9 +1269,12 @@ export const sections: Section[] = [
   },
 ];
 
-// Only integrations are product configuration entries. Customer sections start empty.
+// Only integrations keep static product-config entries. Customer records come from Supabase.
 for (const section of sections) {
-  if (section.slug !== "integrations") section.items = [];
+  if (section.slug !== "integrations") {
+    section.items = [];
+    section.kpis = [];
+  }
 }
 
 export const homeNav = { slug: "", title: "Overview", icon: Home };

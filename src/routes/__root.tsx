@@ -119,11 +119,29 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function RemoveLovableBadge() {
+  useEffect(() => {
+    const kill = () => {
+      document
+        .querySelectorAll(
+          '#lovable-badge, a[aria-label="Edit with Lovable"], a[href*="utm_source=lovable-badge"]',
+        )
+        .forEach((el) => el.remove());
+    };
+    kill();
+    const obs = new MutationObserver(kill);
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, []);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RemoveLovableBadge />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

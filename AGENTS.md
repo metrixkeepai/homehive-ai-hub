@@ -19,6 +19,7 @@
 - Calendar reminders are downloadable ICS files, not claims of connected email or push notification delivery.
 - Plans, prices and capacities come from one shared plan list (src/lib/plans.ts) so public pricing, in-app plans and billing never disagree.
 - Super Admin portal lives at /super-admin/* (own layout, own login); every admin server function re-checks has_role(super_admin) before using the privileged client, and every change writes admin_audit_log.
+- First Super Admin is bootstrapped at server start from SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD (see server/ensure-super-admin.mjs); without those env vars the Control Centre has no operator account.
 - Provider-backed admin figures (Stripe, AWS, Azure) load only when their secrets exist; otherwise the UI shows a Setup Required state instead of estimates.
 - Sera voice calls use the Node /api/live relay (server/voice.mjs). Upgrade authentication and PostgreSQL quota reservation precede the direct OpenAI connection; the relay enforces a five-minute maximum and workspace-scoped retrieval. server/start.mjs hosts Nitro node-middleware and the WebSocket server.
 - Google (Gmail, Calendar, Drive) uses per-user App User Connectors: each user's connection key is stored encrypted in app_user_connections (service-role only) and every Google call runs in src/lib/google.functions.ts, so tokens never reach the browser.

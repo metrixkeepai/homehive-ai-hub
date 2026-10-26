@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { attachVoice } from "./voice.mjs";
 import { validateEnvironment } from "./environment.mjs";
+import { ensureSuperAdmin } from "./ensure-super-admin.mjs";
 validateEnvironment(process.env);
+await ensureSuperAdmin(process.env);
 const { middleware } = await import("../.output/server/index.mjs");
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },

@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
-  Building2,
   Home,
   Eye,
   EyeOff,
@@ -43,7 +42,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<"individual" | "business" | "enterprise">("individual");
+  const [kind, setKind] = useState<"individual" | "business">("individual");
   const [org, setOrg] = useState("");
   const [btype, setBtype] = useState("");
   const [industry, setIndustry] = useState("");
@@ -216,8 +215,8 @@ function AuthPage() {
                 )}
                 <form onSubmit={submit} className="mt-6 space-y-3">
                   {mode === "up" && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["individual", "business", "enterprise"] as const).map((k) => (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["individual", "business"] as const).map((k) => (
                         <Button
                           type="button"
                           variant="outline"
@@ -226,18 +225,8 @@ function AuthPage() {
                           aria-pressed={kind === k}
                           className={`h-20 flex-col gap-2 px-2 text-xs ${kind === k ? "border-primary bg-primary/5 text-primary" : ""}`}
                         >
-                          {k === "individual" ? (
-                            <Home />
-                          ) : k === "business" ? (
-                            <BriefcaseBusiness />
-                          ) : (
-                            <Building2 />
-                          )}
-                          {k === "individual"
-                            ? "Individual"
-                            : k === "business"
-                              ? "Business"
-                              : "Enterprise"}
+                          {k === "individual" ? <Home /> : <BriefcaseBusiness />}
+                          {k === "individual" ? "Individual" : "Business"}
                         </Button>
                       ))}
                     </div>

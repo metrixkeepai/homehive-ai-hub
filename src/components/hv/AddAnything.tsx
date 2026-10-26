@@ -139,7 +139,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
 }
 
 export function AddAnything({ onClose, initial }: { onClose: () => void; initial?: string }) {
-  const { addReturning, added, current, update } = useStore();
+  const { addReturning, added, current, update, properties } = useStore();
   const gate = usePlanGate();
   const [step, setStep] = useState<Step>(initial ? "capture" : "pick");
   const [mode, setMode] = useState<Mode | undefined>(modes.find((m) => m.key === initial));
@@ -154,8 +154,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   const [saved, setSaved] = useState<{ section: string; id: string; title: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const biz = current.type !== "individual";
-  const locations = (added["locations"] ?? []).map((i) => i.title);
   const rooms = [...(added["rooms"] ?? []).map((i) => i.title)];
+  const selectedProperty = properties.find((p) => p.id === location || p.title === location);
 
   useEffect(
     () => () => {
@@ -299,10 +299,12 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
       }
       const image = file && !isVideo && docText === null ? await toDataUrl(file) : undefined;
       const images = file && isVideo ? await videoFrames(file) : undefined;
+      const referenceDate = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the user's locale calendar
       const r = await extractRecords({
         data: {
           workspaceId: current.id,
           mode: mode.label,
+          referenceDate,
           text:
             docText !== null ? `${text}\n\nDocument content:\n${docText}`.slice(0, 60000) : text,
           image,
@@ -321,12 +323,14 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         return;
       }
       setSummary(r.summary);
+      // Server already normalises spoken dates + derives expiry/renewal; keep a client pass for safety.
       setRecs(
         r.records.map((x) => ({
           ...x,
           fields: deriveContractDates(
             x.fields.map((f) => [f.label, f.value] as [string, string]),
             x.section === "warranties" ? "Expiry date" : "Renewal date",
+            referenceDate,
           ).map(([label, value]) => ({ label, value })),
           keep: true,
         })),
@@ -387,7 +391,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
             ["Previous version", previous.title],
           );
       }
-      if (location) fields.push(["Location", location]);
+      if (selectedProperty) fields.push(["Location", selectedProperty.title]);
+      else if (location) fields.push(["Location", location]);
       if (room && !fields.some(([k]) => k === "Room")) fields.push(["Room", room]);
       fields.push(["Captured via", mode?.label ?? "Add anything"]);
       const id = await addReturning(r.section, {
@@ -395,6 +400,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         title: r.title.trim(),
         subtitle: r.subtitle,
         fields,
+        propertyId: selectedProperty?.id ?? null,
       });
       if (id) out.push({ section: r.section, id, title: r.title, rel: r.relates_to ?? "" });
     }
@@ -453,7 +459,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -617,23 +623,25 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
             <div className="space-y-4">
               <p className="rounded-2xl bg-secondary p-4 text-sm">{summary}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {biz && (
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Location
-                    <select
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground"
-                    >
-                      <option value="">
-                        {locations.length ? "Choose location" : "No locations yet"}
+                <label className="text-xs font-medium text-muted-foreground">
+                  {biz ? "Location" : "Property"}
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    <option value="">
+                      {properties.length
+                        ? `Choose ${biz ? "location" : "property"}`
+                        : `No ${biz ? "locations" : "properties"} yet`}
+                    </option>
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
                       </option>
-                      {locations.map((l) => (
-                        <option key={l}>{l}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+                    ))}
+                  </select>
+                </label>
                 <label className="text-xs font-medium text-muted-foreground">
                   Room
                   <select

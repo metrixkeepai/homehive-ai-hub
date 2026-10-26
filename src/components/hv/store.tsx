@@ -83,6 +83,12 @@ export type Workspace = {
   name: string;
   type: "individual" | "business" | "enterprise";
 };
+/** Sections that store property/location records (not child inventory). */
+export const PROPERTY_SLUGS: readonly string[] = ["my-home", "locations"];
+
+export const isArchivedItem = (item: Item) =>
+  item.fields.some(([k, v]) => k === "Status" && /^(archived|superseded)$/i.test(v));
+
 type Ctx = {
   added: Record<string, Item[]>;
   add: (slug: string, item: Item) => Promise<boolean>;
@@ -99,8 +105,10 @@ type Ctx = {
   reload: () => Promise<void>;
   findRecord: (section: string, id: string) => Promise<Item | null>;
   searchRecords: (text: string) => Promise<{ section: string; item: Item }[]>;
+  /** Active property section for the current account type. */
+  propertySlug: "my-home" | "locations";
+  /** Property/location records from the backend for the current workspace. */
   properties: Item[];
-  propertySlug: string;
 };
 const personal: Workspace = { id: null, name: "Personal", type: "individual" };
 const StoreCtx = createContext<Ctx>({
@@ -119,8 +127,8 @@ const StoreCtx = createContext<Ctx>({
   reload: async () => {},
   findRecord: async () => null,
   searchRecords: async () => [],
-  properties: [],
   propertySlug: "my-home",
+  properties: [],
 });
 
 type Row = {
@@ -133,6 +141,7 @@ type Row = {
   fields: unknown;
   created_at: string;
 };
+const ROW_SELECT = "id,workspace_id,property_id,section,title,subtitle,fields,created_at";
 const toItem = (r: Row): Item => ({
   id: r.id,
   title: r.title,
@@ -170,10 +179,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
     setEmail(u.user.email ?? "");
-    let query = supabase
-      .from("home_items")
-      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
-      .eq("user_id", u.user.id);
+    let query = supabase.from("home_items").select(ROW_SELECT).eq("user_id", u.user.id);
     query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
     const [records, { data: p, error: profileError }, { data: ws, error: workspaceError }] =
       await Promise.all([
@@ -228,7 +234,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (authError || !auth.user) throw new Error("Sign in to load records");
       let query = supabase
         .from("home_items")
-        .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
+        .select(ROW_SELECT)
         .eq("user_id", auth.user.id)
         .eq("id", id)
         .eq("section", section);
@@ -236,8 +242,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data, error } = await query.maybeSingle();
       if (error) throw new Error("Record could not be loaded");
       if (sequence !== loadSequence.current || !data) return null;
-      setAllRows((rows) => (rows.some((r) => r.id === id) ? rows : [...rows, data]));
-      return toItem(data);
+      setAllRows((rows) => (rows.some((r) => r.id === id) ? rows : [...rows, data as Row]));
+      return toItem(data as Row);
     },
     [wsId],
   );
@@ -247,15 +253,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!words.length) return [];
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) throw new Error("Sign in to search records");
-      let query = supabase
-        .from("home_items")
-        .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
-        .eq("user_id", auth.user.id);
+      let query = supabase.from("home_items").select(ROW_SELECT).eq("user_id", auth.user.id);
       query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
       for (const word of words) query = query.or(`title.ilike.%${word}%,subtitle.ilike.%${word}%`);
       const { data, error } = await query.order("created_at", { ascending: false }).limit(20);
       if (error) throw new Error("Search is temporarily unavailable");
-      return (data ?? []).map((row) => ({ section: row.section, item: toItem(row) }));
+      return (data ?? []).map((row) => ({ section: row.section, item: toItem(row as Row) }));
     },
     [wsId],
   );
@@ -266,6 +269,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       : personal;
   const workspaces = [personalWs, ...rawWs];
   const current = workspaces.find((w) => w.id === wsId) ?? personalWs;
+  const propertySlug: "my-home" | "locations" =
+    current.type === "individual" ? "my-home" : "locations";
   useEffect(() => {
     const map: Record<string, Item[]> = {};
     allRows
@@ -275,7 +280,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     setAdded(map);
   }, [allRows, current.id]);
-  const propertySlug = current.type === "individual" ? "my-home" : "locations";
   const properties = added[propertySlug] ?? [];
   const switchWorkspace = (id: string | null) => {
     ++loadSequence.current;
@@ -302,9 +306,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const sequence = loadSequence.current;
     const last = cursor.current;
     setLoadingMore(true);
-    let query = supabase
-      .from("home_items")
-      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at");
+    let query = supabase.from("home_items").select(ROW_SELECT);
     query = wsId ? query.eq("workspace_id", wsId) : query.is("workspace_id", null);
     const { data, error } = await query
       .or(`created_at.lt.${last.created_at},and(created_at.eq.${last.created_at},id.gt.${last.id})`)
@@ -346,7 +348,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         fields: item.fields,
         property_id: item.propertyId ?? null,
       })
-      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
+      .select(ROW_SELECT)
       .single();
     if (error || !data) return null;
     setAllRows((r) => [data as Row, ...r]);
@@ -368,7 +370,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...(item.propertyId !== undefined ? { property_id: item.propertyId } : {}),
       })
       .eq("id", id)
-      .select("id,workspace_id,property_id,section,title,subtitle,fields,created_at")
+      .select(ROW_SELECT)
       .single();
     if (error || !data) return false;
     setAllRows((rows) => rows.map((row) => (row.id === id ? (data as Row) : row)));
@@ -405,8 +407,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         reload: load,
         findRecord,
         searchRecords,
-        properties,
         propertySlug,
+        properties,
       }}
     >
       {children}

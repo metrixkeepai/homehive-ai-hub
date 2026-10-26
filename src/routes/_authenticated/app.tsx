@@ -383,7 +383,7 @@ function WorkspaceSwitcher() {
       </DropdownMenu>
       {creating && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/60 p-4 backdrop-blur-sm"
           onClick={() => setCreating(false)}
         >
           <form
@@ -400,7 +400,7 @@ function WorkspaceSwitcher() {
                 setName("");
               } else toast.error("Couldn't create workspace");
             }}
-            className="w-full max-w-sm space-y-3 rounded-3xl bg-card p-6 shadow-glow"
+            className="animate-rise w-full max-w-sm space-y-3 rounded-3xl bg-card p-6 shadow-glow"
           >
             <h3 className="font-display text-2xl">New workspace</h3>
             <p className="text-sm text-muted-foreground">

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
 import { TrackingPage } from "@/components/hv/Tracking";
+import { PropertiesPage } from "@/components/hv/Properties";
 import { COUNTRIES } from "@/lib/countries";
 import { BillingPage } from "@/components/hv/Billing";
 import { ViewToggle, useViewMode } from "@/components/hv/ViewToggle";
@@ -55,6 +56,8 @@ function SectionPage() {
   const [view, setView] = useViewMode(section);
   if (!s) return <Missing />;
   if (section === "billing") return <BillingPage />;
+  if (section === "my-home" || section === "locations")
+    return <PropertiesPage slug={section} />;
   if (section === "warranties" || section === "renewals")
     return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
   if (
@@ -71,7 +74,10 @@ function SectionPage() {
         </p>
       </div>
     );
-  const items = [...(added[s.slug] ?? []), ...(s.slug === "integrations" ? s.items : [])]
+  const own = added[s.slug] ?? [];
+  // Integrations keep static connector config; every other section is backend-only.
+  const source = s.slug === "integrations" ? [...own, ...s.items] : own;
+  const items = source
     .filter((i) =>
       (i.title + i.subtitle + " " + i.fields.map(([, v]) => v).join(" "))
         .toLowerCase()
@@ -82,12 +88,28 @@ function SectionPage() {
         section !== "documents" ||
         ((docType === "All" || docTypeOf(i) === docType) && (showArchived || !isArchived(i))),
     );
+  const liveKpis: [string, string][] =
+    s.slug === "integrations"
+      ? [
+          ["Connectors", String(source.length)],
+          ["Connected", String(own.length)],
+        ]
+      : [
+          ["Records", String(own.length)],
+          [
+            "Active",
+            String(own.filter((i) => !isArchived(i)).length),
+          ],
+          ...(section === "documents"
+            ? ([["Types", String(new Set(own.map(docTypeOf)).size)]] as [string, string][])
+            : []),
+          ...(own.some((i) => i.value)
+            ? ([["With value", String(own.filter((i) => i.value).length)]] as [string, string][])
+            : []),
+        ];
   const docTypes =
     section === "documents"
-      ? [
-          "All",
-          ...Array.from(new Set([...(added["documents"] ?? []), ...s.items].map(docTypeOf))).sort(),
-        ]
+      ? ["All", ...Array.from(new Set(own.map(docTypeOf))).sort()]
       : [];
 
   const submit = async (e: React.FormEvent) => {
@@ -150,18 +172,20 @@ function SectionPage() {
 
       {s.slug === "profile" && <ProfileEditor />}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {s.kpis.map(([l, v]) => (
-          <button
-            key={l}
-            onClick={() => setFilter("")}
-            className="rounded-2xl border bg-card p-4 text-left shadow-soft"
-          >
-            <p className="font-display text-2xl">{v}</p>
-            <p className="text-sm text-muted-foreground">{l}</p>
-          </button>
-        ))}
-      </div>
+      {liveKpis.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {liveKpis.map(([l, v]) => (
+            <button
+              key={l}
+              onClick={() => setFilter("")}
+              className="rounded-2xl border bg-card p-4 text-left shadow-soft"
+            >
+              <p className="font-display text-2xl">{v}</p>
+              <p className="text-sm text-muted-foreground">{l}</p>
+            </button>
+          ))}
+        </div>
+      )}
 
       {s.slug !== "profile" && (
         <div className="flex items-center gap-3">
@@ -212,7 +236,11 @@ function SectionPage() {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                    Nothing matches “{filter}”.
+                    {filter
+                      ? `Nothing matches “${filter}”.`
+                      : own.length === 0
+                        ? `No ${s.title.toLowerCase()} saved yet.`
+                        : "Nothing to show."}
                   </td>
                 </tr>
               )}
@@ -266,7 +294,11 @@ function SectionPage() {
         <div className="grid gap-3 md:grid-cols-2">
           {items.length === 0 && (
             <p className="rounded-2xl bg-secondary p-8 text-center text-sm text-muted-foreground md:col-span-2">
-              Nothing matches “{filter}”.
+              {filter
+                ? `Nothing matches “${filter}”.`
+                : own.length === 0
+                  ? `No ${s.title.toLowerCase()} saved yet.`
+                  : "Nothing to show."}
             </p>
           )}
           {items.map((i) => (
@@ -315,12 +347,12 @@ function SectionPage() {
 
       {open && s.addFields && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/60 p-4 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <form
             onSubmit={submit}
-            className="animate-rise w-full max-w-md space-y-4 rounded-3xl bg-card p-7 shadow-glow"
+            className="animate-rise max-h-[min(90vh,44rem)] w-full max-w-md space-y-4 overflow-y-auto rounded-3xl bg-card p-7 shadow-glow"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

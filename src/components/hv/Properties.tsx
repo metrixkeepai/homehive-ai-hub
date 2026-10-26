@@ -67,8 +67,8 @@ function PropertyForm({ item, onClose }: { item?: Item | undefined; onClose: () 
   };
   const input = "mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring";
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-midnight/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onSubmit={submit} className="animate-rise max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-3xl bg-card p-7 shadow-glow" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <form onSubmit={submit} className="animate-rise max-h-[min(90vh,44rem)] w-full max-w-lg space-y-4 overflow-y-auto rounded-3xl bg-card p-7 shadow-glow" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between"><h3 className="font-display text-2xl">{item ? `Edit ${noun}` : `Add ${noun}`}</h3><button type="button" aria-label="Close" onClick={onClose}><X className="h-5 w-5" /></button></div>
         <label className="block text-sm font-medium">{biz ? "Location name" : "Property name"}<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={biz ? "e.g. Bristol branch" : "e.g. 14 Elm Grove"} className={input} /></label>
         <label className="block text-sm font-medium">{biz ? "Location type" : "Property type"}
@@ -120,11 +120,10 @@ export function PropertiesPage({ slug }: { slug: string }) {
   const [view, setView] = useViewMode(slug);
   const { setArchived, del } = usePropertyActions();
   const own = added[slug] ?? [];
-  const samples = own.length ? [] : s.items;
   const max = planByKey(profile?.plan).limits.places;
   const active = properties.filter((p) => !isArchivedItem(p));
   const count = (id: string, sec: string) => (added[sec] ?? []).filter((i) => i.propertyId === id).length;
-  const rows = [...own, ...samples]
+  const rows = own
     .filter((i) => (showArchived || !isArchivedItem(i)) && (type === "All" || propertyType(i) === type))
     .filter((i) => (i.title + " " + i.subtitle + " " + i.fields.map(([, v]) => v).join(" ")).toLowerCase().includes(filter.toLowerCase()));
   const types = ["All", ...new Set(own.map(propertyType).filter(Boolean))];
@@ -154,7 +153,7 @@ export function PropertiesPage({ slug }: { slug: string }) {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map(([l, v]) => <div key={l} className="rounded-2xl border bg-card p-4 shadow-soft"><p className="font-display text-2xl">{v}</p><p className="text-sm text-muted-foreground">{l}</p></div>)}
       </div>
-      {!own.length && <p className="rounded-2xl bg-secondary p-4 text-sm text-muted-foreground">The {noun} below is an example. Add your own {noun} to start linking rooms, assets and documents to it.</p>}
+      {!own.length && <p className="rounded-2xl bg-secondary p-4 text-sm text-muted-foreground">No {noun} saved yet. Add your first {noun} to start linking rooms, assets and documents.</p>}
       <div className="flex items-center gap-3"><input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Filter ${biz ? "locations" : "properties"}…`} className="min-w-0 flex-1 rounded-full border bg-card px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring" /><ViewToggle mode={view} onChange={setView} /></div>
       <div className="flex flex-wrap items-center gap-2">{types.map((t) => <button key={t} onClick={() => setType(t)} className={`rounded-full border px-3 py-1.5 text-xs font-medium ${type === t ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:border-primary"}`}>{t}</button>)}<label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived</label></div>
       {view === "table" ? (

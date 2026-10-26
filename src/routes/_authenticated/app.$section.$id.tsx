@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { getSection, getItem } from "@/components/hv/data";
+import { getSection } from "@/components/hv/data";
 import { useStore, toneClass } from "@/components/hv/store";
 import { Evidence, type Proposed } from "@/components/hv/Evidence";
 import { useFeature, Locked } from "@/components/hv/Feature";
@@ -14,22 +14,27 @@ import {
   googleConnectorFor,
 } from "@/components/hv/GoogleIntegration";
 import { PassportModal, PASSPORT_KINDS } from "@/components/hv/PassportModal";
+import {
+  AppModal,
+  AppModalForm,
+  AppModalInput,
+  AppModalPrimaryButton,
+} from "@/components/hv/AppModal";
 
 export const Route = createFileRoute("/_authenticated/app/$section/$id")({
   head: ({ params }) => {
-    const i = getItem(params.section, params.id);
-    const t = `${i?.title ?? getSection(params.section)?.title ?? "Record"} details — MatrixKeep AI`;
+    const t = `${getSection(params.section)?.title ?? "Record"} details — MatrixKeep AI`;
     return {
       meta: [
         { title: t },
         {
           name: "description",
-          content: i?.subtitle ?? "Your saved MatrixKeep record and supporting evidence.",
+          content: "Your saved MatrixKeep record and supporting evidence.",
         },
         { property: "og:title", content: t },
         {
           property: "og:description",
-          content: i?.subtitle ?? "Your saved MatrixKeep record and supporting evidence.",
+          content: "Your saved MatrixKeep record and supporting evidence.",
         },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
@@ -69,13 +74,20 @@ function Detail() {
   }, [section, id, findRecord]);
   const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
-  const item = getItem(section, id) ?? added[section]?.find((x) => x.id === id);
+  const item =
+    section === "integrations"
+      ? (s?.items.find((x) => x.id === id) ?? added[section]?.find((x) => x.id === id))
+      : added[section]?.find((x) => x.id === id);
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [done, setDone] = useState<string[]>([]);
   const [passport, setPassport] = useState<"download" | "share" | null>(null);
   const [view, setView] = useState<"grid" | "table">("table");
-  const own = !!added[section]?.some((x) => x.id === id);
-  const saved = useRecordLinks(own ? id : "00000000-0000-0000-0000-000000000000");
+  const [renaming, setRenaming] = useState(false);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [renameBusy, setRenameBusy] = useState(false);
+  const own =
+    section === "integrations" || !!added[section]?.some((x) => x.id === id);
+  const saved = useRecordLinks(own && section !== "integrations" ? id : "00000000-0000-0000-0000-000000000000");
   if (!item && loadingRecord) return <p className="p-8">Loading record…</p>;
   if (!s || !item) {
     return (
@@ -100,20 +112,9 @@ function Detail() {
     return <TrackingDetail section={section} item={item} />;
   const roomItems =
     section === "rooms"
-      ? [
-          ...(added["assets"] ?? [])
-            .filter((a) =>
-              a.fields.some(
-                ([k, v]) => k === "Room" && v.toLowerCase() === item.title.toLowerCase(),
-              ),
-            )
-            .map((a) => ({ a, own: true })),
-          ...(item.links ?? [])
-            .filter(([sl]) => sl === "assets")
-            .map(([, lid]) => getItem("assets", lid))
-            .filter((a): a is NonNullable<typeof a> => !!a)
-            .map((a) => ({ a, own: false })),
-        ]
+      ? (added["assets"] ?? []).filter((a) =>
+          a.fields.some(([k, v]) => k === "Room" && v.toLowerCase() === item.title.toLowerCase()),
+        )
       : [];
   const fv = (a: { fields: [string, string][] }, k: string) =>
     a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
@@ -185,12 +186,9 @@ function Detail() {
                 {own && section === "documents" && (
                   <>
                     <button
-                      onClick={async () => {
-                        const t = prompt("Rename document", item.title)?.trim();
-                        if (!t || t === item.title) return;
-                        if (await update(id, { ...item, title: t }))
-                          toast.success("Document renamed");
-                        else toast.error("Couldn't rename — please try again");
+                      onClick={() => {
+                        setRenameTitle(item.title);
+                        setRenaming(true);
                       }}
                       className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold"
                     >
@@ -266,6 +264,45 @@ function Detail() {
           added={added}
           owner={profile?.display_name || email || "you"}
         />
+      )}
+      {renaming && (
+        <AppModal
+          title="Rename document"
+          description="Choose a clear name so this record is easy to find later."
+          onClose={() => !renameBusy && setRenaming(false)}
+        >
+          <AppModalForm
+            onSubmit={async () => {
+              const t = renameTitle.trim();
+              if (!t) {
+                toast.error("Enter a document name");
+                return;
+              }
+              if (t === item.title) {
+                setRenaming(false);
+                return;
+              }
+              setRenameBusy(true);
+              const ok = await update(id, { ...item, title: t });
+              setRenameBusy(false);
+              if (ok) {
+                toast.success("Document renamed");
+                setRenaming(false);
+              } else toast.error("Couldn't rename — please try again");
+            }}
+          >
+            <AppModalInput
+              value={renameTitle}
+              onChange={setRenameTitle}
+              placeholder="Document name"
+              autoFocus
+              maxLength={200}
+            />
+            <AppModalPrimaryButton disabled={renameBusy}>
+              {renameBusy ? "Saving…" : "Save name"}
+            </AppModalPrimaryButton>
+          </AppModalForm>
+        </AppModal>
       )}
 
       <div className="flex gap-1 overflow-x-auto rounded-full border bg-card p-1">
@@ -378,7 +415,7 @@ function Detail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {roomItems.map(({ a, own }) => (
+                    {roomItems.map((a) => (
                       <tr key={a.id} className="border-b last:border-0 hover:bg-secondary/50">
                         <td className="py-2">
                           <Link
@@ -392,9 +429,7 @@ function Detail() {
                         <td>{fv(a, "brand")}</td>
                         <td>{a.value ?? fv(a, "price")}</td>
                         <td>{fv(a, "purchase date")}</td>
-                        <td className="text-xs text-muted-foreground">
-                          {own ? "Yours" : "Sample"}
-                        </td>
+                        <td className="text-xs text-muted-foreground">Saved</td>
                       </tr>
                     ))}
                   </tbody>
@@ -403,7 +438,7 @@ function Detail() {
             )}
             {view === "grid" && (
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {roomItems.map(({ a }) => (
+                {roomItems.map((a) => (
                   <Link
                     key={a.id}
                     to="/app/$section/$id"
@@ -420,7 +455,7 @@ function Detail() {
         )}
 
         {tab === "Evidence" &&
-          (added[section]?.some((x) => x.id === id) ? (
+          (own && section !== "integrations" ? (
             <div className="space-y-4">
               {proposal && (
                 <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
@@ -481,12 +516,11 @@ function Detail() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              This is a sample record. Add your own record to attach photos, receipts and PDFs.
+              Evidence attaches to your saved records.
             </p>
           ))}
 
         {tab === "Related" &&
-          own &&
           (saved === null ? (
             <p className="text-sm text-muted-foreground">Loading linked records…</p>
           ) : saved.length ? (
@@ -495,36 +529,6 @@ function Detail() {
             <p className="text-sm text-muted-foreground">
               Nothing linked yet. Records captured together in Add anything are linked
               automatically.
-            </p>
-          ))}
-        {tab === "Related" &&
-          !own &&
-          (item.links?.length ? (
-            <div className="space-y-2">
-              {item.links.map(([sl, lid]) => {
-                const ls = getSection(sl);
-                const li = getItem(sl, lid);
-                if (!ls || !li) return null;
-                return (
-                  <Link
-                    key={sl + lid}
-                    to="/app/$section/$id"
-                    params={{ section: sl, id: lid }}
-                    className="flex items-center gap-3 rounded-2xl border p-4 transition hover:border-primary"
-                  >
-                    <ls.icon className="h-5 w-5 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-semibold">{li.title}</p>
-                      <p className="text-xs text-muted-foreground">{ls.title}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nothing linked yet. Your AI team links related records automatically.
             </p>
           ))}
 
