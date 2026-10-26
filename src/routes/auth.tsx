@@ -53,6 +53,7 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -69,13 +70,33 @@ function AuthPage() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/app" });
-    });
+    let active = true;
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!active) return;
+        if (!error || (await supabase.auth.getSession()).data.session) {
+          navigate({ to: "/app", replace: true });
+          return;
+        }
+      }
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (data.session) {
+        navigate({ to: "/app", replace: true });
+        return;
+      }
+      setCheckingSession(false);
+    })();
     const { data } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) navigate({ to: "/app" });
+      if (s) navigate({ to: "/app", replace: true });
     });
-    return () => data.subscription.unsubscribe();
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -121,10 +142,22 @@ function AuthPage() {
     if (!googleEnabled) return;
     const r = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/auth" },
+      // Land on the app shell so a successful SSO never paints the login form.
+      options: { redirectTo: window.location.origin + "/app" },
     });
     if (r.error) toast.error(r.error.message ?? "Google sign-in failed");
   };
+
+  if (checkingSession) {
+    return (
+      <div className="auth-experience flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="text-center">
+          <Logo />
+          <p className="mt-6 text-sm text-muted-foreground">Signing you in…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-experience min-h-screen bg-background">

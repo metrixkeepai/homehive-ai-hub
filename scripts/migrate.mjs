@@ -16,11 +16,23 @@ try {
     throw new Error("Existing untracked schema: reconcile migration history before applying.");
   await migrate(drizzle(sql), { migrationsFolder: "drizzle/migrations" });
   console.info(JSON.stringify({ event: "migrations_applied", environment: process.env.APP_ENV }));
-} catch {
+} catch (error) {
+  console.error(
+    JSON.stringify({
+      event: "migration_failed",
+      environment: process.env.APP_ENV,
+      message: error instanceof Error ? error.message : String(error),
+    }),
+  );
   console.error(
     "Migration failed. Check target schema and database administration logs; no deployment was started.",
   );
   process.exitCode = 1;
 } finally {
+  try {
+    await sql`SELECT pg_advisory_unlock(8102027)`;
+  } catch {
+    /* connection may already be closed */
+  }
   await sql.end({ timeout: 5 });
 }
