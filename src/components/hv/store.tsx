@@ -15,10 +15,6 @@ import { checkAdd, effective, type Entitlements } from "@/lib/entitlements";
 import { fetchPublished, openUpgrade, UpgradeModal } from "./Upgrade";
 import { editableProfilePatch } from "@/lib/profile";
 
-export const PROPERTY_SLUGS = ["my-home", "locations"];
-export const isArchivedItem = (i: { fields: [string, string][] }) =>
-  i.fields.some(([k, v]) => k === "Status" && v === "Archived");
-
 /** Plan capacity for a section, or null when the plan doesn't cap it. */
 export function sectionLimit(
   slug: string,
