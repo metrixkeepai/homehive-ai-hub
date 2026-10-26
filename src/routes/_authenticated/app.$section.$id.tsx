@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
-import { useStore, toneClass } from "@/components/hv/store";
+import { useStore, toneClass, PROPERTY_SLUGS } from "@/components/hv/store";
 import { Evidence, type Proposed } from "@/components/hv/Evidence";
 import { useFeature, Locked } from "@/components/hv/Feature";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
+import { PropertyContents, PropertyEditButton } from "@/components/hv/Properties";
+import { RecordEditor } from "@/components/hv/RecordEditor";
 import {
   GoogleIntegration,
   GoogleOverviewFields,
@@ -85,8 +87,10 @@ function Detail() {
   const [renaming, setRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState("");
   const [renameBusy, setRenameBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
   const own =
     section === "integrations" || !!added[section]?.some((x) => x.id === id);
+  const isProperty = PROPERTY_SLUGS.includes(section);
   const saved = useRecordLinks(own && section !== "integrations" ? id : "00000000-0000-0000-0000-000000000000");
   if (!item && loadingRecord) return <p className="p-8">Loading record…</p>;
   if (!s || !item) {
@@ -104,7 +108,9 @@ function Detail() {
   }
 
   const isGoogle = section === "integrations" && !!googleConnectorFor[id];
-  const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms");
+  const shownTabs = tabs.filter(
+    (t) => t !== "Items" || section === "rooms" || isProperty,
+  );
   if (
     (section === "warranties" || section === "renewals") &&
     added[section]?.some((x) => x.id === id)
@@ -118,11 +124,26 @@ function Detail() {
       : [];
   const fv = (a: { fields: [string, string][] }, k: string) =>
     a.fields.find(([f]) => f.toLowerCase() === k)?.[1] ?? "—";
+  // Only surface actions that actually work — avoid “not available yet” stubs in production.
+  const workingActions = (() => {
+    const fromItem = (item.actions ?? []).filter(
+      (a) =>
+        a !== "Delete" &&
+        (/^edit\b/i.test(a) || /^download home report$/i.test(a)),
+    );
+    if (own && !isGoogle && !isProperty && !fromItem.some((a) => /^edit\b/i.test(a)))
+      fromItem.unshift("Edit");
+    return fromItem;
+  })();
   const act = async (a: string) => {
     if (a === "Delete" && added[section]?.some((x) => x.id === id)) {
       await remove(section, id);
       toast.success("Deleted");
       navigate({ to: "/app/$section", params: { section } });
+      return;
+    }
+    if (/^edit\b/i.test(a)) {
+      setEditing(true);
       return;
     }
     if (a === "Download home report") {
@@ -169,16 +190,15 @@ function Detail() {
               )}
               {item.value && <span className="font-display text-2xl">{item.value}</span>}
             </div>
-            {(item.actions || own) && (
+            {(workingActions.length > 0 || own) && (
               <div className="mt-6 flex flex-wrap gap-2">
-                {(item.actions ?? [])
-                  .filter((a) => a !== "Delete")
-                  .map((a, idx) => (
+                {isProperty && own && <PropertyEditButton item={item} />}
+                {workingActions.map((a, idx) => (
                     <button
                       key={a}
                       disabled={done.includes(a)}
-                      onClick={() => act(a)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${idx === 0 ? "bg-aurora text-primary-foreground" : "border border-midnight-foreground/20"}`}
+                      onClick={() => void act(a)}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${idx === 0 && !isProperty ? "bg-aurora text-primary-foreground" : "border border-midnight-foreground/20"}`}
                     >
                       {done.includes(a) ? `✓ ${a}` : a}
                     </button>
@@ -263,6 +283,15 @@ function Detail() {
           item={item}
           added={added}
           owner={profile?.display_name || email || "you"}
+        />
+      )}
+      {editing && !isProperty && (
+        <RecordEditor
+          section={section}
+          item={item}
+          {...(s.addFields ? { addFields: s.addFields } : {})}
+          title={`Edit ${s.title.replace(/s$/, "").toLowerCase()}`}
+          onClose={() => setEditing(false)}
         />
       )}
       {renaming && (
@@ -379,7 +408,8 @@ function Detail() {
             );
           })()}
 
-        {tab === "Items" && (
+        {tab === "Items" && isProperty && <PropertyContents propertyId={item.id} />}
+        {tab === "Items" && section === "rooms" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">

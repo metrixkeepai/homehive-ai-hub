@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, X, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { type Profile, useStore, toneClass } from "@/components/hv/store";
 import { TrackingPage } from "@/components/hv/Tracking";
 import { PropertiesPage } from "@/components/hv/Properties";
+import { RecordEditor } from "@/components/hv/RecordEditor";
 import { COUNTRIES } from "@/lib/countries";
 import { BillingPage } from "@/components/hv/Billing";
 import { ViewToggle, useViewMode } from "@/components/hv/ViewToggle";
+import { STUB_NAV_SLUGS } from "@/components/hv/navigation";
 
 export const Route = createFileRoute("/_authenticated/app/$section/")({
   validateSearch: (s: Record<string, unknown>): { add?: number } => (s["add"] ? { add: 1 } : {}),
@@ -47,9 +49,8 @@ function SectionPage() {
   const { section } = Route.useParams();
   const search = Route.useSearch();
   const s = getSection(section);
-  const { added, add, remove } = useStore();
+  const { added, remove } = useStore();
   const [open, setOpen] = useState(!!search.add);
-  const [form, setForm] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState("");
   const [docType, setDocType] = useState("All");
   const [showArchived, setShowArchived] = useState(false);
@@ -60,11 +61,7 @@ function SectionPage() {
     return <PropertiesPage slug={section} />;
   if (section === "warranties" || section === "renewals")
     return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
-  if (
-    ["agents", "services", "messages", "roles", "security", "privacy", "notifications"].includes(
-      section,
-    )
-  )
+  if (STUB_NAV_SLUGS.has(section))
     return (
       <div className="mx-auto max-w-5xl px-6 py-10">
         <h1 className="font-display text-3xl">{s.title}</h1>
@@ -111,37 +108,6 @@ function SectionPage() {
     section === "documents"
       ? ["All", ...Array.from(new Set(own.map(docTypeOf))).sort()]
       : [];
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const fields = s.addFields ?? [];
-    const first = fields[0] ?? "";
-    const title = form[first]?.trim();
-    if (!title) {
-      toast.error(`Please enter ${first.toLowerCase()}`);
-      return;
-    }
-    const ok = await add(s.slug, {
-      id: `new-${Date.now()}`,
-      title,
-      subtitle:
-        fields
-          .slice(1)
-          .map((f) => form[f])
-          .filter(Boolean)
-          .join(" · ") || "Just added",
-      status: ["New", "primary"],
-      fields: fields.map((f) => [f, form[f] || "—"]),
-      actions: ["Edit"],
-    });
-    if (!ok) {
-      toast.error("Couldn't save — please try again");
-      return;
-    }
-    toast.success(`${title} saved to your MatrixKeep`);
-    setForm({});
-    setOpen(false);
-  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-6">
@@ -346,36 +312,12 @@ function SectionPage() {
       )}
 
       {open && s.addFields && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-midnight/60 p-4 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
-          <form
-            onSubmit={submit}
-            className="animate-rise max-h-[min(90vh,44rem)] w-full max-w-md space-y-4 overflow-y-auto rounded-3xl bg-card p-7 shadow-glow"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-2xl">{s.addLabel}</h3>
-              <button type="button" aria-label="Close" onClick={() => setOpen(false)}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {s.addFields.map((f) => (
-              <label key={f} className="block text-sm font-medium">
-                {f}
-                <input
-                  value={form[f] ?? ""}
-                  onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                  className="mt-1 w-full rounded-xl border bg-background px-4 py-2.5 font-normal outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
-            ))}
-            <button className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground">
-              Save
-            </button>
-          </form>
-        </div>
+        <RecordEditor
+          section={s.slug}
+          addFields={s.addFields}
+          {...(s.addLabel ? { title: s.addLabel } : {})}
+          onClose={() => setOpen(false)}
+        />
       )}
     </div>
   );

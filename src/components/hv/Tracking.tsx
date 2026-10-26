@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { Item } from "./data";
 import { Evidence } from "./Evidence";
+import { PropertySelect, useDefaultProperty } from "./Properties";
 import { useStore, toneClass } from "./store";
 import { downloadReminder, field, trackingDate, trackingStatus } from "./tracking";
 
@@ -45,7 +46,11 @@ export function TrackingEditor({
     "Notes",
   ];
   const { add, update } = useStore();
+  const defaultProperty = useDefaultProperty();
   const [title, setTitle] = useState(item?.title ?? "");
+  const [propertyId, setPropertyId] = useState<string | null>(
+    item?.propertyId ?? defaultProperty,
+  );
   const [values, setValues] = useState<Record<string, string>>(
     Object.fromEntries(
       keys.map((k) => [
@@ -76,6 +81,7 @@ export function TrackingEditor({
       title: title.trim(),
       subtitle: `${values["Provider"] || (warranty ? "Warranty" : "Renewal")} · ${values[dateKey]}`,
       fields: keys.map((k) => [k, values[k] ?? ""]),
+      propertyId,
     };
     setBusy(true);
     const ok = item ? await update(item.id, record) : await add(section, record);
@@ -109,6 +115,14 @@ export function TrackingEditor({
               maxLength={200}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+            />
+          </label>
+          <label className="text-sm font-medium sm:col-span-2">
+            Property / location
+            <PropertySelect
+              value={propertyId}
+              onChange={setPropertyId}
               className="mt-1 w-full rounded-md border bg-background px-3 py-2"
             />
           </label>
