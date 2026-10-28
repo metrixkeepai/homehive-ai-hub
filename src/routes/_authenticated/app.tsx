@@ -354,7 +354,6 @@ function WorkspaceSwitcher() {
   const { workspaces, current, switchWorkspace, createWorkspace } = useStore();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [type, setType] = useState<"individual" | "business" | "enterprise">("business");
   const Icon = current.type === "individual" ? HomeIcon : Building2;
   return (
     <>
@@ -394,7 +393,7 @@ function WorkspaceSwitcher() {
                 toast.error("Enter a name");
                 return;
               }
-              if (await createWorkspace(name.trim(), type)) {
+              if (await createWorkspace(name.trim(), "business")) {
                 toast.success(`Switched to ${name}`);
                 setCreating(false);
                 setName("");
@@ -414,18 +413,6 @@ function WorkspaceSwitcher() {
               placeholder="e.g. Smile Dental Clinic"
               className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm"
             />
-            <div className="grid grid-cols-3 gap-2">
-              {(["individual", "business", "enterprise"] as const).map((t) => (
-                <button
-                  type="button"
-                  key={t}
-                  onClick={() => setType(t)}
-                  className={`rounded-xl border px-2 py-2 text-xs capitalize ${type === t ? "border-primary bg-primary/10 text-primary" : ""}`}
-                >
-                  {t === "individual" ? "Home" : t}
-                </button>
-              ))}
-            </div>
             <button className="w-full rounded-full bg-aurora py-2.5 text-sm font-semibold text-primary-foreground">
               Create and switch
             </button>

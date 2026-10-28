@@ -16,6 +16,7 @@ import {
   BriefcaseBusiness,
 } from "lucide-react";
 import authHome from "@/assets/auth-home.jpg";
+import { COUNTRIES } from "@/lib/countries";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -47,7 +48,7 @@ function AuthPage() {
   const [btype, setBtype] = useState("");
   const [industry, setIndustry] = useState("");
   const [size, setSize] = useState("");
-  const [branches, setBranches] = useState("");
+  const [country, setCountry] = useState("United Kingdom");
   const [voucher, setVoucher] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -125,7 +126,7 @@ function AuthPage() {
             business_type: b ? btype : undefined,
             sector: b ? industry : undefined,
             org_size: b ? size : undefined,
-            branches: b && /^\d{1,5}$/.test(branches) ? branches : undefined,
+            country: b && country ? country : undefined,
           },
         },
       });
@@ -231,7 +232,7 @@ function AuthPage() {
                     Create account
                   </Button>
                 </div>
-                {googleEnabled && (
+                {googleEnabled && mode === "in" && (
                   <>
                     <Button variant="outline" onClick={google} className="mt-6 h-11 w-full">
                       <span aria-hidden="true" className="text-lg font-bold">
@@ -246,7 +247,7 @@ function AuthPage() {
                     </div>
                   </>
                 )}
-                <form onSubmit={submit} className="mt-6 space-y-3">
+                <form onSubmit={submit} className={`space-y-3 ${mode === "up" || !googleEnabled ? "mt-6" : ""}`}>
                   {mode === "up" && (
                     <div className="grid grid-cols-2 gap-2">
                       {(["individual", "business"] as const).map((k) => (
@@ -317,13 +318,19 @@ function AuthPage() {
                           <option key={x}>{x}</option>
                         ))}
                       </select>
-                      <input
-                        value={branches}
-                        onChange={(e) => setBranches(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                        inputMode="numeric"
-                        placeholder="Locations / branches"
+                      <select
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        aria-label="Country"
                         className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      />
+                      >
+                        <option value="">Country</option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
                   {mode === "up" && kind !== "individual" && (
@@ -411,11 +418,6 @@ function AuthPage() {
                     ? "New here? Create an account"
                     : "Already have an account? Sign in"}
                 </Button>
-                {mode === "up" && googleEnabled && (
-                  <p className="mt-4 text-center text-xs text-muted-foreground">
-                    Google accounts start as Individual. You can change account type in My Profile.
-                  </p>
-                )}
               </>
             )}
           </div>
