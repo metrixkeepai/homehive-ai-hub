@@ -7,6 +7,13 @@ import { isGoogleAuthEnabled, supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/hv/Logo";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowLeft,
   ArrowRight,
   Home,
@@ -17,6 +24,47 @@ import {
 } from "lucide-react";
 import authHome from "@/assets/auth-home.jpg";
 import { COUNTRIES } from "@/lib/countries";
+
+const authSelectTrigger =
+  "h-auto w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm shadow-none focus:ring-2 focus:ring-ring data-[placeholder]:text-muted-foreground";
+const authSelectContent =
+  "max-h-56 rounded-xl border border-border bg-card p-1 text-card-foreground shadow-lg";
+const authSelectItem =
+  "cursor-pointer rounded-lg py-2 pl-3 pr-8 text-sm focus:bg-primary/10 focus:text-primary data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary";
+
+function AuthSelect({
+  value,
+  onValueChange,
+  placeholder,
+  options,
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  placeholder: string;
+  options: string[];
+  "aria-label"?: string;
+}) {
+  return (
+    <Select value={value || undefined} onValueChange={onValueChange}>
+      <SelectTrigger aria-label={ariaLabel ?? placeholder} className={authSelectTrigger}>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent
+        side="bottom"
+        position="popper"
+        avoidCollisions={false}
+        className={authSelectContent}
+      >
+        {options.map((option) => (
+          <SelectItem key={option} value={option} className={authSelectItem}>
+            {option}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -267,30 +315,24 @@ function AuthPage() {
                   )}
                   {mode === "up" && kind !== "individual" && (
                     <div className="grid grid-cols-2 gap-2">
-                      <select
+                      <AuthSelect
                         value={btype}
-                        onChange={(e) => setBtype(e.target.value)}
-                        className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Business type</option>
-                        {[
+                        onValueChange={setBtype}
+                        placeholder="Business type"
+                        options={[
                           "Sole trader",
                           "Partnership",
                           "Limited company",
                           "Charity",
                           "Public sector",
                           "Franchise",
-                        ].map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                      </select>
-                      <select
+                        ]}
+                      />
+                      <AuthSelect
                         value={industry}
-                        onChange={(e) => setIndustry(e.target.value)}
-                        className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Industry</option>
-                        {[
+                        onValueChange={setIndustry}
+                        placeholder="Industry"
+                        options={[
                           "Retail",
                           "Restaurant & hospitality",
                           "Office & professional services",
@@ -304,33 +346,21 @@ function AuthPage() {
                           "Technology",
                           "Charity",
                           "Other",
-                        ].map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                      </select>
-                      <select
+                        ]}
+                      />
+                      <AuthSelect
                         value={size}
-                        onChange={(e) => setSize(e.target.value)}
-                        className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Organisation size</option>
-                        {["1–9", "10–49", "50–249", "250–999", "1,000+"].map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                      </select>
-                      <select
+                        onValueChange={setSize}
+                        placeholder="Organisation size"
+                        options={["1–9", "10–49", "50–249", "250–999", "1,000+"]}
+                      />
+                      <AuthSelect
                         value={country}
-                        onChange={(e) => setCountry(e.target.value)}
+                        onValueChange={setCountry}
+                        placeholder="Country"
                         aria-label="Country"
-                        className="w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Country</option>
-                        {COUNTRIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                        options={COUNTRIES}
+                      />
                     </div>
                   )}
                   {mode === "up" && kind !== "individual" && (
