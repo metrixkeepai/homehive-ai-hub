@@ -255,14 +255,12 @@ function Detail() {
             )}
             {PASSPORT_KINDS[section] && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {section !== "my-home" && (
-                  <button
-                    onClick={() => setPassport("download")}
-                    className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold"
-                  >
-                    Download passport
-                  </button>
-                )}
+                <button
+                  onClick={() => setPassport("download")}
+                  className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold"
+                >
+                  Download passport
+                </button>
                 <button
                   onClick={() => setPassport("share")}
                   className="rounded-full border border-midnight-foreground/20 px-4 py-2 text-sm font-semibold"
