@@ -25,19 +25,24 @@ fi
 
 # Pin each secret version to make an existing revision safe to roll back to.
 secret_list=$(gcloud secrets list --project="$GCP_PROJECT_ID" --format='value(name)' | sed 's|.*/||')
+enabled_version() {
+  gcloud secrets versions list "$1" --project="$GCP_PROJECT_ID" --format=json |
+    jq -r '[.[] | select((.state | ascii_downcase) == "enabled")
+      | (.name | split("/") | last)
+      | if test("^[1-9][0-9]*$") then tonumber else error("Invalid secret version ID") end]
+      | max // empty'
+}
 version() {
   local value
-  value=$(gcloud secrets versions list "$1" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' \
-    --sort-by='~createTime' --limit=1 --format='value(name)')
-  value=${value##*/}
-  [[ $value =~ ^[0-9]+$ ]] || { echo "Missing enabled version of $1" >&2; return 1; }
+  value=$(enabled_version "$1") || return 1
+  [[ -n $value ]] || { echo "Missing enabled version of $1" >&2; return 1; }
   echo "$value"
 }
 has_secret() {
   grep -Fxq "$1" <<< "$secret_list" || return 1
-  local enabled
-  enabled=$(gcloud secrets versions list "$1" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' --limit=1 --format='value(name)') || exit 1
-  [[ -n $enabled ]]
+  local value
+  value=$(enabled_version "$1") || exit 1
+  [[ -n $value ]]
 }
 binding() { local v; v=$(version "$2") || return 1; echo "$1=$2:$v"; }
 bind() { local line; line=$(binding "$1" "${2:-$1}"); secrets+=("$line"); }
@@ -48,11 +53,11 @@ bind VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_PUBLISHABLE_KEY
 for key in OPENAI_API_KEY SUPER_ADMIN_EMAIL SUPER_ADMIN_PASSWORD SUPER_ADMIN_RESET_PASSWORD \
   LOVABLE_API_KEY GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY GOOGLE_CALENDAR_APP_USER_CONNECTOR_CLIENT_API_KEY \
   GOOGLE_DRIVE_APP_USER_CONNECTOR_CLIENT_API_KEY APP_USER_CONNECTION_KEY_SECRET; do
-  if has_secret "$key"; then bind "$key"; fi
+  if [[ $APP_ENV == staging && ( $key == OPENAI_API_KEY || $key == SUPER_ADMIN_* ) ]] || has_secret "$key"; then bind "$key"; fi
 done
 payments=false
 if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
-  if has_secret STRIPE_SECRET_KEY && has_secret STRIPE_WEBHOOK_SECRET && has_secret VITE_PAYMENTS_CLIENT_TOKEN; then
+  if [[ $APP_ENV == staging ]] || { has_secret STRIPE_SECRET_KEY && has_secret STRIPE_WEBHOOK_SECRET && has_secret VITE_PAYMENTS_CLIENT_TOKEN; }; then
     for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
     payments=true
     if [[ $APP_ENV == production ]]; then stripe=live; fi
