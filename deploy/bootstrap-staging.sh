@@ -80,7 +80,9 @@ echo "GCP_WORKLOAD_IDENTITY_PROVIDER=projects/$number/locations/global/workloadI
 # When Cloud Shell already has the owner's GitHub CLI session, finish the GitHub side too.
 repo=metrixkeepai/homehive-ai-hub
 if command -v gh >/dev/null && [[ $(gh api user --jq .login 2>/dev/null || true) == metrixkeepai ]]; then
-  gh api -X PUT "repos/$repo/environments/staging" --silent
+  if ! gh api "repos/$repo/environments/staging" --silent 2>/dev/null; then
+    gh api -X PUT "repos/$repo/environments/staging" --silent
+  fi
   gh variable set GCP_PROJECT_ID --repo "$repo" --env staging --body "$project"
   gh variable set GCP_REGION --repo "$repo" --env staging --body "$region"
   gh variable set GCP_DEPLOY_SERVICE_ACCOUNT --repo "$repo" --env staging --body "$deploy"

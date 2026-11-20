@@ -50,7 +50,7 @@ jobs:
             -e SUPABASE_URL=http://127.0.0.1:9 -e SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci \
             -e SUPABASE_SERVICE_ROLE_KEY=ci-only -e STRIPE_ENVIRONMENT=sandbox -e PAYMENTS_ENABLED=false matrixkeep-ci:web
           trap 'docker rm -f matrixkeep-ci >/dev/null' EXIT
-          curl --fail --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:8080/health/live
+          curl --fail --retry 12 --retry-all-errors --retry-delay 1 --max-time 5 http://127.0.0.1:8080/health/live
           [[ $(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health/ready) == 503 ]]
           for route in / /pricing /auth /super-admin/login /matrixkeep-config.js; do
             [[ $(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$route") == 200 ]]
