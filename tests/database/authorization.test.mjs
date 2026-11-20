@@ -316,10 +316,23 @@ test("storage metadata enforces item ownership, type, size and account quota", a
     insert(`${b}/${item}/large.pdf`, { size: 20971521, mimetype: "application/pdf" }),
     /Unsupported upload/,
   );
+  const pending = `${b}/${item}/pending.pdf`;
+  await insert(pending, { mimetype: "application/pdf" });
   await assert.rejects(
-    insert(`${b}/${item}/missing.pdf`, { mimetype: "application/pdf" }),
+    db.query("UPDATE storage.objects SET metadata=metadata WHERE name=$1", [pending]),
     /Upload size unavailable/,
   );
+  await assert.rejects(
+    db.query("UPDATE storage.objects SET metadata=$2::jsonb WHERE name=$1", [
+      pending,
+      JSON.stringify({ contentLength: 20971521, mimetype: "application/pdf" }),
+    ]),
+    /Unsupported upload/,
+  );
+  await db.query("UPDATE storage.objects SET metadata=$2::jsonb WHERE name=$1", [
+    pending,
+    JSON.stringify({ contentLength: 5, mimetype: "application/pdf" }),
+  ]);
   await db.exec("SELECT set_config('request.jwt.claim.role', 'service_role', false)");
   await db.query("UPDATE public.profiles SET limit_overrides='{\"storage\":100}' WHERE id=$1", [b]);
   await insert(`${b}/${item}/first.pdf`, { size: 60, mimetype: "application/pdf" });

@@ -41,3 +41,64 @@ jobs:
       - name: Build Node runtime
         if: ${{ !cancelled() }}
         run: npm run build
+      - name: Verify the release container starts as non-root
+        run: |
+          docker build --target runtime -t matrixkeep-ci:web .
+          docker run --rm matrixkeep-ci:web sh -ec 'test "$(id -u)" != 0 && test -f .output/server/index.mjs && node -e "require.resolve(\"ws\"); require.resolve(\"@supabase/supabase-js\")"'
+          docker build --target migrator -t matrixkeep-ci:migrator .
+          docker run --rm matrixkeep-ci:migrator node -e "require.resolve('drizzle-orm/postgres-js/migrator');require.resolve('postgres')"
+
+  staging:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: staging
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
+      EXPECTED_SUPABASE_REF: cdfpupivjjamhvmfcvry
+      MAX_INSTANCES: ${{ vars.MAX_INSTANCES || '3' }}
+      CONCURRENCY: ${{ vars.RUN_CONCURRENCY || '8' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Publish immutable release images
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ $GCP_PROJECT_ID == matrixkeep-* ]]
+          host="$REGION-docker.pkg.dev"
+          gcloud auth configure-docker "$host" --quiet
+          for target in runtime migrator; do
+            name=$target
+            if [[ $target == runtime ]]; then name=web; fi
+            repo="$host/$GCP_PROJECT_ID/matrixkeep/$name"
+            tag="$repo:$GITHUB_SHA"
+            docker build --target "$target" --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$tag" .
+            docker push "$tag"
+            digest=$(gcloud artifacts docker images describe "$tag" --format='value(image_summary.digest)')
+            [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+            field=IMAGE
+            if [[ $target == migrator ]]; then field=MIGRATOR_IMAGE; fi
+            echo "$field=$repo@$digest" >> "$GITHUB_ENV"
+          done
+      - name: Migrate staging, deploy and verify HTTPS health
+        run: bash deploy/cloud-run.sh
+      - name: Configure service monitoring
+        env:
+          MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
+        run: python3 deploy/monitoring.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-staging-release
+          path: release.json
+          if-no-files-found: error

@@ -20,7 +20,10 @@
     "db:migrate": "node scripts/migrate.mjs"
   },
   "overrides": {
-    "rolldown": "1.2.1"
+    "rolldown": "1.2.1",
+    "launch-editor": "2.14.2",
+    "undici": "7.30.2",
+    "zod": "4.6.6"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.84",
@@ -84,7 +87,7 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "ws": "^8.22.0",
-    "zod": "^3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.9",
@@ -112,7 +115,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "8.1.5",
+    "vite": "8.1.7",
     "vitest": "^4.1.10"
   },
   "engines": {

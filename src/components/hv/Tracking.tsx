@@ -48,9 +48,7 @@ export function TrackingEditor({
   const { add, update } = useStore();
   const defaultProperty = useDefaultProperty();
   const [title, setTitle] = useState(item?.title ?? "");
-  const [propertyId, setPropertyId] = useState<string | null>(
-    item?.propertyId ?? defaultProperty,
-  );
+  const [propertyId, setPropertyId] = useState<string | null>(item?.propertyId ?? defaultProperty);
   const [values, setValues] = useState<Record<string, string>>(
     Object.fromEntries(
       keys.map((k) => [

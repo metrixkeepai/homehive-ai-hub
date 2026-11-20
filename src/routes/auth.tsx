@@ -46,7 +46,7 @@ function AuthSelect({
   "aria-label"?: string;
 }) {
   return (
-    <Select value={value || undefined} onValueChange={onValueChange}>
+    <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger aria-label={ariaLabel ?? placeholder} className={authSelectTrigger}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
@@ -295,7 +295,10 @@ function AuthPage() {
                     </div>
                   </>
                 )}
-                <form onSubmit={submit} className={`space-y-3 ${mode === "up" || !googleEnabled ? "mt-6" : ""}`}>
+                <form
+                  onSubmit={submit}
+                  className={`space-y-3 ${mode === "up" || !googleEnabled ? "mt-6" : ""}`}
+                >
                   {mode === "up" && (
                     <div className="grid grid-cols-2 gap-2">
                       {(["individual", "business"] as const).map((k) => (

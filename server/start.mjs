@@ -4,7 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 import { attachVoice } from "./voice.mjs";
 import { validateEnvironment } from "./environment.mjs";
 import { ensureSuperAdmin } from "./ensure-super-admin.mjs";
+import { publicConfig } from "./public-config.mjs";
 validateEnvironment(process.env);
+const browserScript = `window.__MATRIXKEEP_PUBLIC__=Object.freeze(${JSON.stringify(publicConfig(process.env))});`;
 await ensureSuperAdmin(process.env);
 const { middleware } = await import("../.output/server/index.mjs");
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -39,6 +41,17 @@ const server = createServer(async (request, response) => {
     ),
   );
   const path = new URL(request.url, "http://internal").pathname;
+  if (process.env.APP_ENV === "production" && request.headers.host === "www.matrixkeep.com") {
+    response.writeHead(308, { Location: process.env.APP_ORIGIN + request.url });
+    response.end();
+    return;
+  }
+  if (path === "/matrixkeep-config.js") {
+    response.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    response.setHeader("Cache-Control", "no-store");
+    response.end(browserScript);
+    return;
+  }
   if (path === "/health/live" || path === "/health/ready") {
     if (path === "/health/ready" && Date.now() > readyUntil) {
       try {

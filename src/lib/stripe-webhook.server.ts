@@ -4,6 +4,8 @@ import { supabaseAdmin } from "../integrations/supabase/client.server";
 import { validatedPrice } from "./stripe-billing.server";
 
 export async function handleStripeWebhook(request: Request) {
+  if (process.env["STRIPE_ENVIRONMENT"] === "disabled")
+    return new Response("Billing disabled", { status: 503 });
   let event: Stripe.Event;
   const environment = stripeEnvironment();
   const requested = new URL(request.url).searchParams.get("env");

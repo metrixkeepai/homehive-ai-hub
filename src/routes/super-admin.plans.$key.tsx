@@ -72,6 +72,7 @@ function PlanDetail() {
         ),
         ...(z
           .record(
+            z.string(),
             z.object({
               on: z.boolean(),
               limit: z.number().nullable().optional(),

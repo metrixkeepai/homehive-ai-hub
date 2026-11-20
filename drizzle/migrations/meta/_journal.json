@@ -211,6 +211,13 @@
       "when": 1792576177132,
       "tag": "0029_signup_country",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795132800000,
+      "tag": "0030_restore_runtime_guards",
+      "breakpoints": true
     }
   ]
 }

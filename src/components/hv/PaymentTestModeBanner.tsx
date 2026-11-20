@@ -1,11 +1,11 @@
-const clientToken = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
+import { publicSetting } from "@/lib/public-config";
+const clientToken = publicSetting("VITE_PAYMENTS_CLIENT_TOKEN");
 
 export function PaymentTestModeBanner() {
   if (!clientToken) {
     return (
       <div className="w-full border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">
-        Production checkout is not configured. Complete Stripe go-live in your Lovable project to
-        accept real payments.
+        Checkout is currently unavailable.
       </div>
     );
   }

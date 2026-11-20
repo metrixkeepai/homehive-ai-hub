@@ -1,6 +1,7 @@
 // Deterministic contract/capture date logic: AI may emit spoken or printed dates;
 // we normalise to YYYY-MM-DD and calculate derived expiry/renewal/notice dates.
 import {
+  type Day,
   addDays,
   addMonths,
   addYears,
@@ -53,7 +54,7 @@ const WORDS: Record<string, number> = {
   few: 3,
 };
 
-const DOW: Record<string, number> = {
+const DOW: Record<string, Day> = {
   sunday: 0,
   sun: 0,
   monday: 1,
@@ -180,7 +181,7 @@ function parseAbsolute(raw: string): Date | null {
   return null;
 }
 
-function weekdayNamed(ref: Date, qualifier: "last" | "this" | "next" | "past", day: number): Date {
+function weekdayNamed(ref: Date, qualifier: "last" | "this" | "next" | "past", day: Day): Date {
   if (qualifier === "last" || qualifier === "past") return previousDay(ref, day);
   if (qualifier === "next") {
     const candidate = setDay(ref, day, { weekStartsOn: 1 });
@@ -196,12 +197,9 @@ function weekdayNamed(ref: Date, qualifier: "last" | "this" | "next" | "past", d
  * Resolves spoken/relative/printed date phrases to YYYY-MM-DD against a reference day
  * (normally the user's local "today"). Returns null when the phrase is not a date.
  */
-export function resolveSpokenDate(
-  value: string,
-  referenceDate?: string | Date,
-): string | null {
+export function resolveSpokenDate(value: string, referenceDate?: string | Date): string | null {
   const ref = refDay(referenceDate);
-  let s = value
+  const s = value
     .trim()
     .toLowerCase()
     .replace(/[’']/g, "")

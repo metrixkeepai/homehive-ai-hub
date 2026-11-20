@@ -33,7 +33,8 @@ describe("workspace navigation", () => {
     expect(slugs(false)).toContain("renewals");
     expect(slugs(false)).toContain("family");
     expect(slugs(false)).not.toContain("team");
-    expect(slugs(true)).toEqual(expect.arrayContaining(["locations", "team", "roles", "renewals"]));
+    expect(slugs(true)).toEqual(expect.arrayContaining(["locations", "team", "renewals"]));
+    expect(slugs(true)).not.toContain("roles");
     expect(slugs(true)).not.toContain("family");
   });
 });
