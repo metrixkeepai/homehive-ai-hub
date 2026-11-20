@@ -28,8 +28,12 @@ def reconcile(collection, config, fields):
         page = request("GET", path + query)
         for old in page.get(collection, []):
             if old["displayName"] == config["displayName"]:
+                if collection == "uptimeCheckConfigs" and any(
+                    old.get(key) != config[key] for key in ("period", "monitoredResource")
+                ):
+                    raise ValueError("Existing readiness monitor has a different target or period")
                 return request("PATCH", old["name"] + "?updateMask=" + ",".join(fields),
-                               {key: config[key] for key in fields})
+                               {"name": old["name"], **{key: config[key] for key in fields}})
         if not page.get("nextPageToken"):
             break
         query = "?" + urllib.parse.urlencode({"pageToken": page["nextPageToken"]})
@@ -41,7 +45,7 @@ check = {"displayName": service + " readiness", "monitoredResource": {
     "httpCheck": {"useSsl": True, "validateSsl": True, "path": "/health/ready", "port": 443,
                   "acceptedResponseStatusCodes": [{"statusValue": 200}]},
     "period": "300s", "timeout": "10s"}
-uptime = reconcile("uptimeCheckConfigs", check, ["httpCheck", "period", "timeout", "monitoredResource"])
+uptime = reconcile("uptimeCheckConfigs", check, ["httpCheck", "timeout"])
 check_id = uptime["name"].split("/")[-1]
 resource = f'resource.type="cloud_run_revision" AND resource.label.service_name="{service}"'
 channel = os.environ.get("MONITORING_CHANNEL", "")
