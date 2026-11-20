@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
-import { plans } from "./plans";
 
 export const createCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,58 +14,122 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data, context }): Promise<{ clientSecret: string } | { error: string }> => {
-    try {
-      const { trustedReturnUrl } = await import("./app-origin.server");
-      const returnUrl = trustedReturnUrl(data.returnUrl, "/app/plans");
-      const { customerForUser, validatedPrice } = await import("./stripe-billing.server");
-      const stripe = createStripeClient(data.environment);
-      const price = await validatedPrice(stripe, data.priceId);
-      const { data: profile, error: profileError } = await context.supabase
-        .from("profiles")
-        .select("suspended")
-        .eq("id", context.userId)
-        .single();
-      if (profileError || !profile || profile.suspended) throw new Error("Account unavailable");
-      const { data: status, error: statusError } = await context.supabase
-        .from("plan_status")
-        .select("active")
-        .eq("plan_key", data.priceId.replace(/_(monthly|yearly)$/, ""))
-        .maybeSingle();
-      if (statusError || status?.active === false) throw new Error("Plan unavailable");
-      const {
-        data: { user },
-      } = await context.supabase.auth.getUser();
-      const customer = await customerForUser(stripe, context.userId, data.environment, user?.email);
-      const subscriptions = await stripe.subscriptions.list({
-        customer,
-        status: "all",
-        limit: 100,
-      });
-      if (subscriptions.data.some((s) => !["canceled", "incomplete_expired"].includes(s.status)))
-        return { error: "Manage your existing subscription in Billing to change plans." };
-      const session = await stripe.checkout.sessions.create(
-        {
-          mode: "subscription",
-          ui_mode: "embedded_page",
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ clientSecret: string } | { portalUrl: string } | { error: string }> => {
+      try {
+        const { trustedReturnUrl } = await import("./app-origin.server");
+        const returnUrl = trustedReturnUrl(data.returnUrl, "/app/plans");
+        const { customerForUser, validatedPrice } = await import("./stripe-billing.server");
+        const stripe = createStripeClient(data.environment);
+        const price = await validatedPrice(stripe, data.priceId);
+        const { data: profile, error: profileError } = await context.supabase
+          .from("profiles")
+          .select("suspended")
+          .eq("id", context.userId)
+          .single();
+        if (profileError || !profile || profile.suspended) throw new Error("Account unavailable");
+        const { data: status, error: statusError } = await context.supabase
+          .from("plan_status")
+          .select("active")
+          .eq("plan_key", data.priceId.replace(/_(monthly|yearly)$/, ""))
+          .maybeSingle();
+        if (statusError || status?.active === false) throw new Error("Plan unavailable");
+        const {
+          data: { user },
+        } = await context.supabase.auth.getUser();
+        const customer = await customerForUser(
+          stripe,
+          context.userId,
+          data.environment,
+          user?.email,
+        );
+        const subscriptions = await stripe.subscriptions.list({
           customer,
-          line_items: [{ price: price.id, quantity: 1 }],
-          return_url: returnUrl,
-          client_reference_id: context.userId,
-          metadata: { userId: context.userId, app: "matrixkeep" },
-          subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
-          integration_identifier: "matrixkeep_production_qmxtabcn",
-        },
-        {
-          idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${Math.floor(Date.now() / 1_800_000)}`,
-        },
-      );
-      if (!session.client_secret) throw new Error("Checkout unavailable");
-      return { clientSecret: session.client_secret };
-    } catch (error) {
-      return { error: getStripeErrorMessage(error) };
-    }
-  });
+          status: "all",
+          limit: 100,
+        });
+        const current = subscriptions.data.filter(
+          (s) => !["canceled", "incomplete_expired"].includes(s.status),
+        );
+        const subscription = current[0];
+        if (subscription) {
+          const item = subscription.items.data[0];
+          const canChange =
+            current.length === 1 &&
+            !subscriptions.has_more &&
+            ["active", "trialing"].includes(subscription.status) &&
+            subscription.items.data.length === 1 &&
+            item &&
+            item.price.id !== price.id;
+          const portal = await stripe.billingPortal.sessions.create({
+            customer,
+            return_url: returnUrl,
+            ...(canChange
+              ? {
+                  flow_data: {
+                    type: "subscription_update_confirm" as const,
+                    subscription_update_confirm: {
+                      subscription: subscription.id,
+                      items: [{ id: item.id, price: price.id, quantity: item.quantity ?? 1 }],
+                    },
+                    after_completion: {
+                      type: "redirect" as const,
+                      redirect: { return_url: returnUrl },
+                    },
+                  },
+                }
+              : {}),
+          });
+          return { portalUrl: portal.url };
+        }
+        const session = await stripe.checkout.sessions.create(
+          {
+            mode: "subscription",
+            ui_mode: "embedded_page",
+            customer,
+            line_items: [{ price: price.id, quantity: 1 }],
+            return_url: returnUrl,
+            client_reference_id: context.userId,
+            metadata: { userId: context.userId, app: "matrixkeep" },
+            subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
+          },
+          {
+            idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${Math.floor(Date.now() / 1_800_000)}`,
+          },
+        );
+        if (!session.client_secret) throw new Error("Checkout unavailable");
+        return { clientSecret: session.client_secret };
+      } catch (error) {
+        const providerError = error as { type?: string; code?: string; requestId?: string };
+        const safe = (value: unknown) =>
+          typeof value === "string" && /^[a-zA-Z0-9_]{1,80}$/.test(value) ? value : undefined;
+        console.error(
+          JSON.stringify({
+            event: "checkout_failed",
+            type: safe(providerError?.type),
+            code: safe(providerError?.code),
+            request: safe(providerError?.requestId),
+            reason:
+              error instanceof Error &&
+              [
+                "Price configuration mismatch",
+                "Unknown plan",
+                "Plan unavailable",
+                "Account unavailable",
+                "Billing binding failed",
+                "Billing lookup failed",
+              ].includes(error.message)
+                ? error.message
+                : undefined,
+          }),
+        );
+        return { error: getStripeErrorMessage(error) };
+      }
+    },
+  );
 
 export const createPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

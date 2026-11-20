@@ -136,6 +136,42 @@ test("valid checkout retains its exact allowed return URL", async () => {
     "https://matrixkeep.com/app/plans",
   );
 });
+test("existing subscriber reviews a price change without creating a second subscription", async () => {
+  const subscriptions = globalThis.__matrixkeepSecurityMocks.stripe.subscriptions;
+  const original = subscriptions.list;
+  subscriptions.list = async () => ({
+    data: [
+      {
+        id: "sub_current",
+        status: "active",
+        items: { data: [{ id: "si_current", price: { id: "price_old" }, quantity: 1 }] },
+      },
+    ],
+    has_more: false,
+  });
+  try {
+    const result = await createCheckoutSession({
+      data: {
+        priceId: "plus_monthly",
+        returnUrl: "https://matrixkeep.com/app/plans",
+        environment: "sandbox",
+      },
+      context,
+    });
+    assert.equal(result.portalUrl, "https://billing.stripe.test/session");
+    assert.equal(
+      calls.some(([kind]) => kind === "checkout"),
+      false,
+    );
+    const flow = calls.find(([kind]) => kind === "portal")[1].flow_data;
+    assert.deepEqual(flow.subscription_update_confirm, {
+      subscription: "sub_current",
+      items: [{ id: "si_current", price: "price_test", quantity: 1 }],
+    });
+  } finally {
+    subscriptions.list = original;
+  }
+});
 test("portal rejects a foreign return before external side effects", async () => {
   await assert.rejects(
     () =>
