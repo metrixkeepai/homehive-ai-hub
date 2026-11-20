@@ -414,3 +414,32 @@ test("feature switches are enforced by the reservation RPC", async () => {
     /permission denied/,
   );
 });
+
+test("a location passport lists only records linked to that location", async () => {
+  const owner = "66c10142-0000-4000-8000-000000000001";
+  await db.query("INSERT INTO auth.users(id,email) VALUES ($1,'locations@example.test')", [owner]);
+  await db.query(
+    "UPDATE public.profiles SET account_type='business', plan='business_scale' WHERE id=$1",
+    [owner],
+  );
+  const locations = await asUser(
+    owner,
+    "INSERT INTO public.home_items(section,title) VALUES ('locations','North'),('locations','South') RETURNING id",
+  );
+  for (const { id } of locations.rows) {
+    await asUser(
+      owner,
+      "INSERT INTO public.home_items(section,title,property_id) VALUES ('assets','Shared model name',$1)",
+      [id],
+    );
+  }
+  const north = locations.rows[0].id;
+  const records = await asUser(owner, "SELECT property_id FROM public.passport_records($1)", [
+    north,
+  ]);
+  assert.deepEqual(records.rows, [{ property_id: north }]);
+  assert.deepEqual(
+    (await asUser(a, "SELECT id FROM public.passport_records($1)", [north])).rows,
+    [],
+  );
+});

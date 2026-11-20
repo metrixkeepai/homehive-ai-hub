@@ -963,6 +963,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      passport_records: {
+        Args: { _subject: string };
+        Returns: Database["public"]["Tables"]["home_items"]["Row"][];
+      };
       open_passport_share: {
         Args: { _token: string };
         Returns: {

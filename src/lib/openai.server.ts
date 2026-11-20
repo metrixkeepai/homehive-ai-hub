@@ -19,13 +19,15 @@ export function openAIKey() {
 }
 export class AIProviderError extends Error {
   readonly status: number;
-  constructor(status: number) {
+  readonly providerCode: string | undefined;
+  constructor(status: number, providerCode?: string) {
     super(
       status === 429
         ? "The AI is busy. Please try again in a moment."
         : "The AI could not complete this request. Please try again.",
     );
     this.status = status;
+    this.providerCode = providerCode;
   }
 }
 export async function openAIRequest(
@@ -44,8 +46,17 @@ export async function openAIRequest(
     redirect: "error",
   });
   if (!response.ok) {
-    await response.body?.cancel();
-    throw new AIProviderError(response.status);
+    // Retain only recognised operational codes. Provider messages can include submitted content.
+    const failure = await response.json().catch(() => null);
+    const code = failure?.error?.code;
+    const providerCode = [
+      "insufficient_quota",
+      "rate_limit_exceeded",
+      "billing_hard_limit_reached",
+    ].includes(code)
+      ? String(code)
+      : undefined;
+    throw new AIProviderError(response.status, providerCode);
   }
   return response;
 }
@@ -107,7 +118,10 @@ export async function responseText(options: {
       output: 0,
       latencyMs: Date.now() - started,
       ok: false,
-      error: error instanceof AIProviderError ? `HTTP ${error.status}` : "request_failed",
+      error:
+        error instanceof AIProviderError
+          ? [`HTTP ${error.status}`, error.providerCode].filter(Boolean).join(" ")
+          : "request_failed",
     });
     throw error;
   }

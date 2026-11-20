@@ -1,5 +1,5 @@
 import { useStore } from "./store";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   FileText,
@@ -46,7 +46,6 @@ type Props = {
   mode: "download" | "share";
   section: string;
   item: Item;
-  added: Record<string, Item[]>;
   owner: string;
 };
 type Share = {
@@ -69,7 +68,7 @@ const EXPIRY: [string, number][] = [
   ["30 days", 30],
 ];
 
-export function PassportModal({ open, onClose, mode, section, item, added, owner }: Props) {
+export function PassportModal({ open, onClose, mode, section, item, owner }: Props) {
   const { current } = useStore();
   const kind = PASSPORT_KINDS[section] ?? "Digital Passport";
   const whole = section === "my-home";
@@ -101,7 +100,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
     const { data } = await supabase
       .from("passport_shares")
       .select("id,token,title,expires_at,revoked,views")
-      .eq("title", `${kind}: ${item.title}`)
+      .eq("item_id", item.id)
       .order("created_at", { ascending: false });
     setShares((data ?? []) as Share[]);
   };
@@ -109,10 +108,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
     if (open && mode === "share") void loadShares();
   }, [open, mode]);
 
-  const html = useMemo(
-    () => buildPassportHtml(item, added, owner, { reportType, include, privacy }, kind, whole),
-    [item, added, owner, reportType, include, privacy, kind, whole],
-  );
+  const [html, setHtml] = useState("");
   const fmtLabel = FORMATS.find(([f]) => f === format)![1];
 
   const pickType = (t: string) => {
@@ -127,6 +123,40 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
   const generate = async () => {
     setStage("working");
     try {
+      const records: Record<string, Item[]> = {};
+      if (include.length) {
+        const pageSize = 250;
+        let lastId: string | undefined;
+        while (true) {
+          let query = supabase
+            .rpc("passport_records", { _subject: item.id })
+            .select("id,section,title,subtitle,fields")
+            .in("section", include)
+            .order("id")
+            .limit(pageSize);
+          if (lastId) query = query.gt("id", lastId);
+          const { data: page, error } = await query;
+          if (error) throw error;
+          for (const row of page ?? []) {
+            (records[row.section] ??= []).push({
+              id: row.id,
+              title: row.title,
+              subtitle: row.subtitle ?? "",
+              fields: (row.fields ?? []) as [string, string][],
+            });
+          }
+          if (!page || page.length < pageSize) break;
+          lastId = page[page.length - 1]!.id;
+        }
+      }
+      const report = buildPassportHtml(
+        item,
+        records,
+        owner,
+        { reportType, include, privacy },
+        kind,
+      );
+      setHtml(report);
       if (mode === "download") {
         setStage("done");
         return;
@@ -138,7 +168,7 @@ export function PassportModal({ open, onClose, mode, section, item, added, owner
           item_id: item.id,
           workspace_id: current.id,
           title: `${kind}: ${item.title}`,
-          html,
+          html: report,
           expires_at: exp.toISOString(),
         })
         .select("token")

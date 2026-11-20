@@ -276,7 +276,6 @@ function Detail() {
           onClose={() => setPassport(null)}
           section={section}
           item={item}
-          added={added}
           owner={profile?.display_name || email || "you"}
         />
       )}
