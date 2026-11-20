@@ -1,5 +1,5 @@
-FROM oven/bun:1.4.3 AS bun
-FROM node:24.22.3-bookworm-slim AS build
+FROM oven/bun:1.4.3@sha256:ec06c3b6cea04192ae6770c434f668ca41d343ad19fa6472216c7b48be39c598 AS bun
+FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS build
 WORKDIR /app
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 COPY package.json bun.lock bunfig.toml ./
@@ -7,7 +7,7 @@ RUN bun install --frozen-lockfile --ignore-scripts
 COPY . .
 RUN npm run build
 
-FROM node:24.22.3-bookworm-slim AS migrator
+FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS migrator
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package.json ./package.json
@@ -18,7 +18,7 @@ COPY --from=build /app/node_modules/postgres ./node_modules/postgres
 USER node
 CMD ["npm", "run", "db:migrate"]
 
-FROM node:24.22.3-bookworm-slim AS runtime
+FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/.output ./.output

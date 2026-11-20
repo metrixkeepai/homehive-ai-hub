@@ -62,7 +62,7 @@ provider=staging
 if ! gcloud iam workload-identity-pools describe "$pool" --project="$project" --location=global >/dev/null 2>&1; then
   gcloud iam workload-identity-pools create "$pool" --project="$project" --location=global --display-name="MatrixKeep GitHub"
 fi
-trust="assertion.repository_owner_id=='340979120' && assertion.repository_id=='1414320559' && assertion.ref=='refs/heads/main' && assertion.environment=='staging' && assertion.workflow_ref=='metrixkeepai/homehive-ai-hub/.github/workflows/verify.yml@refs/heads/main'"
+trust="assertion.repository_owner_id=='340979120' && assertion.repository_id=='1414320559' && assertion.ref in ['refs/heads/main','refs/heads/release/matrixkeep-cloud-run'] && assertion.environment=='staging' && assertion.workflow_ref=='metrixkeepai/homehive-ai-hub/.github/workflows/verify.yml@'+assertion.ref"
 if ! gcloud iam workload-identity-pools providers describe "$provider" --workload-identity-pool="$pool" \
   --location=global --project="$project" >/dev/null 2>&1; then
   gcloud iam workload-identity-pools providers create-oidc "$provider" --project="$project" --location=global \
@@ -76,3 +76,14 @@ echo "GCP_PROJECT_ID=$project"
 echo "GCP_DEPLOY_SERVICE_ACCOUNT=$deploy"
 echo "GCP_REGION=$region"
 echo "GCP_WORKLOAD_IDENTITY_PROVIDER=projects/$number/locations/global/workloadIdentityPools/$pool/providers/$provider"
+
+# When Cloud Shell already has the owner's GitHub CLI session, finish the GitHub side too.
+repo=metrixkeepai/homehive-ai-hub
+if command -v gh >/dev/null && [[ $(gh api user --jq .login 2>/dev/null || true) == metrixkeepai ]]; then
+  gh api -X PUT "repos/$repo/environments/staging" --silent
+  gh variable set GCP_PROJECT_ID --repo "$repo" --env staging --body "$project"
+  gh variable set GCP_REGION --repo "$repo" --env staging --body "$region"
+  gh variable set GCP_DEPLOY_SERVICE_ACCOUNT --repo "$repo" --env staging --body "$deploy"
+  gh variable set GCP_WORKLOAD_IDENTITY_PROVIDER --repo "$repo" --env staging \
+    --body "projects/$number/locations/global/workloadIdentityPools/$pool/providers/$provider"
+fi

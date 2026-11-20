@@ -68,7 +68,12 @@ gcloud run jobs deploy "matrixkeep-$APP_ENV-migrate" "${common[@]}" --service-ac
 # On an existing service preserve the previous traffic split until the candidate passes its probes.
 existing=$(gcloud run services list "${common[@]}" --filter="metadata.name=$service" --format='value(metadata.name)')
 traffic=()
-if [[ -n $existing ]]; then traffic+=(--no-traffic); fi
+old_split=""
+if [[ -n $existing ]]; then
+  traffic+=(--no-traffic)
+  old_split=$(gcloud run services describe "$service" "${common[@]}" --format=json |
+    jq -er '[.status.traffic[] | select(.percent > 0) | "\(.revisionName)=\(.percent)"] | join(",")')
+fi
 tag="qa-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 deploy_revision() {
   gcloud run deploy "$service" "${common[@]}" --image="$IMAGE" --service-account="$runtime" \
@@ -104,10 +109,17 @@ deploy_revision true
 check "$candidate"
 curl -fsS -D "$RUNNER_TEMP/candidate.headers" "$candidate/health/live" -o /dev/null
 grep -Eiq '^strict-transport-security:.*max-age=[1-9]' "$RUNNER_TEMP/candidate.headers"
+rollback_traffic() {
+  if [[ -n $old_split ]]; then
+    gcloud run services update-traffic "$service" "${common[@]}" --to-revisions="$old_split"
+  fi
+}
+trap rollback_traffic ERR
 gcloud run services update-traffic "$service" "${common[@]}" --to-revisions="$revision=100"
 check "$origin"
 curl -fsS -D "$RUNNER_TEMP/public.headers" "$origin/health/live" -o /dev/null
 grep -Eiq '^strict-transport-security:.*max-age=[1-9]' "$RUNNER_TEMP/public.headers"
+trap - ERR
 jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg migrator "$MIGRATOR_IMAGE" \
   --arg project "$GCP_PROJECT_ID" --arg region "$REGION" --arg service "$service" --arg revision "$revision" \
   --arg origin "$origin" '{sha:$sha,image:$image,migrator:$migrator,project:$project,region:$region,service:$service,revision:$revision,origin:$origin}' > release.json
