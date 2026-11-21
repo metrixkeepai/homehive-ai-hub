@@ -18,6 +18,12 @@ COPY --from=build /app/node_modules/postgres ./node_modules/postgres
 USER node
 CMD ["npm", "run", "db:migrate"]
 
+FROM build AS staging-qa
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/matrixkeep-browsers
+RUN ./node_modules/.bin/playwright install --with-deps chromium
+USER node
+CMD ["node", "scripts/staging-certification.mjs"]
+
 FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime
 ENV NODE_ENV=production
 WORKDIR /app

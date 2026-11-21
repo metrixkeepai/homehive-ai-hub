@@ -370,16 +370,18 @@ export const setPlanVersionStatus = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     if (!v) throw new Error("Version not found");
-    if (data.status === "approved")
-      await db
-        .from("plan_versions")
-        .update({ status: "archived" })
-        .eq("plan_key", v.plan_key)
-        .eq("status", "approved");
+    if (data.status === "approved") {
+      const { publishPlanVersion } = await import("./billing-catalogue.server");
+      await publishPlanVersion(data.id, context.userId);
+      return { ok: true };
+    }
     const { error } = await db
       .from("plan_versions")
       .update({ status: data.status })
-      .eq("id", data.id);
+      .neq("status", "approved")
+      .eq("id", data.id)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     await audit(db, context.userId, `plan_version_${data.status}`, v.plan_key, null, {
       version: v.version,

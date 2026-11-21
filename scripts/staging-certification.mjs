@@ -1,0 +1,167 @@
+// Runs only in the dedicated staging QA job. Never persist credentials, page contents or session URLs.
+import { chromium } from "playwright";
+import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "node:crypto";
+const env = process.env;
+const base = "https://matrixkeep-staging-web-893477687403.europe-west2.run.app";
+if (
+  env.APP_ENV !== "staging" ||
+  env.SUPABASE_URL?.replace(/\/$/, "") !== "https://cdfpupivjjamhvmfcvry.supabase.co" ||
+  !/^\d+$/.test(env.QA_RUN)
+)
+  throw Error("Unexpected QA target");
+const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+async function record(check_name, outcome) {
+  const { error } = await db
+    .from("release_qa_checks")
+    .upsert({ run_id: env.QA_RUN, check_name, outcome });
+  if (error) throw Error("Unable to record check");
+  console.log(check_name, outcome);
+}
+async function check(name, fn) {
+  try {
+    await fn();
+    await record(name, "PASS");
+    return true;
+  } catch (e) {
+    await record(name, e?.name === "TimeoutError" ? "TIMEOUT" : "FAIL");
+    return false;
+  }
+}
+const identity = await check("Stripe runtime account", async () => {
+  if (!/^(sk|rk)_test_/.test(env.STRIPE_SECRET_KEY)) throw Error();
+  const r = await fetch("https://api.stripe.com/v1/account", {
+    headers: { authorization: "Bearer " + env.STRIPE_SECRET_KEY },
+  });
+  if (!r.ok || (await r.json()).id !== "acct_1USCeXCvVNDP3ZsF") throw Error();
+});
+for (const model of ["gpt-6-luna", "gpt-6.1-sol", "gpt-transcribe", "gpt-realtime-2.1"]) {
+  const r = await fetch("https://api.openai.com/v1/models/" + model, {
+    headers: { authorization: "Bearer " + env.OPENAI_API_KEY },
+  });
+  await record(
+    "OpenAI model " + model,
+    r.ok && (await r.json()).id === model ? "PASS" : "HTTP " + r.status,
+  );
+}
+const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
+try {
+  const admin = await browser.newPage();
+  const adminOk = await check("Super Admin login", async () => {
+    await admin.goto(base + "/super-admin/login");
+    await admin.getByLabel("Email", { exact: true }).fill(env.SUPER_ADMIN_EMAIL);
+    await admin.getByLabel("Password", { exact: true }).fill(env.SUPER_ADMIN_PASSWORD);
+    await admin.locator("form button[type=submit]").click();
+    await admin.waitForURL(base + "/super-admin");
+  });
+  if (adminOk) {
+    for (const route of [
+      "subscribers",
+      "subscriptions",
+      "plans",
+      "plans/home",
+      "vouchers",
+      "revenue",
+      "payments",
+      "billing",
+      "ai",
+      "infrastructure",
+      "api",
+      "health",
+      "integrations",
+      "flags",
+      "audit",
+      "reports",
+    ]) {
+      await check("Admin route " + route, async () => {
+        await admin.goto(base + "/super-admin/" + route);
+        await admin.locator("main h1").first().waitFor({ timeout: 5000 });
+        if (
+          admin.url() !== base + "/super-admin/" + route ||
+          (await admin
+            .getByText(/change your password|couldn.t load|something went wrong/i)
+            .count())
+        )
+          throw Error();
+      });
+    }
+  }
+  const password = randomUUID() + randomUUID();
+  const email = "metrixkeepai+qa-" + env.QA_RUN + "@gmail.com";
+  const { data: created, error } = await db.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { account_type: "individual", full_name: "MatrixKeep staging QA" },
+  });
+  if (error) throw Error("QA account creation failed");
+  const page = await browser.newPage();
+  page.setDefaultTimeout(12000);
+  const login = await check("Individual browser login", async () => {
+    await page.goto(base + "/auth");
+    await page.locator("input[type=email]").fill(email);
+    await page.locator("input[type=password]").fill(password);
+    await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.waitForURL(/\/app(?:\/|$)/);
+  });
+  if (login) {
+    for (const w of [320, 375, 390, 430, 768, 1024]) {
+      await check("Plans viewport " + w, async () => {
+        await page.setViewportSize({ width: w, height: 850 });
+        await page.goto(base + "/app/plans");
+        const btn = page.getByRole("button", { name: "Choose Home+", exact: true });
+        await btn.waitFor();
+        await btn.scrollIntoViewIfNeeded();
+        if (
+          !(await btn.isEnabled()) ||
+          (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2))
+        )
+          throw Error();
+      });
+    }
+    if (identity)
+      await check("Home+ sandbox browser purchase", async () => {
+        await page.getByRole("button", { name: "Choose Home+", exact: true }).click();
+        let form;
+        for (let i = 0; i < 30 && !form; i++) {
+          for (const frame of page.frames()) {
+            if (
+              new URL(frame.url() || "about:blank").hostname.endsWith(".stripe.com") &&
+              (await frame.locator('[name="cardNumber"]').count())
+            ) {
+              form = frame;
+              break;
+            }
+          }
+          if (!form) await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        if (!form) throw Error();
+        await form.locator('[name="cardNumber"]').fill("4242424242424242");
+        await form.locator('[name="cardExpiry"]').fill("1230");
+        await form.locator('[name="cardCvc"]').fill("123");
+        for (const [name, value] of [
+          ["billingName", "MatrixKeep QA"],
+          ["billingPostalCode", "MK9 1AA"],
+        ]) {
+          const el = form.locator('[name="' + name + '"]');
+          if (await el.isVisible()) await el.fill(value);
+        }
+        await form
+          .getByRole("button", { name: /subscribe|pay now|start subscription/i })
+          .last()
+          .click();
+        const user = created.user;
+        if (!user) throw Error();
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const p = await db.from("profiles").select("plan,plan_source").eq("id", user.id).single();
+          if (p.data?.plan === "plus" && p.data.plan_source === "stripe") return;
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+        }
+        throw Error();
+      });
+  }
+} finally {
+  await browser.close();
+}

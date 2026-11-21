@@ -248,7 +248,7 @@ function PlanDetail() {
                       Approve
                     </button>
                   )}
-                  {v.status !== "archived" && (
+                  {v.status === "draft" && (
                     <button
                       onClick={() => stM.mutate({ id: v.id, status: "archived" })}
                       className="text-muted-foreground"
@@ -261,10 +261,8 @@ function PlanDetail() {
             ))}
           </Table>
           <p className="text-xs text-muted-foreground">
-            Approving a version publishes its features & limits to customer accounts straight away
-            (existing data is never deleted). Customer prices only change when a version is
-            published to the public pricing list, so existing subscribers are never repriced by
-            accident.
+            Approval publishes this plan’s terms and checkout prices. Existing subscribers keep
+            their current Stripe price until they change plans.
           </p>
         </>
       )}

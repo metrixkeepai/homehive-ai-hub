@@ -46,62 +46,96 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
           data.environment,
           user?.email,
         );
-        const subscriptions = await stripe.subscriptions.list({
-          customer,
-          status: "all",
-          limit: 100,
-        });
-        const current = subscriptions.data.filter(
-          (s) => !["canceled", "incomplete_expired"].includes(s.status),
-        );
-        const subscription = current[0];
-        if (subscription) {
-          const item = subscription.items.data[0];
-          const canChange =
-            current.length === 1 &&
-            !subscriptions.has_more &&
-            ["active", "trialing"].includes(subscription.status) &&
-            subscription.items.data.length === 1 &&
-            item &&
-            item.price.id !== price.id;
-          const portal = await stripe.billingPortal.sessions.create({
-            customer,
-            return_url: returnUrl,
-            ...(canChange
-              ? {
-                  flow_data: {
-                    type: "subscription_update_confirm" as const,
-                    subscription_update_confirm: {
-                      subscription: subscription.id,
-                      items: [{ id: item.id, price: price.id, quantity: item.quantity ?? 1 }],
-                    },
-                    after_completion: {
-                      type: "redirect" as const,
-                      redirect: { return_url: returnUrl },
-                    },
-                  },
-                }
-              : {}),
-          });
-          return { portalUrl: portal.url };
-        }
-        const session = await stripe.checkout.sessions.create(
-          {
-            mode: "subscription",
-            ui_mode: "embedded_page",
-            customer,
-            line_items: [{ price: price.id, quantity: 1 }],
-            return_url: returnUrl,
-            client_reference_id: context.userId,
-            metadata: { userId: context.userId, app: "matrixkeep" },
-            subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
+        const { withBillingLock } = await import("./billing-catalogue.server");
+        return await withBillingLock(
+          "checkout:" + data.environment + ":" + context.userId,
+          async (token) => {
+            const open = await stripe.checkout.sessions.list({
+              customer,
+              status: "open",
+              limit: 100,
+              expand: ["data.line_items"],
+            });
+            if (open.has_more) throw new Error("Checkout reconciliation required");
+            let reusable: { id: string; secret: string } | null = null;
+            for (const prior of open.data) {
+              if (
+                prior.mode !== "subscription" ||
+                prior.metadata?.["app"] !== "matrixkeep" ||
+                prior.client_reference_id !== context.userId
+              )
+                continue;
+              if (
+                !reusable &&
+                prior.line_items?.data[0]?.price?.id === price.id &&
+                prior.return_url === returnUrl &&
+                prior.client_secret
+              ) {
+                reusable = { id: prior.id, secret: prior.client_secret };
+                continue;
+              }
+              await stripe.checkout.sessions.expire(prior.id);
+            }
+            const subscriptions = await stripe.subscriptions.list({
+              customer,
+              status: "all",
+              limit: 100,
+            });
+            const current = subscriptions.data.filter(
+              (s) => !["canceled", "incomplete_expired"].includes(s.status),
+            );
+            const subscription = current[0];
+            if (subscription) {
+              if (reusable) await stripe.checkout.sessions.expire(reusable.id);
+              const item = subscription.items.data[0];
+              const canChange =
+                current.length === 1 &&
+                !subscriptions.has_more &&
+                ["active", "trialing"].includes(subscription.status) &&
+                subscription.items.data.length === 1 &&
+                item &&
+                item.price.id !== price.id;
+              const portal = await stripe.billingPortal.sessions.create({
+                customer,
+                return_url: returnUrl,
+                ...(canChange
+                  ? {
+                      flow_data: {
+                        type: "subscription_update_confirm" as const,
+                        subscription_update_confirm: {
+                          subscription: subscription.id,
+                          items: [{ id: item.id, price: price.id, quantity: item.quantity ?? 1 }],
+                        },
+                        after_completion: {
+                          type: "redirect" as const,
+                          redirect: { return_url: returnUrl },
+                        },
+                      },
+                    }
+                  : {}),
+              });
+              return { portalUrl: portal.url };
+            }
+            if (reusable) return { clientSecret: reusable.secret };
+            const session = await stripe.checkout.sessions.create(
+              {
+                mode: "subscription",
+                ui_mode: "embedded_page",
+                customer,
+                line_items: [{ price: price.id, quantity: 1 }],
+                return_url: returnUrl,
+                client_reference_id: context.userId,
+                metadata: { userId: context.userId, app: "matrixkeep" },
+                subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
+              },
+              {
+                idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${token}`,
+              },
+            );
+            if (!session.client_secret) throw new Error("Checkout unavailable");
+            return { clientSecret: session.client_secret };
           },
-          {
-            idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${Math.floor(Date.now() / 1_800_000)}`,
-          },
         );
-        if (!session.client_secret) throw new Error("Checkout unavailable");
-        return { clientSecret: session.client_secret };
       } catch (error) {
         const providerError = error as { type?: string; code?: string; requestId?: string };
         const safe = (value: unknown) =>

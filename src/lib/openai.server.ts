@@ -23,7 +23,11 @@ export class AIProviderError extends Error {
   constructor(status: number, providerCode?: string) {
     super(
       status === 429
-        ? "The AI is busy. Please try again in a moment."
+        ? providerCode === "rate_limit_exceeded"
+          ? "The AI request rate limit was reached. Please try again shortly."
+          : providerCode && providerCode !== "unknown_429"
+            ? "AI usage is limited by the API account. Please contact support."
+            : "The AI provider limited this request. Please try again or contact support."
         : "The AI could not complete this request. Please try again.",
     );
     this.status = status;
@@ -48,14 +52,22 @@ export async function openAIRequest(
   if (!response.ok) {
     // Retain only recognised operational codes. Provider messages can include submitted content.
     const failure = await response.json().catch(() => null);
-    const code = failure?.error?.code;
-    const providerCode = [
+    const code = failure?.error?.code ?? failure?.error?.type;
+    const known = [
       "insufficient_quota",
       "rate_limit_exceeded",
       "billing_hard_limit_reached",
-    ].includes(code)
+      "usage_limit_reached",
+      "project_budget_exceeded",
+      "organization_budget_exceeded",
+      "organization_usage_limit_exceeded",
+      "credits_exhausted",
+    ];
+    const providerCode = known.includes(code)
       ? String(code)
-      : undefined;
+      : response.status === 429
+        ? "unknown_429"
+        : undefined;
     throw new AIProviderError(response.status, providerCode);
   }
   return response;

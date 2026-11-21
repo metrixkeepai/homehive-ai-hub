@@ -19,6 +19,7 @@ globalThis.__matrixkeepSecurityMocks = {
     customers: { search: async () => ({ data: [{ id: "cus_test" }] }) },
     checkout: {
       sessions: {
+        list: async () => ({ data: [], has_more: false }),
         create: async (value) => {
           calls.push(["checkout", value]);
           return { client_secret: "test_secret" };
@@ -36,6 +37,7 @@ globalThis.__matrixkeepSecurityMocks = {
   },
 };
 const mocks = {
+  "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":
     'export const existingCustomer=async()=>"cus_test"; export const customerForUser=async()=>"cus_test"; export const validatedPrice=async()=>({id:"price_test"});',
@@ -215,6 +217,41 @@ test("direct extraction rejects remote URLs before any AI provider call", async 
 });
 test("text-only extraction still reaches the existing provider error path", async () => {
   const result = await runExtraction({ mode: "text", text: "A chair" }, "user_test");
-  assert.match(result.error, /AI is busy/);
+  assert.match(result.error, /AI provider limited/);
   assert.deepEqual(calls, [["fetch"]]);
+});
+
+test("changing an abandoned checkout expires the old selection before issuing another", async () => {
+  const sessions = globalThis.__matrixkeepSecurityMocks.stripe.checkout.sessions;
+  const list = sessions.list;
+  sessions.list = async () => ({
+    data: [
+      {
+        id: "cs_old",
+        mode: "subscription",
+        metadata: { app: "matrixkeep" },
+        client_reference_id: context.userId,
+        line_items: { data: [{ price: { id: "other" } }] },
+      },
+    ],
+  });
+  sessions.expire = async (id) => calls.push(["expired", id]);
+  try {
+    const r = await createCheckoutSession({
+      data: {
+        priceId: "plus_yearly",
+        returnUrl: "https://matrixkeep.com/app/plans",
+        environment: "sandbox",
+      },
+      context,
+    });
+    assert.equal(r.clientSecret, "test_secret");
+    assert.deepEqual(
+      calls.filter((c) => ["expired", "checkout"].includes(c[0])).map((c) => c[0]),
+      ["expired", "checkout"],
+    );
+  } finally {
+    sessions.list = list;
+    delete sessions.expire;
+  }
 });

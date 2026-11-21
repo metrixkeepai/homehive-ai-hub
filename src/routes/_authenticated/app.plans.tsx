@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { chooseFreePlan } from "@/lib/payments.functions";
 import { useStore } from "@/components/hv/store";
-import { planByKey, plansFor, trialInfo, type PlanDef } from "@/lib/plans";
-import { useInactivePlans } from "@/lib/plan-status";
+import { planByKey, trialInfo, type PlanDef } from "@/lib/plans";
+import { useInactivePlans, usePublishedPlans } from "@/lib/plan-status";
 import { eligiblePlans } from "@/lib/entitlements";
 import { usePublished } from "@/components/hv/Upgrade";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
@@ -42,7 +42,12 @@ function Plans() {
   const [checkout, setCheckout] = useState<PlanDef | null>(null);
   const kind = profile?.account_type ?? "individual";
   const off = useInactivePlans();
-  const list = plansFor(kind).filter((p) => !off.has(p.key) || p.key === profile?.plan);
+  const catalogue = usePublishedPlans();
+  const list = (catalogue.data ?? [])
+    .filter((p) =>
+      kind === "individual" ? p.audience === "individual" : p.audience !== "individual",
+    )
+    .filter((p) => !off.has(p.key) || p.key === profile?.plan);
   const published = usePublished();
   const [need, setNeed] = useState<{ feature: string; over?: number | undefined } | null>(null);
   const [resume, setResume] = useState<string | null>(null);
@@ -57,7 +62,7 @@ function Plans() {
     const k = new URLSearchParams(window.location.search).get("plan");
     const p = k && list.find((x) => x.key === k);
     if (p && profile && p.key !== profile.plan) void choose(p); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!profile]);
+  }, [!!profile, catalogue.isSuccess]);
   const eligible = need
     ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over)
     : [];
@@ -81,7 +86,7 @@ function Plans() {
     const pending = localStorage.getItem("hv-voucher");
     if (pending && profile) void redeem(pending);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!profile]);
+  }, [!!profile, catalogue.isSuccess]);
 
   const startTrial = async () => {
     setBusy(true);
@@ -95,7 +100,7 @@ function Plans() {
     await reload();
   };
   const choose = async (p: PlanDef) => {
-    if (p.monthly === 0) {
+    if ((yearly ? p.yearly : p.monthly) === 0) {
       setBusy(true);
       try {
         const result = await chooseFreePlan();
@@ -111,7 +116,7 @@ function Plans() {
       }
       return;
     }
-    if (p.monthly === null) {
+    if ((yearly ? p.yearly : p.monthly) === null) {
       toast("Talk to us", {
         description: "Use the Contact page and our team will set up this plan with you.",
       });
@@ -183,6 +188,10 @@ function Plans() {
       )}
       <BillingToggle yearly={yearly} onChange={setYearly} />
       <div className="grid gap-6 pt-2 md:grid-cols-2 xl:grid-cols-4">
+        {catalogue.isPending && <p role="status">Loading plans…</p>}
+        {catalogue.isError && (
+          <button onClick={() => void catalogue.refetch()}>Retry loading plans</button>
+        )}
         {list.map((p) => {
           const cur = (profile?.plan ?? "free") === p.key;
           return (
@@ -215,7 +224,7 @@ function Plans() {
                       onClick={() => choose(p)}
                       className={`w-full rounded-full py-2.5 text-sm font-semibold ${p.trialDays && !profile?.trial_ends_at ? "border" : "bg-aurora text-primary-foreground"}`}
                     >
-                      {p.monthly === null
+                      {(yearly ? p.yearly : p.monthly) === null
                         ? "Talk to us"
                         : p.monthly === 0
                           ? "Switch to Free"

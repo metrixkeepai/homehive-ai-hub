@@ -364,7 +364,7 @@ export const plansFor = (a: Audience) =>
     : plans.filter((p) => p.audience !== "individual");
 export const gbp = (n: number) => `£${n % 1 ? n.toFixed(2) : n.toLocaleString("en-GB")}`;
 export const priceLabel = (p: PlanDef, yearly: boolean) =>
-  p.monthly === null ? "Custom" : p.monthly === 0 ? "£0" : yearly ? gbp(p.yearly!) : gbp(p.monthly);
+  (yearly ? p.yearly : p.monthly) === null ? "Contact us" : gbp((yearly ? p.yearly : p.monthly)!);
 export const yearlySaving = (p: PlanDef) =>
   p.monthly && p.yearly ? Math.round((p.monthly * 12 - p.yearly) * 100) / 100 : 0;
 export const nextPlan = (k: string) => {

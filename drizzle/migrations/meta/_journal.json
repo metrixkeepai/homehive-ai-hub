@@ -232,6 +232,13 @@
       "when": 1795219200001,
       "tag": "0032_passport_records",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795219200002,
+      "tag": "0033_billing_catalogue",
+      "breakpoints": true
     }
   ]
 }

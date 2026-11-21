@@ -8,6 +8,26 @@ export type Database = {
   };
   public: {
     Tables: {
+      billing_price_history: {
+        Row: {
+          environment: string;
+          price_id: string;
+          plan_key: string;
+          product_id: string;
+          amount: number;
+          interval_name: string;
+        };
+        Insert: {
+          environment: string;
+          price_id: string;
+          plan_key: string;
+          product_id: string;
+          amount: number;
+          interval_name: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       admin_audit_log: {
         Row: {
           action: string;
@@ -937,6 +957,21 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      claim_billing_action: { Args: { _key: string }; Returns: string };
+      release_billing_action: { Args: { _key: string; _token: string }; Returns: undefined };
+      approve_catalogue_version: { Args: { _id: string; _admin: string }; Returns: undefined };
+      published_plan_catalogue: {
+        Args: Record<never, never>;
+        Returns: {
+          plan_key: string;
+          name: string;
+          audience: string;
+          monthly: number | null;
+          yearly: number | null;
+          capacity: Json;
+          benefits: string[];
+        }[];
+      };
       apply_billing_event: {
         Args: {
           _created: number;
