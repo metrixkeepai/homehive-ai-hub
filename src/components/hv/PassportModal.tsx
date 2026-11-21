@@ -82,6 +82,7 @@ export function PassportModal({ open, onClose, mode, section, item, owner }: Pro
     contacts: false,
   });
   const [stage, setStage] = useState<"form" | "working" | "done" | "error">("form");
+  const [shareAllowed, setShareAllowed] = useState<boolean | null>(null);
   const [days, setDays] = useState(7);
   const [link, setLink] = useState("");
   const [shares, setShares] = useState<Share[]>([]);
@@ -96,6 +97,17 @@ export function PassportModal({ open, onClose, mode, section, item, owner }: Pro
       setLink("");
     }
   }, [open]);
+  useEffect(() => {
+    if (!open || mode !== "share") return;
+    let active = true;
+    setShareAllowed(null);
+    void supabase.rpc("can_share_passport").then(({ data, error }) => {
+      if (active && !error) setShareAllowed(data);
+    });
+    return () => {
+      active = false;
+    };
+  }, [open, mode, item.id]);
   const loadShares = async () => {
     const { data } = await supabase
       .from("passport_shares")
@@ -351,12 +363,21 @@ export function PassportModal({ open, onClose, mode, section, item, owner }: Pro
                 >
                   Cancel
                 </button>
-                <button
-                  onClick={generate}
-                  className="rounded-full bg-aurora px-6 py-2.5 text-sm font-semibold text-primary-foreground"
-                >
-                  {mode === "download" ? `Generate ${fmtLabel} Passport` : "Create secure link"}
-                </button>
+                {mode === "share" && shareAllowed === false ? (
+                  <a
+                    href="/app/plans"
+                    className="rounded-full border px-5 py-2.5 text-sm font-semibold"
+                  >
+                    Secure sharing unavailable · View plans
+                  </a>
+                ) : (
+                  <button
+                    onClick={generate}
+                    className="rounded-full bg-aurora px-6 py-2.5 text-sm font-semibold text-primary-foreground"
+                  >
+                    {mode === "download" ? `Generate ${fmtLabel} Passport` : "Create secure link"}
+                  </button>
+                )}
               </div>
             </>
           )}

@@ -205,7 +205,14 @@ function Plans() {
               current={cur}
               highlight={need ? eligible.includes(p.key) : p.badge === "Most popular"}
               cta={
-                cur ? (
+                cur && profile?.plan_source === "stripe" ? (
+                  <button
+                    onClick={() => choose(p)}
+                    className="w-full rounded-full border py-2.5 text-sm font-semibold"
+                  >
+                    Review {yearly ? "yearly" : "monthly"} billing
+                  </button>
+                ) : cur ? (
                   <button
                     disabled
                     className="w-full rounded-full bg-secondary py-2.5 text-sm font-semibold text-muted-foreground"

@@ -998,6 +998,7 @@ export type Database = {
         };
         Returns: boolean;
       };
+      can_share_passport: { Args: Record<PropertyKey, never>; Returns: boolean };
       passport_records: {
         Args: { _subject: string };
         Returns: Database["public"]["Tables"]["home_items"]["Row"][];
