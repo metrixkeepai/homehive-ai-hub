@@ -52,6 +52,7 @@ const mocks = {
   "@/server/appUserConnections.server": "export const getConnectionKeyForUser=async()=>null;",
   "@/integrations/lovable/appUserConnector":
     'export const authorizeAppUserOAuth=async value=>{globalThis.__matrixkeepSecurityMocks.calls.push(["oauth",value]);return {authorizationUrl:"https://accounts.google.test/authorize"}};',
+  "./ai-cache.server": "export const cachedOperation=async(u,w,f,v,i,perform)=>perform();",
   "./operation.server": "export const reserveOperation=async()=>{};",
   "./ai-usage.server": "export const logAiUsage=async()=>{};",
   zod: 'const chain=new Proxy(function(){return chain},{get:(_,key)=>key==="parse"?value=>value:chain,apply:()=>chain});export const z=chain;',

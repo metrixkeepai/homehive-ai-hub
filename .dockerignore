@@ -21,3 +21,8 @@
 **/.env*
 **/*.pem
 **/*.key
+
+!scripts/ai-benchmark-fixtures.py
+!scripts/staging-ai-benchmark.mjs
+!scripts/staging-certification.mjs
+!scripts/staging-qa-identity.mjs

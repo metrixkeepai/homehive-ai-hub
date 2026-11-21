@@ -142,6 +142,9 @@ rollback_traffic() {
     gcloud run services update-traffic "$service" "${common[@]}" --to-revisions="$old_split"
   fi
 }
+if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[ai-benchmark]"* ]]; then
+  bash deploy/staging-ai-benchmark.sh "$candidate"
+fi
 trap rollback_traffic ERR
 gcloud run services update-traffic "$service" "${common[@]}" --to-revisions="$revision=100"
 check "$origin"

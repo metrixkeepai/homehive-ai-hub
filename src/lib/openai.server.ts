@@ -8,10 +8,6 @@ export const AI_MODELS = {
   speech: "gpt-transcribe",
   realtime: "gpt-realtime-2.1",
 } as const;
-export const textRates: Record<string, { input: number; output: number }> = {
-  "gpt-6-luna": { input: 0.1, output: 0.5 },
-  "gpt-6.1-sol": { input: 2, output: 10 },
-};
 export function openAIKey() {
   const key = process.env["OPENAI_API_KEY"];
   if (!key) throw new Error("OpenAI is not configured.");
@@ -78,16 +74,28 @@ export async function responseText(options: {
   instructions: string;
   input: unknown;
   format?: unknown;
+  workspaceId?: string | null;
+  promptVersion?: string;
   escalate?: boolean;
   maxOutput?: number;
 }) {
   const model = options.escalate ? AI_MODELS.escalation : AI_MODELS.standard;
   const started = Date.now();
+  const promptVersion = options.promptVersion ?? options.feature + "-v1";
+  let usage:
+    | {
+        input_tokens?: number;
+        output_tokens?: number;
+        input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
+      }
+    | undefined;
   try {
     const response = await openAIRequest(
       "responses",
       JSON.stringify({
         model,
+        service_tier: "default",
+        prompt_cache_key: "matrixkeep-" + promptVersion,
         store: false,
         stream: false,
         max_output_tokens: Math.min(options.maxOutput ?? 2048, 6000),
@@ -100,10 +108,16 @@ export async function responseText(options: {
     );
     const data = (await response.json()) as {
       status?: string;
+      incomplete_details?: { reason?: string };
       output?: { content?: { type?: string; text?: string }[] }[];
-      usage?: { input_tokens?: number; output_tokens?: number };
+      usage?: typeof usage;
     };
-    if (data.status !== "completed") throw new AIProviderError(502);
+    usage = data.usage;
+    if (data.status !== "completed")
+      throw new AIProviderError(
+        502,
+        data.incomplete_details?.reason === "max_output_tokens" ? "output_limit" : undefined,
+      );
     const text =
       data.output
         ?.flatMap((item) => item.content ?? [])
@@ -117,6 +131,10 @@ export async function responseText(options: {
       model,
       input: data.usage?.input_tokens ?? 0,
       output: data.usage?.output_tokens ?? 0,
+      workspaceId: options.workspaceId ?? null,
+      cached: usage?.input_tokens_details?.cached_tokens ?? 0,
+      cacheWrites: usage?.input_tokens_details?.cache_write_tokens ?? 0,
+      promptVersion,
       latencyMs: Date.now() - started,
       ok: true,
     });
@@ -126,8 +144,12 @@ export async function responseText(options: {
       userId: options.userId,
       feature: options.feature,
       model,
-      input: 0,
-      output: 0,
+      input: usage?.input_tokens ?? 0,
+      output: usage?.output_tokens ?? 0,
+      workspaceId: options.workspaceId ?? null,
+      cached: usage?.input_tokens_details?.cached_tokens ?? 0,
+      cacheWrites: usage?.input_tokens_details?.cache_write_tokens ?? 0,
+      promptVersion,
       latencyMs: Date.now() - started,
       ok: false,
       error:

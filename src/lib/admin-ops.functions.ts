@@ -137,19 +137,8 @@ export const aiUsage = createServerFn({ method: "GET" })
       db.from("ai_model_rates").select("*"),
       db.from("profiles").select("id, display_name, org_name, plan"),
     ]);
-    const rate = new Map((rates ?? []).map((r) => [r.model, r]));
     const prof = new Map((profiles ?? []).map((p) => [p.id, p]));
-    const cost = (l: NonNullable<typeof logs>[number]) => {
-      const r = rate.get(l.model);
-      return (
-        l.cost_usd ||
-        (r
-          ? (l.input_tokens * r.input_per_million_usd +
-              l.output_tokens * r.output_per_million_usd) /
-            1e6
-          : 0)
-      );
-    };
+    const cost = (l: NonNullable<typeof logs>[number]) => Number(l.cost_usd);
     const agg = (key: (l: NonNullable<typeof logs>[number]) => string) => {
       const m: Record<
         string,
@@ -167,6 +156,19 @@ export const aiUsage = createServerFn({ method: "GET" })
     };
     const L = logs ?? [];
     return {
+      cachedInput: L.reduce(
+        (n, l) => n + Number((l.usage_details as { cached_tokens?: number })?.cached_tokens ?? 0),
+        0,
+      ),
+      cacheSavings: L.reduce(
+        (n, l) =>
+          n + Number((l.usage_details as { cache_savings_usd?: number })?.cache_savings_usd ?? 0),
+        0,
+      ),
+      measuredCalls: L.filter(
+        (l) => (l.usage_details as { accounting_version?: number })?.accounting_version === 1,
+      ).length,
+      speechMinutes: L.reduce((n, l) => n + Number(l.audio_seconds ?? 0), 0) / 60,
       calls: L.length,
       errors: L.filter((l) => !l.ok).length,
       inputTokens: L.reduce((s, l) => s + l.input_tokens, 0),

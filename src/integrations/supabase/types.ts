@@ -60,6 +60,9 @@ export type Database = {
       };
       ai_model_rates: {
         Row: {
+          cached_input_per_million_usd: number | null;
+          write_per_million_usd: number | null;
+          audio_per_minute_usd: number | null;
           input_per_million_usd: number;
           model: string;
           output_per_million_usd: number;
@@ -84,6 +87,7 @@ export type Database = {
       };
       ai_usage_log: {
         Row: {
+          usage_details: Json;
           audio_seconds: number;
           cost_usd: number;
           created_at: string;
@@ -99,6 +103,7 @@ export type Database = {
           workspace_id: string | null;
         };
         Insert: {
+          usage_details?: Json;
           audio_seconds?: number;
           cost_usd?: number;
           created_at?: string;
@@ -114,6 +119,7 @@ export type Database = {
           workspace_id?: string | null;
         };
         Update: {
+          usage_details?: Json;
           audio_seconds?: number;
           cost_usd?: number;
           created_at?: string;
@@ -1019,6 +1025,34 @@ export type Database = {
         }[];
       };
       redeem_voucher: { Args: { _code: string }; Returns: string };
+      claim_ai_request: {
+        Args: {
+          _key: string;
+          _user: string;
+          _workspace: string | null;
+          _feature: string;
+          _lease: string;
+        };
+        Returns: Json;
+      };
+      finish_ai_request: {
+        Args: { _key: string; _lease: string; _result: Json };
+        Returns: undefined;
+      };
+      reserve_ai_retry: {
+        Args: { _id: string; _user: string; _estimate: number };
+        Returns: undefined;
+      };
+      reserve_ai_operation: {
+        Args: {
+          _feature: string;
+          _units: number;
+          _user: string;
+          _workspace: string;
+          _estimate: number;
+        };
+        Returns: string;
+      };
       reserve_operation: {
         Args: {
           _feature: string;

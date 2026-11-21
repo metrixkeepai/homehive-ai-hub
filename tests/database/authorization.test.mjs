@@ -211,7 +211,7 @@ test("service reservations enforce identity, monthly quotas and emergency ceilin
     db.query(`SELECT public.reserve_operation($1,NULL,'speech',1)`, [a]),
     /Monthly quota reached/,
   );
-  await db.exec("UPDATE public.runtime_limits SET daily_ai_budget_usd=5");
+  await db.exec("UPDATE public.runtime_limits SET daily_ai_budget_usd=0.05");
   await assert.rejects(
     db.query(`SELECT public.reserve_operation($1,NULL,'sera',1)`, [a]),
     /Platform AI budget reached/,
@@ -474,4 +474,36 @@ test("QA retries isolate fixture emails and recorded outcomes", async () => {
     ]);
     assert.deepEqual(result.rows, [{ outcome: outcomes[index] }]);
   }
+});
+
+test("same-tenant AI requests coalesce and cached results require current access", async () => {
+  await db.exec("UPDATE runtime_limits SET ai_enabled=true");
+  const key = "a".repeat(64),
+    lease = crypto.randomUUID(),
+    other = crypto.randomUUID();
+  const sql = "select public.claim_ai_request($1,$2,null,'capture',$3) as claim";
+  const claim = async (id, l) => (await db.query(sql, [key, id, l])).rows[0].claim;
+  await assert.rejects(asUser(a, sql, [key, a, lease]), /permission denied/);
+  assert.equal((await claim(a, lease)).state, "owner");
+  assert.equal((await claim(a, other)).state, "pending");
+  await db.query("select public.finish_ai_request($1,$2,$3)", [key, lease, '{"records":[]}']);
+  assert.deepEqual((await claim(a, other)).result, { records: [] });
+  await assert.rejects(claim(b, other), /scope mismatch/);
+  await db.exec("UPDATE runtime_limits SET ai_enabled=false");
+  await assert.rejects(claim(a, other), /AI unavailable/);
+  await db.exec("UPDATE runtime_limits SET ai_enabled=true");
+});
+test("usage accounting prices cache reads, writes and audio from current rate rows", async () => {
+  const { rows } = await db.query(
+    `insert into ai_usage_log(user_id,feature,model,input_tokens,output_tokens,usage_details)
+ values($1,'capture','gpt-6-luna',10000,1000,'{"accounting_version":1,"cached_tokens":5000,"cache_write_tokens":2000}') returning cost_usd`,
+    [a],
+  );
+  assert.equal(Number(rows[0].cost_usd), 0.0011);
+  const audio = await db.query(
+    `insert into ai_usage_log(user_id,feature,model,audio_seconds,usage_details)
+ values($1,'speak-transcribe','gpt-transcribe',30,'{"accounting_version":1}') returning cost_usd`,
+    [a],
+  );
+  assert.equal(Number(audio.rows[0].cost_usd), 0.00225);
 });

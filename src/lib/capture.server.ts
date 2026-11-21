@@ -107,70 +107,133 @@ export async function runExtraction(
     for (const f of data.images) content.push({ type: "input_image", image_url: f });
   }
   if (!userId) return { error: "Please sign in to extract records." };
-  const { reserveOperation } = await import("./operation.server");
-  const { responseText } = await import("./openai.server");
+  const { reserveOperation, reserveQualityRetry } = await import("./operation.server");
+  const { responseText, AIProviderError } = await import("./openai.server");
+  const { cachedOperation } = await import("./ai-cache.server");
   try {
-    await reserveOperation(
+    return await cachedOperation(
       userId,
       data.workspaceId ?? null,
       data.images?.length ? "video" : "capture",
-    );
-    const out = await responseText({
-      userId,
-      feature: "capture",
-      instructions,
-      input: [{ role: "user", content }],
-      maxOutput: 6000,
-      format: { type: "json_schema", name: "records", strict: true, schema },
-    });
-    const record = z.object({
-      section: z.enum(SECTIONS),
-      title: z.string().min(1).max(200),
-      subtitle: z.string().max(500),
-      relates_to: z.string().max(200),
-      fields: z
-        .array(z.object({ label: z.string().max(100), value: z.string().max(4000) }))
-        .max(60),
-    });
-    const parsed = z
-      .object({ summary: z.string().max(4000), records: z.array(record).max(15) })
-      .parse(JSON.parse(out));
-    const { deriveContractDates } = await import("./contract-dates");
-    const enriched = parsed.records.map((r) => {
-      const pairs = r.fields.map((f) => [f.label, f.value] as [string, string]);
-      // Warranties often omit the purchase date that was stated on the linked asset.
-      if (
-        ["warranties", "maintenance", "insurance", "renewals", "tasks"].includes(r.section) &&
-        r.relates_to.trim()
-      ) {
-        const related = parsed.records.find(
-          (o) => o.title.trim().toLowerCase() === r.relates_to.trim().toLowerCase(),
+      "capture-v1-luna-sol-schema1",
+      [instructions, schema, data],
+      async () => {
+        const reservation = await reserveOperation(
+          userId,
+          data.workspaceId ?? null,
+          data.images?.length ? "video" : "capture",
+          1,
+          data.images?.length
+            ? 0.006 + 0.003 * data.images.length
+            : data.image?.startsWith("data:application/pdf")
+              ? 0.03
+              : data.image
+                ? 0.01
+                : 0.004 + data.text.length * 0.0000001,
         );
-        const hasStart = pairs.some(
-          ([l, v]) =>
-            /^(purchase date|start date|service date|invoice date|installed date)$/i.test(l) &&
-            v.trim(),
+        const extract = (maxOutput: number, escalate = false) =>
+          responseText({
+            userId,
+            feature: "capture",
+            workspaceId: data.workspaceId ?? null,
+            instructions,
+            input: [{ role: "user", content }],
+            maxOutput,
+            escalate,
+            format: { type: "json_schema", name: "records", strict: true, schema },
+          });
+        const record = z.object({
+          section: z.enum(SECTIONS),
+          title: z.string().min(1).max(200),
+          subtitle: z.string().max(500),
+          relates_to: z.string().max(200),
+          fields: z
+            .array(z.object({ label: z.string().max(100), value: z.string().max(4000) }))
+            .max(60),
+        });
+        const parse = (value: string) =>
+          z
+            .object({ summary: z.string().max(4000), records: z.array(record).max(15) })
+            .parse(JSON.parse(value));
+        const lineCount = data.text
+          .split(/\r?\n/)
+          .filter((line) => /\d[.,]\d{2}\b/.test(line)).length;
+        const contract = /contract|tenancy|lease|agreement/i.test(
+          data.text + " " + (data.fileName ?? ""),
         );
-        if (related && !hasStart) {
-          const fromRelated = related.fields.find((f) =>
-            /^(purchase date|start date|service date|invoice date|installed date)$/i.test(f.label),
-          );
-          if (fromRelated?.value.trim()) pairs.push([fromRelated.label, fromRelated.value]);
-        }
-      }
-      const dateKey = r.section === "warranties" ? "Expiry date" : "Renewal date";
-      const fields = deriveContractDates(pairs, dateKey, data.referenceDate).map(
-        ([label, value]) => ({ label, value }),
-      );
-      const linked = r.relates_to.trim()
-        ? parsed.records.filter(
-            (other) =>
-              other !== r && other.title.trim().toLowerCase() === r.relates_to.trim().toLowerCase(),
+        const ceiling = contract
+          ? 3500
+          : lineCount > 4
+            ? 3000
+            : data.images?.length || /room/i.test(data.mode)
+              ? 2500
+              : /receipt/i.test(data.mode)
+                ? 1500
+                : 2000;
+        let parsed;
+        try {
+          parsed = parse(await extract(ceiling));
+          const titles = parsed.records.map((r) => r.title.trim().toLowerCase());
+          if (
+            parsed.records.some(
+              (r) => r.relates_to && !titles.includes(r.relates_to.trim().toLowerCase()),
+            )
           )
-        : [];
-      return { ...r, fields, relates_to: linked.length === 1 ? linked[0]!.title : "" };
-    });
-    return { summary: parsed.summary, records: enriched };
+            throw new Error("unresolved_relationship");
+        } catch (error) {
+          const truncated =
+            error instanceof AIProviderError && error.providerCode === "output_limit";
+          if (error instanceof AIProviderError && !truncated) throw error;
+          const invalid =
+            error instanceof SyntaxError ||
+            error instanceof z.ZodError ||
+            (error instanceof Error && error.message === "unresolved_relationship");
+          if (!invalid && !truncated) throw error;
+          // Keep full evidence for the single corrective attempt; truncation alone does not warrant Sol.
+          await reserveQualityRetry(userId, reservation, truncated ? 0.03 : 0.65);
+          parsed = parse(await extract(6000, !truncated));
+        }
+        const { deriveContractDates } = await import("./contract-dates");
+        const enriched = parsed.records.map((r) => {
+          const pairs = r.fields.map((f) => [f.label, f.value] as [string, string]);
+          // Warranties often omit the purchase date that was stated on the linked asset.
+          if (
+            ["warranties", "maintenance", "insurance", "renewals", "tasks"].includes(r.section) &&
+            r.relates_to.trim()
+          ) {
+            const related = parsed.records.find(
+              (o) => o.title.trim().toLowerCase() === r.relates_to.trim().toLowerCase(),
+            );
+            const hasStart = pairs.some(
+              ([l, v]) =>
+                /^(purchase date|start date|service date|invoice date|installed date)$/i.test(l) &&
+                v.trim(),
+            );
+            if (related && !hasStart) {
+              const fromRelated = related.fields.find((f) =>
+                /^(purchase date|start date|service date|invoice date|installed date)$/i.test(
+                  f.label,
+                ),
+              );
+              if (fromRelated?.value.trim()) pairs.push([fromRelated.label, fromRelated.value]);
+            }
+          }
+          const dateKey = r.section === "warranties" ? "Expiry date" : "Renewal date";
+          const fields = deriveContractDates(pairs, dateKey, data.referenceDate).map(
+            ([label, value]) => ({ label, value }),
+          );
+          const linked = r.relates_to.trim()
+            ? parsed.records.filter(
+                (other) =>
+                  other !== r &&
+                  other.title.trim().toLowerCase() === r.relates_to.trim().toLowerCase(),
+              )
+            : [];
+          return { ...r, fields, relates_to: linked.length === 1 ? linked[0]!.title : "" };
+        });
+        return { summary: parsed.summary, records: enriched };
+      },
+    );
   } catch (error) {
     const { AIProviderError } = await import("./openai.server");
     return {

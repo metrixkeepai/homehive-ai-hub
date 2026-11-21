@@ -8,16 +8,15 @@ export async function logAiUsage(e: {
   latencyMs: number;
   ok: boolean;
   error?: string;
+  cached?: number;
+  cacheWrites?: number;
+  promptVersion?: string;
+  processingMode?: string;
   audioSeconds?: number;
   workspaceId?: string | null;
 }) {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const rates: Record<string, [number, number]> = {
-      "gpt-6-luna": [0.1, 0.5],
-      "gpt-6.1-sol": [2, 10],
-    };
-    const rate = rates[e.model];
     const { error } = await supabaseAdmin.from("ai_usage_log").insert({
       user_id: e.userId,
       feature: e.feature,
@@ -26,12 +25,13 @@ export async function logAiUsage(e: {
       output_tokens: e.output,
       audio_seconds: e.audioSeconds ?? 0,
       workspace_id: e.workspaceId ?? null,
-      cost_usd:
-        e.model === "gpt-transcribe"
-          ? ((e.audioSeconds ?? 0) / 60) * 0.0045
-          : rate
-            ? (e.input * rate[0] + e.output * rate[1]) / 1_000_000
-            : 0,
+      usage_details: {
+        accounting_version: 1,
+        cached_tokens: e.cached ?? 0,
+        cache_write_tokens: e.cacheWrites ?? 0,
+        processing_mode: e.processingMode ?? "default",
+        prompt_version: e.promptVersion ?? e.feature + "-v1",
+      },
       latency_ms: e.latencyMs,
       ok: e.ok,
       error: e.error ?? null,

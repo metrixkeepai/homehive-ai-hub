@@ -61,6 +61,13 @@ function AI() {
           value={`${d.inputTokens.toLocaleString()} / ${d.outputTokens.toLocaleString()}`}
         />
         <Kpi
+          label="Cached input tokens"
+          value={d.cachedInput.toLocaleString()}
+          hint={d.measuredCalls + " calls with cache telemetry"}
+        />
+        <Kpi label="Estimated cache savings" value={"$" + d.cacheSavings.toFixed(6)} />
+        <Kpi label="Transcription minutes" value={d.speechMinutes.toFixed(2)} />
+        <Kpi
           label="Errors"
           value={d.errors}
           hint={`Avg ${d.avgLatency} ms`}
@@ -146,7 +153,9 @@ function AI() {
         <ul className="mt-3 space-y-1">
           {d.rates.map((r) => (
             <li key={r.model}>
-              {r.model}: in ${r.input_per_million_usd} · out ${r.output_per_million_usd}
+              {r.model}: in ${r.input_per_million_usd} · out ${r.output_per_million_usd} · cached $
+              {r.cached_input_per_million_usd ?? "—"} · cache write $
+              {r.write_per_million_usd ?? "—"} · audio/min ${r.audio_per_minute_usd ?? "—"}
             </li>
           ))}
         </ul>

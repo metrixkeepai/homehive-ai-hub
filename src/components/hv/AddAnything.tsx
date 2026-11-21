@@ -95,15 +95,26 @@ const sectionOptions = [
 type Rec = Extracted & { keep: boolean };
 type Step = "pick" | "capture" | "processing" | "review" | "saving" | "done";
 
-async function toDataUrl(f: File): Promise<string | undefined> {
+async function toDataUrl(f: File, documentPhoto: boolean): Promise<string | undefined> {
+  if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+    if (f.size > 5 * 1024 * 1024) throw new Error("PDF exceeds capture limit");
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Unreadable PDF"));
+      reader.onload = () =>
+        resolve("data:application/pdf;base64," + String(reader.result).split(",")[1]);
+      reader.readAsDataURL(f);
+    });
+  }
   if (!f.type.startsWith("image/")) return undefined;
-  const img = await createImageBitmap(f);
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const img = await createImageBitmap(f, { imageOrientation: "from-image" });
+  const scale = Math.min(1, (documentPhoto ? 2600 : 1600) / Math.max(img.width, img.height));
   const c = document.createElement("canvas");
   c.width = Math.round(img.width * scale);
   c.height = Math.round(img.height * scale);
   c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
-  return c.toDataURL("image/jpeg", 0.82);
+  img.close();
+  return c.toDataURL("image/jpeg", documentPhoto ? 0.9 : 0.82);
 }
 
 async function videoFrames(f: File, count = 6): Promise<string[]> {
@@ -119,6 +130,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
       v.onerror = () => bad(new Error("video"));
     });
     const out: string[] = [];
+    let previous: string | undefined;
     const c = document.createElement("canvas");
     const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
     c.width = Math.round(v.videoWidth * scale);
@@ -130,7 +142,10 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
         v.onseeked = () => ok();
       });
       c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
-      out.push(c.toDataURL("image/jpeg", 0.75));
+      const frame = c.toDataURL("image/jpeg", 0.75);
+      // Exact decoded-frame duplicates can be skipped without dropping a newly visible label.
+      if (frame !== previous) out.push(frame);
+      previous = frame;
     }
     return out;
   } finally {
@@ -305,7 +320,10 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         setStep("capture");
         return;
       }
-      const image = file && !isVideo && docText === null ? await toDataUrl(file) : undefined;
+      const image =
+        file && !isVideo && docText === null
+          ? await toDataUrl(file, /receipt|document|invoice/i.test(mode.label))
+          : undefined;
       const images = file && isVideo ? await videoFrames(file) : undefined;
       const referenceDate = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the user's locale calendar
       const r = await extractRecords({
