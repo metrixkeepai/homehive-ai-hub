@@ -273,14 +273,19 @@ try {
               form = frame;
               break;
             }
-            const card = frame
-              .getByRole("button", { name: /^(?:Pay with card|Card)$/i })
-              .or(frame.getByTestId("card-accordion-item-button"))
-              .or(frame.getByRole("radio", { name: /^card$/i }))
+            // Stripe's accessible accordion button can have a zero-sized box while
+            // its visible Card label is covered by the row's clickable overlay.
+            const label = frame
+              .getByText("Card", { exact: true })
+              .filter({ visible: true })
               .first();
-            if (!cardChosen && (await card.isVisible())) {
-              await card.click();
-              cardChosen = true;
+            if (!cardChosen && (await label.isVisible())) {
+              await label.scrollIntoViewIfNeeded();
+              const box = await label.boundingBox();
+              if (box && box.width > 0 && box.height > 0) {
+                await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+                cardChosen = true;
+              }
             }
           }
           if (!form) await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -329,6 +334,7 @@ try {
         throw Error();
       });
     await check("User sign out", async () => {
+      await page.goto(base + "/app");
       await page.getByRole("button", { name: "Account menu" }).click();
       await page.getByRole("menuitem", { name: "Sign out" }).click();
       await page.waitForURL(base + "/auth");
