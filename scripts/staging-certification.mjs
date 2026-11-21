@@ -187,9 +187,15 @@ try {
         await form.locator(controls.number).first().fill("4242424242424242");
         await form.locator(controls.expiry).first().fill("1230");
         await form.locator(controls.cvc).first().fill("123");
+        const country = form.locator('select[name="billingCountry"]');
+        if (await country.isVisible()) await country.selectOption("GB");
+        const postcode = form.locator('[name="billingPostalCode"]');
+        const needsZip =
+          (await postcode.isVisible()) &&
+          /zip/i.test((await postcode.getAttribute("placeholder")) ?? "");
         for (const [name, value] of [
           ["billingName", "MatrixKeep QA"],
-          ["billingPostalCode", "MK9 1AA"],
+          ["billingPostalCode", needsZip ? "10001" : "MK9 1AA"],
         ]) {
           const el = form.locator('[name="' + name + '"]');
           if (await el.isVisible()) await el.fill(value);

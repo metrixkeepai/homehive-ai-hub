@@ -133,6 +133,7 @@ test("valid checkout retains its exact allowed return URL", async () => {
     context,
   });
   assert.equal(result.clientSecret, "test_secret");
+  assert.equal(calls.find((c) => c[0] === "checkout")[1].adaptive_pricing.enabled, false);
   assert.equal(
     calls.find((c) => c[0] === "checkout")[1].return_url,
     "https://matrixkeep.com/app/plans",

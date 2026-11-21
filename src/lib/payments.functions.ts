@@ -68,6 +68,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
               if (
                 !reusable &&
                 prior.line_items?.data[0]?.price?.id === price.id &&
+                prior.adaptive_pricing?.enabled === false &&
                 prior.return_url === returnUrl &&
                 prior.client_secret
               ) {
@@ -123,6 +124,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
               {
                 mode: "subscription",
                 ui_mode: "embedded_page",
+                adaptive_pricing: { enabled: false },
                 customer,
                 line_items: [{ price: price.id, quantity: 1 }],
                 return_url: returnUrl,
