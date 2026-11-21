@@ -73,16 +73,20 @@ try {
     ?.access_token;
   if (!token) throw Error("Fixture login failed");
   let scores = new Map();
+  let previousStart = 0;
+  async function pace() {
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.max(0, 7200 - (Date.now() - previousStart))),
+    );
+    previousStart = Date.now();
+  }
   for (const [label, base] of [
     ["baseline", origin],
     ["candidate", candidate.origin],
   ]) {
-    let previousStart = 0;
     async function invoke(fn, data) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.max(0, 6500 - (Date.now() - previousStart))),
-      );
-      previousStart = Date.now();
+      await pace();
+      const startedAt = new Date().toISOString();
       const r = await fetch(base + "/_serverFn/" + idFor(fn), {
         method: "POST",
         redirect: "error",
@@ -97,7 +101,47 @@ try {
         signal: AbortSignal.timeout(135000),
       });
       const returned = r.ok ? fromCrossJSON(await r.json(), { refs: new Map() }) : null;
-      return { result: returned?.result ?? returned, http: r.status, ok: r.ok };
+      const result = returned?.result ?? returned;
+      // The old revision predates reservation IDs. This private fixture issues one
+      // request at a time. Reconcile only fully observed, successful operations.
+      if (label === "baseline" && r.ok && result && !result.error) {
+        const holds = await db
+          .from("operation_reservations")
+          .select("id")
+          .eq("user_id", user.id)
+          .gte("created_at", startedAt);
+        const charges = await db
+          .from("ai_usage_log")
+          .select("id,ok,cost_usd")
+          .eq("user_id", user.id)
+          .gte("created_at", startedAt);
+        if (
+          !holds.error &&
+          !charges.error &&
+          holds.data.length === 1 &&
+          charges.data.length > 0 &&
+          charges.data.every((c) => c.ok && Number(c.cost_usd) > 0)
+        ) {
+          const id = holds.data[0].id;
+          const tagged = await db
+            .from("ai_usage_log")
+            .update({ reservation_id: id })
+            .in(
+              "id",
+              charges.data.map((c) => c.id),
+            )
+            .eq("user_id", user.id)
+            .is("reservation_id", null);
+          if (tagged.error) throw Error("Benchmark settlement unavailable");
+          const settle = await db.rpc("settle_ai_operation", {
+            _id: id,
+            _user: user.id,
+            _calls: charges.data.length,
+          });
+          if (settle.error) throw Error("Benchmark settlement unavailable");
+        }
+      }
+      return { result, http: r.status, ok: r.ok };
     }
     const since = new Date().toISOString();
     let passed = 0,
@@ -172,7 +216,8 @@ try {
         const k = label + ":" + spec.kind,
           [points, possible] = scores.get(k);
         scores.set(k, [points + Object.values(downstream).filter(Boolean).length, possible + 4]);
-        if (label === "candidate")
+        if (label === "candidate") {
+          await pace();
           await compareMini({
             spec,
             dir,
@@ -182,6 +227,7 @@ try {
             normalize: evaluateTranscript,
             record,
           });
+        }
       }
       // Stay within the ordinary staging fixture's request rate.
     }
