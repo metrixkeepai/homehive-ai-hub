@@ -267,6 +267,13 @@
       "when": 1795219200006,
       "tag": "0037_ai_settlement",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795219200007,
+      "tag": "0038_speech_recovery",
+      "breakpoints": true
     }
   ]
 }

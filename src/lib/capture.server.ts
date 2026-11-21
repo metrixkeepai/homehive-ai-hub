@@ -115,7 +115,7 @@ export async function runExtraction(
       userId,
       data.workspaceId ?? null,
       data.images?.length ? "video" : "capture",
-      "capture-v1-luna-sol-schema1",
+      data.mode === "Speak" ? "capture-speak-v2" : "capture-v1-luna-sol-schema1",
       [instructions, schema, data],
       async () => {
         const reservation = await reserveOperation(
@@ -236,6 +236,24 @@ export async function runExtraction(
             : [];
           return { ...r, fields, relates_to: linked.length === 1 ? linked[0]!.title : "" };
         });
+        if (data.mode === "Speak") {
+          const { moneyEntities } = await import("./speech-facts");
+          const source = new Set(moneyEntities(data.text));
+          const moneyFields = enriched.flatMap((r) =>
+            r.fields.filter((f) => /price|cost|paid|amount|total|premium|rent|fee/i.test(f.label)),
+          );
+          const values = new Set(moneyFields.flatMap((f) => moneyEntities(f.value)));
+          if (
+            !enriched.length ||
+            [...source].some((v) => !values.has(v)) ||
+            [...values].some((v) => !source.has(v))
+          ) {
+            return {
+              error:
+                "Please check the amount and currency in your transcript and try again. The recording has not been saved.",
+            };
+          }
+        }
         return { summary: parsed.summary, records: enriched };
       },
     );

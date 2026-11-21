@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { hasExactGbp, numericEntities } from "../src/lib/speech-facts.ts";
 import { compareMini, wordErrors } from "./ai-speech-comparison.mjs";
 import { toJSONAsync, fromCrossJSON } from "seroval";
 
@@ -157,7 +158,12 @@ try {
       const content = JSON.stringify(spec.audio ? result?.english : result)?.toLowerCase() ?? "";
       const assertions = [
         !!result && !result.error && ok,
-        ...spec.facts.map((f) => new RegExp(f, "i").test(content)),
+        ...spec.facts.map((f) => {
+          if (spec.audio && f === "GBP 65") return hasExactGbp(content, 65);
+          if (/^\d+$/.test(f)) return numericEntities(content).includes(f);
+          if (/\d/.test(f)) return content.split(/[^a-z0-9-]+/i).includes(f.toLowerCase());
+          return new RegExp(f, "i").test(content);
+        }),
         ...(spec.sections ?? []).map((s) => result?.records?.some((x) => x.section === s) ?? false),
       ];
       if (spec.language) assertions.push(result?.language?.toLowerCase() === spec.language);
@@ -184,6 +190,7 @@ try {
           latency_ms: Date.now() - started,
         }),
       );
+      if (spec.audio && result?.qualityReason) continue;
       if (!ok || result?.error || !result)
         throw Error("Benchmark application request failed: " + spec.kind);
       if (spec.audio && result.original) {
@@ -193,14 +200,28 @@ try {
             text: value,
             referenceDate: "2026-11-21",
           });
+          if (label === "candidate" && extracted.result?.error)
+            return { assets: false, price: false, date: false, brand: false };
           if (!extracted.ok || extracted.result?.error)
             throw Error("Speech downstream extraction unavailable");
           operations++;
           const saved = JSON.stringify(extracted.result.records ?? []).toLowerCase();
           return {
             assets: extracted.result.records?.some((r) => r.section === "assets") ?? false,
-            price: /65|sixty.five/.test(saved),
-            date: /18|eighteen/.test(saved),
+            price: (extracted.result.records ?? []).some((r) =>
+              r.fields?.some(
+                (f) => /price|paid|cost|amount/i.test(f.label) && hasExactGbp(f.value, 65),
+              ),
+            ),
+            date: (extracted.result.records ?? []).some((r) =>
+              r.fields?.some(
+                (f) =>
+                  /date/i.test(f.label) &&
+                  /^(?:\d{4}-03-18|18(?:th)? March(?: \d{4})?|March 18(?:th)?(?:,? \d{4})?)$/i.test(
+                    f.value.trim(),
+                  ),
+              ),
+            ),
             brand: /bosch/.test(saved),
           };
         };

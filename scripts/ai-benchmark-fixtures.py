@@ -43,7 +43,7 @@ for lang,script in voices:
  file=out/(lang+".wav")
  with wave.open(str(file),"wb") as w:
   w.setparams((1,2,16000,0,"NONE","not compressed"));w.writeframes(pcm)
- records.append(dict(kind="speech-"+lang,fn="transcribeToEnglish",audio=file.name,script=script,language=lang,data=dict(mime="audio/wav"),facts=["kettle","65|sixty.five"]))
+ records.append(dict(kind="speech-"+lang,fn="transcribeToEnglish",audio=file.name,script=script,language=lang,data=dict(mime="audio/wav"),facts=["kettle","GBP 65"]))
 # Keep genuine duplicate fixtures explicit in the results. Other variants change source facts.
 source=list(records)
 for case in source:

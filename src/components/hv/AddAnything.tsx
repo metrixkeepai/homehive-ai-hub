@@ -276,8 +276,10 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
             workspaceId: current.id,
           },
         });
-        if ("error" in r && r.error) toast.error(r.error);
-        else if ("english" in r && r.english) {
+        if ("error" in r && r.error) {
+          if ("original" in r && r.original) setOriginalTranscript(r.original);
+          toast.error(r.error);
+        } else if ("english" in r && r.english) {
           setOriginalTranscript(r.original);
           setText((t) => (t ? t + " " : "") + r.english);
         }
