@@ -3,7 +3,6 @@ import { sections, type Section } from "./data";
 /** Nav entries that are placeholders — hidden until a real product surface ships. */
 export const STUB_NAV_SLUGS = new Set([
   "timeline",
-  "services",
   "agents",
   "messages",
   "roles",
@@ -22,7 +21,7 @@ export function accountNavigation(business: boolean): NavGroup[] {
       ["my-home", ...(business ? ["locations"] : []), "rooms", "assets", "vehicles"],
     ],
     ["Protection & paperwork", ["documents", "warranties", "renewals", "insurance"]],
-    ["Care & activity", ["maintenance", "tasks"]],
+    ["Care & activity", ["maintenance", "tasks", "services"]],
     [
       business ? "People & intelligence" : "Household & intelligence",
       [business ? "team" : "family", "integrations"],

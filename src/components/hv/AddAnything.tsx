@@ -183,7 +183,6 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   };
 
   const recRef = useRef<MediaRecorder | null>(null);
-  const [speechLanguage, setSpeechLanguage] = useState("");
   const [originalTranscript, setOriginalTranscript] = useState("");
   const [transcribing, setTranscribing] = useState(false);
   useEffect(
@@ -258,7 +257,6 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
             audio: btoa(bin),
             mime: "audio/wav",
             workspaceId: current.id,
-            language: speechLanguage || undefined,
           },
         });
         if ("error" in r && r.error) toast.error(r.error);
@@ -585,28 +583,12 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
               )}
               {mode.kind === "voice" && (
                 <>
-                  <label className="block text-sm">
+                  <div className="block text-sm">
                     Spoken language
-                    <select
-                      value={speechLanguage}
-                      disabled={listening || transcribing}
-                      onChange={(e) => setSpeechLanguage(e.target.value)}
-                      className="ml-2 rounded border bg-background p-2"
-                    >
-                      {Object.entries({
-                        "": "Detect automatically",
-                        en: "English",
-                        fr: "French",
-                        ml: "Malayalam",
-                        hi: "Hindi",
-                        ar: "Arabic",
-                      }).map(([code, label]) => (
-                        <option key={code} value={code}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                    <span className="ml-2 inline-block rounded border bg-background p-2">
+                      Detect automatically
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={listen}

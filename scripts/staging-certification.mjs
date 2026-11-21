@@ -2,21 +2,25 @@
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import { createExecutionIdentity } from "./staging-qa-identity.mjs";
 const env = process.env;
 const base = "https://matrixkeep-staging-web-893477687403.europe-west2.run.app";
 if (
   env.APP_ENV !== "staging" ||
   env.SUPABASE_URL?.replace(/\/$/, "") !== "https://cdfpupivjjamhvmfcvry.supabase.co" ||
-  !/^\d+$/.test(env.QA_RUN)
+  !/^\d+$/.test(env.QA_RUN) ||
+  !/^\d+$/.test(env.QA_ATTEMPT)
 )
   throw Error("Unexpected QA target");
+const { executionId, email } = createExecutionIdentity(env.QA_RUN, env.QA_ATTEMPT);
+console.log("Certification execution", executionId, "revision", env.QA_REVISION);
 const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 async function record(check_name, outcome) {
   const { error } = await db
     .from("release_qa_checks")
-    .upsert({ run_id: env.QA_RUN, check_name, outcome });
+    .insert({ run_id: executionId, check_name, outcome });
   if (error) throw Error("Unable to record check");
   console.log(check_name, outcome);
   if (outcome !== "PASS") process.exitCode = 1;
@@ -29,8 +33,8 @@ async function check(name, fn) {
   } catch (e) {
     await record(
       name,
-      e?.message === "Admin sign-in rejected"
-        ? "SIGN_IN_REJECTED"
+      e?.message?.startsWith("ADMIN_")
+        ? e.message
         : e?.name === "TimeoutError"
           ? "TIMEOUT"
           : "FAIL",
@@ -67,6 +71,39 @@ for (const model of ["gpt-6-luna", "gpt-6.1-sol", "gpt-transcribe", "gpt-realtim
     r.ok && (await r.json()).id === model ? "PASS" : "HTTP " + r.status,
   );
 }
+if (identity) {
+  for (const plan of [
+    "home",
+    "plus",
+    "family",
+    "business_starter",
+    "business",
+    "business_pro",
+    "business_scale",
+  ]) {
+    for (const interval of ["monthly", "yearly"]) {
+      await check("Stripe catalogue " + plan + " " + interval, async () => {
+        const url = new URL("https://api.stripe.com/v1/prices");
+        url.searchParams.set("lookup_keys[]", plan + "_" + interval);
+        url.searchParams.set("active", "true");
+        const response = await fetch(url, {
+          headers: { authorization: "Bearer " + env.STRIPE_SECRET_KEY },
+        });
+        if (!response.ok) throw Error();
+        const { data } = await response.json();
+        if (
+          data.length !== 1 ||
+          data[0].livemode ||
+          data[0].currency !== "gbp" ||
+          data[0].product !== "matrixkeep_" + plan ||
+          !(data[0].unit_amount > 0) ||
+          data[0].recurring?.interval !== (interval === "monthly" ? "month" : "year")
+        )
+          throw Error();
+      });
+    }
+  }
+}
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 try {
   const admin = await browser.newPage();
@@ -81,8 +118,15 @@ try {
         .getByRole("alert")
         .filter({ hasText: /sign in failed|doesn.t have|couldn.t verify/i })
         .waitFor()
-        .then(() => {
-          throw Error("Admin sign-in rejected");
+        .then(async () => {
+          const alert = await admin.getByRole("alert").innerText();
+          throw Error(
+            /sign in failed/i.test(alert)
+              ? "ADMIN_CREDENTIAL_REJECTED"
+              : /have Super Admin/i.test(alert)
+                ? "ADMIN_ROLE_DENIED"
+                : "ADMIN_ACCESS_CHECK_FAILED",
+          );
         }),
     ]);
   });
@@ -111,7 +155,9 @@ try {
         if (
           admin.url() !== base + "/super-admin/" + route ||
           (await admin
-            .getByText(/change your password|couldn.t load|something went wrong/i)
+            .getByText(
+              /set your own password|change your password|couldn.t load|something went wrong/i,
+            )
             .count())
         )
           throw Error();
@@ -119,7 +165,6 @@ try {
     }
   }
   const password = randomUUID() + randomUUID();
-  const email = "metrixkeepai+qa-" + env.QA_RUN + "@gmail.com";
   const { data: created, error } = await db.auth.admin.createUser({
     email,
     password,
@@ -137,6 +182,59 @@ try {
     await page.waitForURL(/\/app(?:\/|$)/);
   });
   if (login) {
+    for (const section of [
+      "my-home",
+      "rooms",
+      "assets",
+      "vehicles",
+      "documents",
+      "warranties",
+      "renewals",
+      "insurance",
+      "maintenance",
+      "tasks",
+      "calendar",
+      "services",
+      "family",
+      "integrations",
+      "billing",
+    ]) {
+      await check("Individual page " + section, async () => {
+        await page.goto(base + "/app/" + section);
+        const heading = page.locator("h1").first();
+        await heading.waitFor();
+        if (
+          new URL(page.url()).pathname.replace(/\/$/, "") !== "/app/" + section ||
+          /doesn.t exist|not found|welcome back|error/i.test(await heading.innerText()) ||
+          (await page.getByText(/This capability is not available in this release/).count())
+        )
+          throw Error();
+      });
+    }
+    await check("Service provider save and reload", async () => {
+      await page.goto(base + "/app/services");
+      await page.getByRole("button", { name: "Add provider", exact: true }).click();
+      await page.getByLabel("Business name").fill("Staging QA provider");
+      await page.getByLabel("Trade", { exact: true }).fill("Maintenance");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
+      await page.getByText("Staging QA provider", { exact: true }).first().waitFor();
+      await page.reload();
+      await page.getByText("Staging QA provider", { exact: true }).first().waitFor();
+    });
+    await check("Business workspace create and switch", async () => {
+      await page.getByRole("button", { name: "Personal", exact: true }).click();
+      await page.getByRole("menuitem", { name: "New workspace" }).click();
+      await page.getByPlaceholder("e.g. Smile Dental Clinic").fill("QA business workspace");
+      await page.getByRole("button", { name: "Create and switch" }).click();
+      const business = page.getByRole("button", { name: "QA business workspace", exact: true });
+      await business.waitFor();
+      await page.goto(base + "/app/locations");
+      await page.locator("h1").first().waitFor();
+      await business.click();
+      await page.getByRole("menuitem", { name: /Personal.*individual/i }).click();
+      await page.goto(base + "/app/services");
+      await page.getByText("Staging QA provider", { exact: true }).first().waitFor();
+    });
     for (const w of [320, 375, 390, 430, 768, 1024]) {
       await check("Plans viewport " + w, async () => {
         await page.setViewportSize({ width: w, height: 850 });
@@ -151,7 +249,7 @@ try {
           throw Error();
       });
     }
-    if (identity)
+    if (identity && env.QA_REPEAT_HOME_PLUS === "true")
       await check("Home+ sandbox browser purchase", async () => {
         await page.getByRole("button", { name: "Choose Home+", exact: true }).click();
         const controls = {
@@ -226,6 +324,13 @@ try {
         }
         throw Error();
       });
+    await check("User sign out", async () => {
+      await page.getByRole("button", { name: "Account menu" }).click();
+      await page.getByRole("menuitem", { name: "Sign out" }).click();
+      await page.waitForURL(base + "/auth");
+      await page.goto(base + "/app");
+      await page.waitForURL(/\/auth(?:\?|$)/);
+    });
   }
 } finally {
   await browser.close();

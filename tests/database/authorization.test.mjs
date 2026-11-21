@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
+import { createExecutionIdentity } from "../../scripts/staging-qa-identity.mjs";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
@@ -177,6 +178,18 @@ test("direct inserts cannot bypass record capacities or use unknown sections", a
     asUser(a, `INSERT INTO public.home_items(section,title) VALUES('vehicles','Free vehicle')`),
     /Plan feature unavailable/,
   );
+});
+test("service providers persist in the owner's workspace", async () => {
+  const [saved] = (
+    await asUser(
+      a,
+      "INSERT INTO public.home_items(section,title) VALUES('services','Staging provider') RETURNING id",
+    )
+  ).rows;
+  const owned = await asUser(a, "SELECT title FROM public.home_items WHERE id=$1", [saved.id]);
+  assert.equal(owned.rows[0].title, "Staging provider");
+  const foreign = await asUser(b, "SELECT id FROM public.home_items WHERE id=$1", [saved.id]);
+  assert.equal(foreign.rows.length, 0);
 });
 test("service reservations enforce identity, monthly quotas and emergency ceilings", async () => {
   await assert.rejects(
@@ -442,4 +455,23 @@ test("a location passport lists only records linked to that location", async () 
     (await asUser(a, "SELECT id FROM public.passport_records($1)", [north])).rows,
     [],
   );
+});
+
+test("QA retries isolate fixture emails and recorded outcomes", async () => {
+  const executions = ["1", "2", "2"].map((attempt) => createExecutionIdentity("42", attempt));
+  const outcomes = ["PASS", "FAIL", "TIMEOUT"];
+  for (const [index, { executionId, email }] of executions.entries()) {
+    await db.query("INSERT INTO auth.users(id,email) VALUES(gen_random_uuid(),$1)", [email]);
+    await db.query(
+      "INSERT INTO release_qa_checks(run_id,check_name,outcome) VALUES($1,'checkout',$2)",
+      [executionId, outcomes[index]],
+    );
+  }
+  assert.equal(new Set(executions.map((execution) => execution.email)).size, 3);
+  for (const [index, { executionId }] of executions.entries()) {
+    const result = await db.query("SELECT outcome FROM release_qa_checks WHERE run_id=$1", [
+      executionId,
+    ]);
+    assert.deepEqual(result.rows, [{ outcome: outcomes[index] }]);
+  }
 });

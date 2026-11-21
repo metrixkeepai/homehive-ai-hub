@@ -239,6 +239,13 @@
       "when": 1795219200002,
       "tag": "0033_billing_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795219200003,
+      "tag": "0034_service_provider_records",
+      "breakpoints": true
     }
   ]
 }
