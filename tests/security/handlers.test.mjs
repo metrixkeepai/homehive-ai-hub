@@ -145,6 +145,7 @@ test("existing subscriber reviews a price change without creating a second subsc
     data: [
       {
         id: "sub_current",
+        collection_method: "charge_automatically",
         status: "active",
         items: { data: [{ id: "si_current", price: { id: "price_old" }, quantity: 1 }] },
       },

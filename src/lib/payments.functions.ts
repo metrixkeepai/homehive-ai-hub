@@ -92,6 +92,8 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                 current.length === 1 &&
                 !subscriptions.has_more &&
                 ["active", "trialing"].includes(subscription.status) &&
+                !subscription.cancel_at_period_end &&
+                subscription.collection_method === "charge_automatically" &&
                 subscription.items.data.length === 1 &&
                 item &&
                 item.price.id !== price.id;

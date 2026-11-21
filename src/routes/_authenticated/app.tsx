@@ -202,7 +202,7 @@ function AppShell() {
         )}
 
         <main className="min-w-0 flex-1 pb-24 lg:pb-0">
-          <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur md:px-6">
+          <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 min-[375px]:flex-nowrap min-[375px]:gap-3 border-b bg-background/80 px-4 py-3 backdrop-blur md:px-6">
             <Button
               aria-label="Open menu"
               size="icon"
@@ -223,14 +223,14 @@ function AppShell() {
               {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
             </Button>
             <WorkspaceSwitcher />
-            <div className="relative flex-1">
+            <div className="relative order-last min-w-0 basis-full min-[375px]:order-none min-[375px]:flex-1">
               <div className="flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search your home…"
-                  className="w-full bg-transparent outline-none"
+                  className="min-w-0 w-full bg-transparent outline-none"
                 />
               </div>
               {q.trim().length > 1 && (

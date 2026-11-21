@@ -162,7 +162,13 @@ export async function runExtraction(
       const fields = deriveContractDates(pairs, dateKey, data.referenceDate).map(
         ([label, value]) => ({ label, value }),
       );
-      return { ...r, fields };
+      const linked = r.relates_to.trim()
+        ? parsed.records.filter(
+            (other) =>
+              other !== r && other.title.trim().toLowerCase() === r.relates_to.trim().toLowerCase(),
+          )
+        : [];
+      return { ...r, fields, relates_to: linked.length === 1 ? linked[0]!.title : "" };
     });
     return { summary: parsed.summary, records: enriched };
   } catch (error) {

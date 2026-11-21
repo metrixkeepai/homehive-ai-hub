@@ -183,6 +183,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   };
 
   const recRef = useRef<MediaRecorder | null>(null);
+  const [speechLanguage, setSpeechLanguage] = useState("");
+  const [originalTranscript, setOriginalTranscript] = useState("");
   const [transcribing, setTranscribing] = useState(false);
   useEffect(
     () => () => {
@@ -252,10 +254,18 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         for (let i = 0; i < buf.length; i += 0x8000)
           bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
         const r = await transcribeToEnglish({
-          data: { audio: btoa(bin), mime: "audio/wav", workspaceId: current.id },
+          data: {
+            audio: btoa(bin),
+            mime: "audio/wav",
+            workspaceId: current.id,
+            language: speechLanguage || undefined,
+          },
         });
         if ("error" in r && r.error) toast.error(r.error);
-        else if ("english" in r && r.english) setText((t) => (t ? t + " " : "") + r.english);
+        else if ("english" in r && r.english) {
+          setOriginalTranscript(r.original);
+          setText((t) => (t ? t + " " : "") + r.english);
+        }
       } catch {
         toast.error("We couldn't understand that recording. Please try again.");
       } finally {
@@ -475,6 +485,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   setStep("pick");
                   setFile(null);
                   setText("");
+                  setOriginalTranscript("");
                 }}
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -573,19 +584,49 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                 </div>
               )}
               {mode.kind === "voice" && (
-                <button
-                  type="button"
-                  onClick={listen}
-                  disabled={transcribing}
-                  className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}
-                >
-                  <Mic className="h-5 w-5" />
-                  {transcribing
-                    ? "Translating to English…"
-                    : listening
-                      ? "Listening… tap to finish"
-                      : "Tap and speak"}
-                </button>
+                <>
+                  <label className="block text-sm">
+                    Spoken language
+                    <select
+                      value={speechLanguage}
+                      disabled={listening || transcribing}
+                      onChange={(e) => setSpeechLanguage(e.target.value)}
+                      className="ml-2 rounded border bg-background p-2"
+                    >
+                      {Object.entries({
+                        "": "Detect automatically",
+                        en: "English",
+                        fr: "French",
+                        ml: "Malayalam",
+                        hi: "Hindi",
+                        ar: "Arabic",
+                      }).map(([code, label]) => (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={listen}
+                    disabled={transcribing}
+                    className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}
+                  >
+                    <Mic className="h-5 w-5" />
+                    {transcribing
+                      ? "Translating to English…"
+                      : listening
+                        ? "Listening… tap to finish"
+                        : "Tap and speak"}
+                  </button>
+                  {originalTranscript && (
+                    <details className="text-sm">
+                      <summary>Original transcript</summary>
+                      <p>{originalTranscript}</p>
+                    </details>
+                  )}
+                </>
               )}
               <textarea
                 value={text}
@@ -781,6 +822,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                     setStep("pick");
                     setFile(null);
                     setText("");
+                    setOriginalTranscript("");
                     setRecs([]);
                   }}
                   className="flex-1 rounded-full border py-3 text-sm font-semibold"

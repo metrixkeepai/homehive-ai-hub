@@ -11,6 +11,10 @@ const Input = z.object({
     .max(7_000_000)
     .regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
   mime: z.literal("audio/wav"),
+  language: z
+    .string()
+    .regex(/^[a-z]{2}$/)
+    .optional(),
 });
 
 /** Recorded speech → original-language transcript → faithful English. */
@@ -31,6 +35,11 @@ export const transcribeToEnglish = createServerFn({ method: "POST" })
         ext = "wav";
       const form = new FormData();
       form.append("model", AI_MODELS.speech);
+      if (data.language) form.append("language", data.language);
+      form.append(
+        "prompt",
+        "Transcribe exactly in the spoken language, including purchase dates, amounts and units.",
+      );
       form.append("file", new File([bytes], `speech.${ext}`, { type }));
       form.append("response_format", "json");
       const started = Date.now();

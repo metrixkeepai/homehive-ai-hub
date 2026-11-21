@@ -154,23 +154,39 @@ try {
     if (identity)
       await check("Home+ sandbox browser purchase", async () => {
         await page.getByRole("button", { name: "Choose Home+", exact: true }).click();
+        const controls = {
+          number: 'input[autocomplete="cc-number"],input[name="cardNumber"],input[name="number"]',
+          expiry: 'input[autocomplete="cc-exp"],input[name="cardExpiry"],input[name="expiry"]',
+          cvc: 'input[autocomplete="cc-csc"],input[name="cardCvc"],input[name="cvc"]',
+        };
+        const stripeFrames = () =>
+          page.frames().filter((f) => {
+            try {
+              return new URL(f.url()).hostname.endsWith(".stripe.com");
+            } catch {
+              return false;
+            }
+          });
         let form;
         for (let i = 0; i < 30 && !form; i++) {
-          for (const frame of page.frames()) {
-            if (
-              new URL(frame.url() || "about:blank").hostname.endsWith(".stripe.com") &&
-              (await frame.locator('[name="cardNumber"]').count())
-            ) {
+          for (const frame of stripeFrames()) {
+            if (await frame.locator(controls.number).first().isVisible()) {
               form = frame;
               break;
             }
+            const card = frame.getByRole("radio", { name: /^card$/i }).first();
+            if ((await card.isVisible()) && !(await card.isChecked())) await card.click();
           }
           if (!form) await new Promise((resolve) => setTimeout(resolve, 1000));
         }
+        await record(
+          "Stripe embedded card fields",
+          form ? "PASS" : stripeFrames().length ? "FIELDS_UNAVAILABLE" : "NO_PROVIDER_FRAME",
+        );
         if (!form) throw Error();
-        await form.locator('[name="cardNumber"]').fill("4242424242424242");
-        await form.locator('[name="cardExpiry"]').fill("1230");
-        await form.locator('[name="cardCvc"]').fill("123");
+        await form.locator(controls.number).first().fill("4242424242424242");
+        await form.locator(controls.expiry).first().fill("1230");
+        await form.locator(controls.cvc).first().fill("123");
         for (const [name, value] of [
           ["billingName", "MatrixKeep QA"],
           ["billingPostalCode", "MK9 1AA"],
@@ -178,10 +194,19 @@ try {
           const el = form.locator('[name="' + name + '"]');
           if (await el.isVisible()) await el.fill(value);
         }
-        await form
-          .getByRole("button", { name: /subscribe|pay now|start subscription/i })
-          .last()
-          .click();
+        let submitted = false;
+        for (const frame of stripeFrames()) {
+          const submit = frame
+            .getByRole("button", { name: /subscribe|pay now|start subscription/i })
+            .last();
+          if ((await submit.isVisible()) && (await submit.isEnabled())) {
+            await submit.click();
+            submitted = true;
+            break;
+          }
+        }
+        await record("Stripe sandbox payment submitted", submitted ? "PASS" : "SUBMIT_UNAVAILABLE");
+        if (!submitted) throw Error();
         const user = created.user;
         if (!user) throw Error();
         for (let attempt = 0; attempt < 12; attempt++) {
