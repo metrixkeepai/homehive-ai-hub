@@ -168,14 +168,18 @@ try {
             }
           });
         let form;
+        let cardChosen = false;
         for (let i = 0; i < 30 && !form; i++) {
           for (const frame of stripeFrames()) {
             if (await frame.locator(controls.number).first().isVisible()) {
               form = frame;
               break;
             }
-            const card = frame.getByRole("radio", { name: /^card$/i }).first();
-            if ((await card.isVisible()) && !(await card.isChecked())) await card.click();
+            const card = frame.getByRole("button", { name: "Pay with card", exact: true });
+            if (!cardChosen && (await card.isVisible())) {
+              await card.click();
+              cardChosen = true;
+            }
           }
           if (!form) await new Promise((resolve) => setTimeout(resolve, 1000));
         }
