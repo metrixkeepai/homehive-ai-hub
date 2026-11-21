@@ -131,6 +131,11 @@ export async function runExtraction(
                 ? 0.01
                 : 0.004 + data.text.length * 0.0000001,
         );
+        if (data.image?.startsWith("data:application/pdf")) {
+          const { prosePdfText } = await import("./pdf-text.server");
+          const prose = await prosePdfText(data.image);
+          if (prose !== null) content[1] = { type: "input_text", text: prose };
+        }
         const extract = (maxOutput: number, escalate = false) =>
           responseText({
             userId,

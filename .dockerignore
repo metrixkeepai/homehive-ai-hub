@@ -26,3 +26,4 @@
 !scripts/staging-ai-benchmark.mjs
 !scripts/staging-certification.mjs
 !scripts/staging-qa-identity.mjs
+!scripts/ai-speech-comparison.mjs

@@ -1,3 +1,4 @@
+import { operationMeter } from "./ai-meter.server";
 // Records each AI call (tokens, latency, outcome) for the Super Admin cost views. Never throws.
 export async function logAiUsage(e: {
   userId: string | null;
@@ -15,10 +16,16 @@ export async function logAiUsage(e: {
   audioSeconds?: number;
   workspaceId?: string | null;
 }) {
+  const meter = operationMeter.getStore();
+  if (meter) {
+    meter.calls++;
+    if (!(e.input + e.output > 0 || (e.audioSeconds ?? 0) > 0)) meter.complete = false;
+  }
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("ai_usage_log").insert({
       user_id: e.userId,
+      reservation_id: meter?.reservation ?? null,
       feature: e.feature,
       model: e.model,
       input_tokens: e.input,
@@ -36,8 +43,10 @@ export async function logAiUsage(e: {
       ok: e.ok,
       error: e.error ?? null,
     });
+    if (error && meter) meter.complete = false;
     if (error) console.error(JSON.stringify({ event: "ai_usage_log_failed", code: error.code }));
   } catch {
+    if (meter) meter.complete = false;
     console.error(JSON.stringify({ event: "ai_usage_log_failed" }));
   }
 }

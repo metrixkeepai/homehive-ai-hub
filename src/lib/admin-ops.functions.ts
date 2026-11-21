@@ -126,7 +126,8 @@ export const aiUsage = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => Range.parse(d))
   .handler(async ({ context, data }) => {
     const db = await adminClient(context as Ctx);
-    const [{ data: logs }, { data: rates }, { data: profiles }] = await Promise.all([
+    const [summary, { data: logs }, { data: rates }, { data: profiles }] = await Promise.all([
+      db.rpc("ai_cost_summary", { _from: data.from, _to: data.to }),
       db
         .from("ai_usage_log")
         .select("*")
@@ -154,8 +155,27 @@ export const aiUsage = createServerFn({ method: "GET" })
       });
       return Object.values(m).sort((a, b) => b.cost - a.cost || b.calls - a.calls);
     };
+    if (summary.error) throw new Error("AI cost totals unavailable");
+    const totals = summary.data as Record<
+      | "calls"
+      | "users"
+      | "cost"
+      | "luna"
+      | "sol"
+      | "measured_input"
+      | "cache_read"
+      | "cache_savings"
+      | "speech_minutes"
+      | "operations"
+      | "reserved"
+      | "hits"
+      | "savings"
+      | "unpriced",
+      number
+    >;
     const L = logs ?? [];
     return {
+      totals,
       cachedInput: L.reduce(
         (n, l) => n + Number((l.usage_details as { cached_tokens?: number })?.cached_tokens ?? 0),
         0,

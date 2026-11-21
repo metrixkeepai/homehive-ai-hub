@@ -31,6 +31,7 @@ USER node
 CMD ["node","scripts/staging-ai-benchmark.mjs"]
 
 FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS runtime
+RUN apt-get update && apt-get install --no-install-recommends -y poppler-utils mupdf-tools && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/.output ./.output

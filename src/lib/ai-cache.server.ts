@@ -1,3 +1,4 @@
+import { operationMeter, type OperationMeter } from "./ai-meter.server";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
 import type { Json } from "../integrations/supabase/types";
@@ -29,14 +30,24 @@ export async function cachedOperation<T extends Json>(
     if (state.state === "hit" && state.result !== undefined) return state.result;
     if (state.state === "owner") {
       let result: T;
+      const meter: OperationMeter = { calls: 0, complete: true };
       try {
-        result = await perform();
+        result = await operationMeter.run(meter, perform);
+        if (meter.complete && meter.reservation && meter.calls > 0) {
+          const { error } = await supabaseAdmin.rpc("settle_ai_operation", {
+            _user: user,
+            _id: meter.reservation,
+            _calls: meter.calls,
+          });
+          if (error) console.error("AI reservation settlement failed", error.code);
+        }
       } catch (error) {
         await supabaseAdmin.rpc("finish_ai_request", { _key: key, _lease: lease, _result: null });
         throw error;
       }
       const failed = result !== null && typeof result === "object" && "error" in result;
-      const saved = await supabaseAdmin.rpc("finish_ai_request", {
+      const saved = await supabaseAdmin.rpc("finish_metered_request", {
+        _reservation: meter.reservation ?? null,
         _key: key,
         _lease: lease,
         _result: failed ? null : result,

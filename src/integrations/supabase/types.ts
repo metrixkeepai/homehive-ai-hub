@@ -88,6 +88,7 @@ export type Database = {
       ai_usage_log: {
         Row: {
           usage_details: Json;
+          reservation_id: string | null;
           audio_seconds: number;
           cost_usd: number;
           created_at: string;
@@ -104,6 +105,7 @@ export type Database = {
         };
         Insert: {
           usage_details?: Json;
+          reservation_id?: string | null;
           audio_seconds?: number;
           cost_usd?: number;
           created_at?: string;
@@ -120,6 +122,7 @@ export type Database = {
         };
         Update: {
           usage_details?: Json;
+          reservation_id?: string | null;
           audio_seconds?: number;
           cost_usd?: number;
           created_at?: string;
@@ -1037,6 +1040,19 @@ export type Database = {
       };
       finish_ai_request: {
         Args: { _key: string; _lease: string; _result: Json };
+        Returns: undefined;
+      };
+      sera_search: {
+        Args: { _workspace: string | null; _property: string | null; _words: string[] };
+        Returns: { section: string; title: string; subtitle: string | null; fields: Json }[];
+      };
+      ai_cost_summary: { Args: { _from: string; _to: string }; Returns: Json };
+      finish_metered_request: {
+        Args: { _key: string; _lease: string; _result: Json; _reservation: string | null };
+        Returns: undefined;
+      };
+      settle_ai_operation: {
+        Args: { _id: string; _user: string; _calls: number };
         Returns: undefined;
       };
       reserve_ai_retry: {

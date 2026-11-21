@@ -6,6 +6,7 @@ import sys
 import wave
 from PIL import Image,ImageDraw,ImageFont,ImageFilter
 from random import Random
+import array
 
 out=pathlib.Path(sys.argv[1])
 out.mkdir(parents=True,exist_ok=True)
@@ -43,4 +44,25 @@ for lang,script in voices:
  with wave.open(str(file),"wb") as w:
   w.setparams((1,2,16000,0,"NONE","not compressed"));w.writeframes(pcm)
  records.append(dict(kind="speech-"+lang,fn="transcribeToEnglish",audio=file.name,script=script,language=lang,data=dict(mime="audio/wav"),facts=["kettle","65|sixty.five"]))
+# Keep genuine duplicate fixtures explicit in the results. Other variants change source facts.
+source=list(records)
+for case in source:
+ if case["kind"]=="speech-en":
+  noise=Random(1842)
+  with wave.open(str(out/case["audio"]),"rb") as w:
+   samples=array.array("h",w.readframes(w.getnframes()))
+  with wave.open(str(out/"en-noisy.wav"),"wb") as w:
+   w.setparams((1,2,16000,0,"NONE","not compressed"));w.writeframes(array.array("h",(max(-32768,min(32767,v+noise.randint(-350,350))) for v in samples)).tobytes())
+  records.append(dict(case,kind="speech-en-noisy",audio="en-noisy.wav"))
+for i in range(3):
+ body=f"Receipt Q-{700+i}. Birch Appliances. 12 May 2026. One Acme lamp model LM-{100+i} for GBP {24+i}. Total GBP {24+i}."
+ records.append(dict(kind=f"receipt variant {i+1}",fn="extractRecords",data=dict(mode="Scan receipt",text=body),sections=["assets","documents"],facts=[f"LM-{100+i}",str(24+i)]))
+for i in range(9):
+ body=f"Service agreement QA-{400+i}. Customer Elm Homes, supplier Cedar Heat. Annual boiler inspection. Starts 1 May 2026. Ends 30 April 2027. Annual fee GBP {150+i}. Cancel with {30+i} days notice."
+ records.append(dict(kind=f"service contract {i+1}",fn="extractRecords",data=dict(mode="Upload document",text=body),sections=["documents","renewals"],facts=[f"QA-{400+i}",str(150+i),str(30+i)]))
+for i in range(10):
+ body=f"Warranty certificate WQ-{200+i}. Reed Electronics, item Acme monitor model VX-{300+i}. Purchased 1 April 2026. Warranty term 24 months. Price GBP {100+i}."
+ records.append(dict(kind=f"warranty {i+1}",fn="extractRecords",data=dict(mode="Upload document",text=body),sections=["warranties"],facts=[f"VX-{300+i}","24"]))
+for case in source[:11]:
+ records.append(dict(case,kind=case["kind"]+" (repeat)",repeat=True))
 (out/"cases.json").write_text(json.dumps(records))

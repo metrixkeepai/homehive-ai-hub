@@ -100,8 +100,12 @@ export async function responseText(options: {
         stream: false,
         max_output_tokens: Math.min(options.maxOutput ?? 2048, 6000),
         reasoning: { effort: options.escalate ? "low" : "none" },
-        instructions: options.instructions,
-        input: options.input,
+        input: [
+          { role: "developer", content: options.instructions },
+          ...(Array.isArray(options.input)
+            ? options.input
+            : [{ role: "user", content: options.input }]),
+        ],
         ...(options.format ? { text: { format: options.format } } : {}),
       }),
       "application/json",

@@ -507,3 +507,40 @@ test("usage accounting prices cache reads, writes and audio from current rate ro
   );
   assert.equal(Number(audio.rows[0].cost_usd), 0.00225);
 });
+test("settled provider usage releases only its own reservation and records economic cache reuse", async () => {
+  await db.exec("UPDATE feature_flags SET enabled=true WHERE key='sera_text'");
+  await db.exec(
+    "UPDATE runtime_limits SET daily_ai_budget_usd=100,requests_per_minute=60,ai_enabled=true",
+  );
+  const key = "f".repeat(64),
+    lease = crypto.randomUUID();
+  await db.query("select claim_ai_request($1,$2,null,'sera',$3)", [key, b, lease]);
+  const id = (await db.query("select reserve_ai_operation($1,null,'sera',1,0.02) as id", [b]))
+    .rows[0].id;
+  await db.query(
+    "insert into ai_usage_log(user_id,model,feature,input_tokens,output_tokens,usage_details,reservation_id) values($1,'gpt-6-luna','sera',1000,100,'{\"accounting_version\":1}',$2)",
+    [b, id],
+  );
+  await db.query("select settle_ai_operation($1,$2,2)", [id, b]);
+  assert.equal(
+    (await db.query("select settled_usd from operation_reservations where id=$1", [id])).rows[0]
+      .settled_usd,
+    null,
+  );
+  await db.query("select settle_ai_operation($1,$2,1)", [id, b]);
+  assert.equal(
+    Number(
+      (await db.query("select settled_usd from operation_reservations where id=$1", [id])).rows[0]
+        .settled_usd,
+    ),
+    0.00015,
+  );
+  await db.query("select finish_metered_request($1,$2,$3,$4)", [key, lease, '{"reply":"ok"}', id]);
+  await db.query("select claim_ai_request($1,$2,null,'sera',$3)", [key, b, crypto.randomUUID()]);
+  const { rows } = await db.query("select savings_usd from ai_reuse_days where user_id=$1", [b]);
+  assert.equal(Number(rows[0].savings_usd), 0.00015);
+  await assert.rejects(
+    asUser(b, "select ai_cost_summary(now()-interval '1 day',now())"),
+    /permission denied/,
+  );
+});

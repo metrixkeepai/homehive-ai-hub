@@ -1,3 +1,4 @@
+import { sameRoomFrame } from "@/lib/room-frames";
 import { encodeSpeechWav } from "@/lib/speech-audio";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -130,7 +131,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
       v.onerror = () => bad(new Error("video"));
     });
     const out: string[] = [];
-    let previous: string | undefined;
+    let previous: Uint8ClampedArray | undefined;
     const c = document.createElement("canvas");
     const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
     c.width = Math.round(v.videoWidth * scale);
@@ -142,10 +143,11 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
         v.onseeked = () => ok();
       });
       c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
-      const frame = c.toDataURL("image/jpeg", 0.75);
-      // Exact decoded-frame duplicates can be skipped without dropping a newly visible label.
-      if (frame !== previous) out.push(frame);
-      previous = frame;
+      const pixels = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      if (!sameRoomFrame(previous, pixels)) {
+        out.push(c.toDataURL("image/jpeg", 0.75));
+        previous = pixels;
+      }
     }
     return out;
   } finally {

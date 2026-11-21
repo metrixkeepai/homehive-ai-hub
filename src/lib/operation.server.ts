@@ -1,3 +1,4 @@
+import { operationMeter } from "./ai-meter.server";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
 
 export async function reserveOperation(
@@ -19,6 +20,8 @@ export async function reserveOperation(
   );
   if (error || !data)
     throw new Error("This operation is unavailable or its quota has been reached.");
+  const meter = operationMeter.getStore();
+  if (meter) meter.reservation = data;
   return data;
 }
 
