@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { hasExactGbp, numericEntities } from "../src/lib/speech-facts.ts";
+import { browserSpeech } from "./speech-browser-qa.mjs";
 import { compareMini, wordErrors } from "./ai-speech-comparison.mjs";
 import { toJSONAsync, fromCrossJSON } from "seroval";
 
@@ -270,12 +271,23 @@ try {
       }),
     );
   }
+  const browserPassed = await browserSpeech({
+    dir,
+    cases,
+    base: candidate.origin,
+    email,
+    password,
+    db,
+    userId: user.id,
+    record,
+  });
   for (const spec of cases) {
     const [before] = scores.get("baseline:" + spec.kind),
       [after, possible] = scores.get("candidate:" + spec.kind);
     if (after < before || after < possible)
       throw Error("Quality gate requires review: " + spec.kind);
   }
+  if (!browserPassed) throw Error("Quality gate requires review: synthetic browser");
 } catch (e) {
   // Diagnostic labels are controlled by this script; omit provider responses and fixtures.
   const category =

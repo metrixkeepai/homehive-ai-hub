@@ -11,5 +11,12 @@ test("translation preserves decimals and model identifiers across scripts", () =
   assert.equal(translationRisk("65,50 £", "£65.50", "fr"), null);
   assert.equal(translationRisk("65 £", "£11.65", "fr"), "numbers");
   assert.equal(translationRisk("Bosch TWK7203", "Bosch TVK7203", "fr"), "identifier");
-  assert.equal(translationRisk("65 £", "€65", "fr"), "units");
+  assert.equal(translationRisk("65 £", "€65", "fr"), "currency");
+});
+
+test("dates and amounts keep their meaning independently of numeral ordering", () => {
+  assert.equal(translationRisk("hier", "today", "fr"), "date");
+  assert.equal(translationRisk("20 novembre 2026", "20 October 2026", "fr"), "date");
+  assert.equal(translationRisk("20 novembre 2026", "20 November 2026", "fr"), null);
+  assert.equal(translationRisk("GBP 65 and EUR 20", "EUR 65 and GBP 20", "en"), "currency");
 });

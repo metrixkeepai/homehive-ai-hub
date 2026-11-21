@@ -24,7 +24,7 @@ RUN ./node_modules/.bin/playwright install --with-deps chromium
 USER node
 CMD ["node", "scripts/staging-certification.mjs"]
 
-FROM build AS ai-benchmark
+FROM staging-qa AS ai-benchmark
 USER root
 RUN apt-get update && apt-get install --no-install-recommends -y espeak-ng ffmpeg python3-pil fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 USER node

@@ -37,6 +37,31 @@ export function hasExactGbp(text: string, amount: number) {
   const values = Array.from(value.matchAll(money), (m) => Number(m[1] ?? m[2]));
   return values.length > 0 && values.every((v) => v === amount);
 }
+function calendarTerms(text: string, locale: string) {
+  const segmenter = new Intl.Segmenter(locale, { granularity: "word" });
+  const tokens = (v: string) =>
+    [...segmenter.segment(v.normalize("NFKC").toLocaleLowerCase(locale))]
+      .filter((x) => x.isWordLike)
+      .map((x) => x.segment)
+      .join(" ");
+  const source = " " + tokens(text) + " ";
+  const terms: string[] = [];
+  const add = (name: string, label: string) => {
+    const phrase = tokens(name);
+    if (phrase && source.includes(" " + phrase + " ")) terms.push(label);
+  };
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  for (const offset of [-1, 0, 1]) add(relative.format(offset, "day"), "day:" + offset);
+  const month = new Intl.DateTimeFormat(locale, {
+    month: "long",
+    calendar: "gregory",
+    timeZone: "UTC",
+  });
+  for (let m = 0; m < 12; m++) add(month.format(Date.UTC(2024, m, 15)), "month:" + m);
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" });
+  for (let d = 0; d < 7; d++) add(weekday.format(Date.UTC(2024, 0, 7 + d)), "weekday:" + d);
+  return terms;
+}
 export function translationRisk(original: string, english: string, language: string) {
   let locale = "en";
   try {
@@ -46,6 +71,16 @@ export function translationRisk(original: string, english: string, language: str
   }
   const numbers = numericEntities(original, locale);
   if (JSON.stringify(numbers) !== JSON.stringify(numericEntities(english))) return "numbers";
+  const dates = calendarTerms(original, locale);
+  const translatedDates = calendarTerms(english, "en-GB");
+  if (dates.some((t) => !translatedDates.includes(t))) return "date";
+  const sourceAmounts = moneyEntities(canonical(original, locale));
+  const targetAmounts = moneyEntities(english);
+  if (
+    sourceAmounts.length &&
+    JSON.stringify(sourceAmounts.sort()) !== JSON.stringify(targetAmounts.sort())
+  )
+    return "currency";
   const codes =
     original.match(/\b(?=[A-Za-z\d-]*\d)(?=[A-Za-z\d-]*[A-Za-z])[A-Za-z\d]+(?:-[A-Za-z\d]+)*\b/g) ??
     [];
