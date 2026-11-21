@@ -19,6 +19,7 @@ globalThis.__matrixkeepSecurityMocks = {
     customers: { search: async () => ({ data: [{ id: "cus_test" }] }) },
     checkout: {
       sessions: {
+        list: async () => ({ data: [], has_more: false }),
         create: async (value) => {
           calls.push(["checkout", value]);
           return { client_secret: "test_secret" };
@@ -36,6 +37,7 @@ globalThis.__matrixkeepSecurityMocks = {
   },
 };
 const mocks = {
+  "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":
     'export const existingCustomer=async()=>"cus_test"; export const customerForUser=async()=>"cus_test"; export const validatedPrice=async()=>({id:"price_test"});',
@@ -50,6 +52,7 @@ const mocks = {
   "@/server/appUserConnections.server": "export const getConnectionKeyForUser=async()=>null;",
   "@/integrations/lovable/appUserConnector":
     'export const authorizeAppUserOAuth=async value=>{globalThis.__matrixkeepSecurityMocks.calls.push(["oauth",value]);return {authorizationUrl:"https://accounts.google.test/authorize"}};',
+  "./ai-cache.server": "export const cachedOperation=async(u,w,f,v,i,perform)=>perform();",
   "./operation.server": "export const reserveOperation=async()=>{};",
   "./ai-usage.server": "export const logAiUsage=async()=>{};",
   zod: 'const chain=new Proxy(function(){return chain},{get:(_,key)=>key==="parse"?value=>value:chain,apply:()=>chain});export const z=chain;',
@@ -131,10 +134,48 @@ test("valid checkout retains its exact allowed return URL", async () => {
     context,
   });
   assert.equal(result.clientSecret, "test_secret");
+  assert.equal(calls.find((c) => c[0] === "checkout")[1].adaptive_pricing.enabled, false);
   assert.equal(
     calls.find((c) => c[0] === "checkout")[1].return_url,
     "https://matrixkeep.com/app/plans",
   );
+});
+test("existing subscriber reviews a price change without creating a second subscription", async () => {
+  const subscriptions = globalThis.__matrixkeepSecurityMocks.stripe.subscriptions;
+  const original = subscriptions.list;
+  subscriptions.list = async () => ({
+    data: [
+      {
+        id: "sub_current",
+        collection_method: "charge_automatically",
+        status: "active",
+        items: { data: [{ id: "si_current", price: { id: "price_old" }, quantity: 1 }] },
+      },
+    ],
+    has_more: false,
+  });
+  try {
+    const result = await createCheckoutSession({
+      data: {
+        priceId: "plus_monthly",
+        returnUrl: "https://matrixkeep.com/app/plans",
+        environment: "sandbox",
+      },
+      context,
+    });
+    assert.equal(result.portalUrl, "https://billing.stripe.test/session");
+    assert.equal(
+      calls.some(([kind]) => kind === "checkout"),
+      false,
+    );
+    const flow = calls.find(([kind]) => kind === "portal")[1].flow_data;
+    assert.deepEqual(flow.subscription_update_confirm, {
+      subscription: "sub_current",
+      items: [{ id: "si_current", price: "price_test", quantity: 1 }],
+    });
+  } finally {
+    subscriptions.list = original;
+  }
 });
 test("portal rejects a foreign return before external side effects", async () => {
   await assert.rejects(
@@ -179,6 +220,41 @@ test("direct extraction rejects remote URLs before any AI provider call", async 
 });
 test("text-only extraction still reaches the existing provider error path", async () => {
   const result = await runExtraction({ mode: "text", text: "A chair" }, "user_test");
-  assert.match(result.error, /AI is busy/);
+  assert.match(result.error, /AI provider limited/);
   assert.deepEqual(calls, [["fetch"]]);
+});
+
+test("changing an abandoned checkout expires the old selection before issuing another", async () => {
+  const sessions = globalThis.__matrixkeepSecurityMocks.stripe.checkout.sessions;
+  const list = sessions.list;
+  sessions.list = async () => ({
+    data: [
+      {
+        id: "cs_old",
+        mode: "subscription",
+        metadata: { app: "matrixkeep" },
+        client_reference_id: context.userId,
+        line_items: { data: [{ price: { id: "other" } }] },
+      },
+    ],
+  });
+  sessions.expire = async (id) => calls.push(["expired", id]);
+  try {
+    const r = await createCheckoutSession({
+      data: {
+        priceId: "plus_yearly",
+        returnUrl: "https://matrixkeep.com/app/plans",
+        environment: "sandbox",
+      },
+      context,
+    });
+    assert.equal(r.clientSecret, "test_secret");
+    assert.deepEqual(
+      calls.filter((c) => ["expired", "checkout"].includes(c[0])).map((c) => c[0]),
+      ["expired", "checkout"],
+    );
+  } finally {
+    sessions.list = list;
+    delete sessions.expire;
+  }
 });

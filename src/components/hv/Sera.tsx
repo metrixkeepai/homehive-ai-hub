@@ -40,7 +40,10 @@ export function Sera() {
     setBusy(true);
     try {
       const r = await askSera({ data: { workspaceId: current.id, messages: next.slice(-12) } });
-      setMsgs([...next, { role: "assistant", content: r.reply || r.error || "No answer." }]);
+      setMsgs([
+        ...next,
+        { role: "assistant", content: ("reply" in r ? r.reply : r.error) || "No answer." },
+      ]);
     } catch {
       setMsgs([...next, { role: "assistant", content: "Sera couldn't answer just now." }]);
     } finally {

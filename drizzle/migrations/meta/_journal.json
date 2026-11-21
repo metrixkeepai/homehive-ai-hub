@@ -211,6 +211,69 @@
       "when": 1792576177132,
       "tag": "0029_signup_country",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795132800000,
+      "tag": "0030_restore_runtime_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795219200000,
+      "tag": "0031_property_workspace",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795219200001,
+      "tag": "0032_passport_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795219200002,
+      "tag": "0033_billing_catalogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795219200003,
+      "tag": "0034_service_provider_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795219200004,
+      "tag": "0035_passport_share_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795219200005,
+      "tag": "0036_ai_cost_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795219200006,
+      "tag": "0037_ai_settlement",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795219200007,
+      "tag": "0038_speech_recovery",
+      "breakpoints": true
     }
   ]
 }

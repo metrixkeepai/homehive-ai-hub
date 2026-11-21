@@ -1,0 +1,8 @@
+-- Preview the same account and feature gates that the insert trigger enforces.
+CREATE FUNCTION public.can_share_passport() RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT public.feature_enabled(auth.uid(), 'passport_shares')
+     AND coalesce((public.account_entitlements(auth.uid())->'secure_shares'->>'on')::boolean, false)
+$$;
+REVOKE ALL ON FUNCTION public.can_share_passport() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_share_passport() TO authenticated;

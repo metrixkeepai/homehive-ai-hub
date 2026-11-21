@@ -57,8 +57,7 @@ function SectionPage() {
   const [view, setView] = useViewMode(section);
   if (!s) return <Missing />;
   if (section === "billing") return <BillingPage />;
-  if (section === "my-home" || section === "locations")
-    return <PropertiesPage slug={section} />;
+  if (section === "my-home" || section === "locations") return <PropertiesPage slug={section} />;
   if (section === "warranties" || section === "renewals")
     return <TrackingPage key={section} section={section} startOpen={!!search.add} />;
   if (STUB_NAV_SLUGS.has(section))
@@ -93,10 +92,7 @@ function SectionPage() {
         ]
       : [
           ["Records", String(own.length)],
-          [
-            "Active",
-            String(own.filter((i) => !isArchived(i)).length),
-          ],
+          ["Active", String(own.filter((i) => !isArchived(i)).length)],
           ...(section === "documents"
             ? ([["Types", String(new Set(own.map(docTypeOf)).size)]] as [string, string][])
             : []),
@@ -105,9 +101,7 @@ function SectionPage() {
             : []),
         ];
   const docTypes =
-    section === "documents"
-      ? ["All", ...Array.from(new Set(own.map(docTypeOf))).sort()]
-      : [];
+    section === "documents" ? ["All", ...Array.from(new Set(own.map(docTypeOf))).sort()] : [];
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-6">

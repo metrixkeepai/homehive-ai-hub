@@ -1,0 +1,88 @@
+name: Promote verified MatrixKeep release
+on:
+  workflow_dispatch:
+    inputs:
+      staging_run:
+        description: Successful main staging workflow run ID
+        required: true
+        type: string
+      acceptance:
+        description: Evidence reference for staging functional acceptance, rotation and production backup
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: matrixkeep-production
+  cancel-in-progress: false
+jobs:
+  promote:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: production
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
+      EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED || 'false' }}
+      MIN_INSTANCES: ${{ vars.MIN_INSTANCES || '0' }}
+      MAX_INSTANCES: ${{ vars.MAX_INSTANCES || '3' }}
+      CONCURRENCY: ${{ vars.RUN_CONCURRENCY || '8' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the selected staging release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.staging_run }}
+          ACCEPTANCE: ${{ inputs.acceptance }}
+        run: |
+          set -euo pipefail
+          [[ $RUN_ID =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > "$RUNNER_TEMP/run.json"
+          jq -e --arg sha "$GITHUB_SHA" '.path == ".github/workflows/verify.yml" and .event == "push" and .head_branch == "main" and .head_sha == $sha and .conclusion == "success"' "$RUNNER_TEMP/run.json"
+          gh run download "$RUN_ID" -n matrixkeep-staging-release -D "$RUNNER_TEMP/staging"
+          jq -e --arg sha "$GITHUB_SHA" '.sha == $sha and .service == "matrixkeep-staging-web"' "$RUNNER_TEMP/staging/release.json"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Copy the accepted image manifests without rebuilding
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/staging/release.json"
+          stage=$(jq -er '.project' "$manifest")
+          region=$(jq -er '.region' "$manifest")
+          [[ $stage == matrixkeep-* && $GCP_PROJECT_ID == matrixkeep-* && $stage != "$GCP_PROJECT_ID" ]]
+          echo "STAGING_PROJECT=$stage" >> "$GITHUB_ENV"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev,$region-docker.pkg.dev" --quiet
+          for pair in web:image migrator:migrator; do
+            name=${pair%:*}
+            source=$(jq -er --arg field "${pair#*:}" '.[$field]' "$manifest")
+            digest=${source##*@}
+            [[ ${source%@*} == "$region-docker.pkg.dev/$stage/matrixkeep/$name" && $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+            dest="$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep/$name"
+            docker buildx imagetools create --prefer-index=false --tag "$dest:$GITHUB_SHA" "$source"
+            actual=$(gcloud artifacts docker images describe "$dest:$GITHUB_SHA" --format='value(image_summary.digest)')
+            [[ $actual == "$digest" ]]
+            field=IMAGE
+            if [[ $name == migrator ]]; then field=MIGRATOR_IMAGE; fi
+            echo "$field=$dest@$digest" >> "$GITHUB_ENV"
+          done
+      - name: Migrate production, deploy and verify customer HTTPS
+        run: bash deploy/cloud-run.sh
+      - name: Configure service monitoring
+        env:
+          MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
+        run: python3 deploy/monitoring.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-production-release
+          path: release.json
+          if-no-files-found: error

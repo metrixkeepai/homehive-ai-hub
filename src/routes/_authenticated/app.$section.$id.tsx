@@ -88,10 +88,11 @@ function Detail() {
   const [renameTitle, setRenameTitle] = useState("");
   const [renameBusy, setRenameBusy] = useState(false);
   const [editing, setEditing] = useState(false);
-  const own =
-    section === "integrations" || !!added[section]?.some((x) => x.id === id);
+  const own = section === "integrations" || !!added[section]?.some((x) => x.id === id);
   const isProperty = PROPERTY_SLUGS.includes(section);
-  const saved = useRecordLinks(own && section !== "integrations" ? id : "00000000-0000-0000-0000-000000000000");
+  const saved = useRecordLinks(
+    own && section !== "integrations" ? id : "00000000-0000-0000-0000-000000000000",
+  );
   if (!item && loadingRecord) return <p className="p-8">Loading record…</p>;
   if (!s || !item) {
     return (
@@ -108,9 +109,7 @@ function Detail() {
   }
 
   const isGoogle = section === "integrations" && !!googleConnectorFor[id];
-  const shownTabs = tabs.filter(
-    (t) => t !== "Items" || section === "rooms" || isProperty,
-  );
+  const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms" || isProperty);
   if (
     (section === "warranties" || section === "renewals") &&
     added[section]?.some((x) => x.id === id)
@@ -127,9 +126,7 @@ function Detail() {
   // Only surface actions that actually work — avoid “not available yet” stubs in production.
   const workingActions = (() => {
     const fromItem = (item.actions ?? []).filter(
-      (a) =>
-        a !== "Delete" &&
-        (/^edit\b/i.test(a) || /^download home report$/i.test(a)),
+      (a) => a !== "Delete" && (/^edit\b/i.test(a) || /^download home report$/i.test(a)),
     );
     if (own && !isGoogle && !isProperty && !fromItem.some((a) => /^edit\b/i.test(a)))
       fromItem.unshift("Edit");
@@ -194,15 +191,15 @@ function Detail() {
               <div className="mt-6 flex flex-wrap gap-2">
                 {isProperty && own && <PropertyEditButton item={item} />}
                 {workingActions.map((a, idx) => (
-                    <button
-                      key={a}
-                      disabled={done.includes(a)}
-                      onClick={() => void act(a)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${idx === 0 && !isProperty ? "bg-aurora text-primary-foreground" : "border border-midnight-foreground/20"}`}
-                    >
-                      {done.includes(a) ? `✓ ${a}` : a}
-                    </button>
-                  ))}
+                  <button
+                    key={a}
+                    disabled={done.includes(a)}
+                    onClick={() => void act(a)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${idx === 0 && !isProperty ? "bg-aurora text-primary-foreground" : "border border-midnight-foreground/20"}`}
+                  >
+                    {done.includes(a) ? `✓ ${a}` : a}
+                  </button>
+                ))}
                 {own && section === "documents" && (
                   <>
                     <button
@@ -279,7 +276,6 @@ function Detail() {
           onClose={() => setPassport(null)}
           section={section}
           item={item}
-          added={added}
           owner={profile?.display_name || email || "you"}
         />
       )}

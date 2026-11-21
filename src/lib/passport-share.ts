@@ -1,3 +1,4 @@
+import { publicSetting } from "@/lib/public-config";
 export type PassportEntity = "property" | "asset" | "vehicle" | "business" | "evidence" | "other";
 
 export const ENTITY_BY_SECTION: Record<string, PassportEntity> = {
@@ -26,12 +27,10 @@ export const OG_IMAGE: Record<PassportEntity, string> = {
 export const OG_DESCRIPTION =
   "A secure Digital Passport has been shared with you through MatrixKeep. View the information the owner has chosen to share — no account required.";
 
-export const SITE = new URL(
-  (import.meta.env["VITE_APP_ORIGIN"] as string | undefined) || "https://matrixkeep.com",
-).origin;
+export const SITE = new URL(publicSetting("VITE_APP_ORIGIN") || "https://matrixkeep.com").origin;
 /** Sharing and social previews use the configured deployment's canonical origin. */
 export function shareBase(origin: string) {
-  const configured = import.meta.env["VITE_APP_ORIGIN"] as string | undefined;
+  const configured = publicSetting("VITE_APP_ORIGIN");
   if (configured) return new URL(configured).origin;
   const url = new URL(origin);
   return ["localhost", "127.0.0.1"].includes(url.hostname) ? url.origin : SITE;

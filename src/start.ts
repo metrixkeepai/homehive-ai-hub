@@ -23,6 +23,10 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 // from cross-site requests.
 const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
+  // Cloud Run terminates HTTPS before the Node listener. Validate the public
+  // origin for clients that send Origin or Referer without Fetch Metadata.
+  origin: (origin, ctx) =>
+    origin === (process.env["APP_ORIGIN"] || new URL(ctx.request.url).origin),
 });
 
 export const startInstance = createStart(() => ({

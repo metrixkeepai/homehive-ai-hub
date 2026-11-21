@@ -68,3 +68,24 @@ test("startup requires complete configuration and refuses mixed payment environm
     /Unsafe public variable/,
   );
 });
+
+test("the public runtime script accepts only browser credentials for the same environment", async () => {
+  const { publicConfig } = await import("../../server/public-config.mjs");
+  const env = {
+    SUPABASE_URL: "https://example.test",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_placeholder",
+    APP_ORIGIN: "https://example.test",
+    OPENAI_API_KEY: "server-only-canary",
+    STRIPE_ENVIRONMENT: "sandbox",
+    VITE_PAYMENTS_CLIENT_TOKEN: "pk_test_placeholder",
+  };
+  assert.deepEqual(Object.keys(publicConfig(env)).sort(), [
+    "VITE_APP_ORIGIN",
+    "VITE_PAYMENTS_CLIENT_TOKEN",
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_URL",
+  ]);
+  assert.throws(() => publicConfig({ ...env, SUPABASE_PUBLISHABLE_KEY: "sb_secret_placeholder" }));
+  assert.throws(() => publicConfig({ ...env, VITE_SUPABASE_URL: "https://other.example" }));
+  assert.throws(() => publicConfig({ ...env, VITE_PAYMENTS_CLIENT_TOKEN: "pk_live_placeholder" }));
+});

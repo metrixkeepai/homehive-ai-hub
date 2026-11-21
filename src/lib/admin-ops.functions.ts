@@ -126,7 +126,8 @@ export const aiUsage = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => Range.parse(d))
   .handler(async ({ context, data }) => {
     const db = await adminClient(context as Ctx);
-    const [{ data: logs }, { data: rates }, { data: profiles }] = await Promise.all([
+    const [summary, { data: logs }, { data: rates }, { data: profiles }] = await Promise.all([
+      db.rpc("ai_cost_summary", { _from: data.from, _to: data.to }),
       db
         .from("ai_usage_log")
         .select("*")
@@ -137,19 +138,8 @@ export const aiUsage = createServerFn({ method: "GET" })
       db.from("ai_model_rates").select("*"),
       db.from("profiles").select("id, display_name, org_name, plan"),
     ]);
-    const rate = new Map((rates ?? []).map((r) => [r.model, r]));
     const prof = new Map((profiles ?? []).map((p) => [p.id, p]));
-    const cost = (l: NonNullable<typeof logs>[number]) => {
-      const r = rate.get(l.model);
-      return (
-        l.cost_usd ||
-        (r
-          ? (l.input_tokens * r.input_per_million_usd +
-              l.output_tokens * r.output_per_million_usd) /
-            1e6
-          : 0)
-      );
-    };
+    const cost = (l: NonNullable<typeof logs>[number]) => Number(l.cost_usd);
     const agg = (key: (l: NonNullable<typeof logs>[number]) => string) => {
       const m: Record<
         string,
@@ -165,8 +155,40 @@ export const aiUsage = createServerFn({ method: "GET" })
       });
       return Object.values(m).sort((a, b) => b.cost - a.cost || b.calls - a.calls);
     };
+    if (summary.error) throw new Error("AI cost totals unavailable");
+    const totals = summary.data as Record<
+      | "calls"
+      | "users"
+      | "cost"
+      | "luna"
+      | "sol"
+      | "measured_input"
+      | "cache_read"
+      | "cache_savings"
+      | "speech_minutes"
+      | "operations"
+      | "reserved"
+      | "hits"
+      | "savings"
+      | "unpriced",
+      number
+    >;
     const L = logs ?? [];
     return {
+      totals,
+      cachedInput: L.reduce(
+        (n, l) => n + Number((l.usage_details as { cached_tokens?: number })?.cached_tokens ?? 0),
+        0,
+      ),
+      cacheSavings: L.reduce(
+        (n, l) =>
+          n + Number((l.usage_details as { cache_savings_usd?: number })?.cache_savings_usd ?? 0),
+        0,
+      ),
+      measuredCalls: L.filter(
+        (l) => (l.usage_details as { accounting_version?: number })?.accounting_version === 1,
+      ).length,
+      speechMinutes: L.reduce((n, l) => n + Number(l.audio_seconds ?? 0), 0) / 60,
       calls: L.length,
       errors: L.filter((l) => !l.ok).length,
       inputTokens: L.reduce((s, l) => s + l.input_tokens, 0),
@@ -370,16 +392,18 @@ export const setPlanVersionStatus = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .single();
     if (!v) throw new Error("Version not found");
-    if (data.status === "approved")
-      await db
-        .from("plan_versions")
-        .update({ status: "archived" })
-        .eq("plan_key", v.plan_key)
-        .eq("status", "approved");
+    if (data.status === "approved") {
+      const { publishPlanVersion } = await import("./billing-catalogue.server");
+      await publishPlanVersion(data.id, context.userId);
+      return { ok: true };
+    }
     const { error } = await db
       .from("plan_versions")
       .update({ status: data.status })
-      .eq("id", data.id);
+      .neq("status", "approved")
+      .eq("id", data.id)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     await audit(db, context.userId, `plan_version_${data.status}`, v.plan_key, null, {
       version: v.version,
@@ -411,7 +435,7 @@ export const setPlanActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Archive: hidden from new customers and every version archived; existing subscribers keep access. */
+/** Archive: hide the plan from new customers while retaining the published entitlements. */
 export const archivePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
@@ -419,17 +443,13 @@ export const archivePlan = createServerFn({ method: "POST" })
     const db = await adminClient(context as Ctx);
     if (data.key === "free")
       throw new Error("The Free plan can't be archived — new accounts start on it.");
-    await db.from("plan_status").upsert({
+    const { error } = await db.from("plan_status").upsert({
       plan_key: data.key,
       active: false,
       updated_by: context.userId,
       updated_at: new Date().toISOString(),
     });
-    await db
-      .from("plan_versions")
-      .update({ status: "archived" })
-      .eq("plan_key", data.key)
-      .neq("status", "archived");
+    if (error) throw new Error(error.message);
     await audit(db, context.userId, "plan_archived", data.key, null);
     return { ok: true };
   });
@@ -444,7 +464,7 @@ export const deletePlan = createServerFn({ method: "POST" })
       throw new Error(
         "This plan is tied to card payments and can't be deleted — deactivate or archive it instead.",
       );
-    const [acc, subs, red, vou] = await Promise.all([
+    const [acc, subs, red, vou, history] = await Promise.all([
       db.from("profiles").select("id", { count: "exact", head: true }).eq("plan", data.key),
       db
         .from("subscriptions")
@@ -455,8 +475,15 @@ export const deletePlan = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .or(`plan_after.eq.${data.key},plan_before.eq.${data.key}`),
       db.from("vouchers").select("code", { count: "exact", head: true }).eq("plan", data.key),
+      db
+        .from("billing_price_history")
+        .select("price_id", { count: "exact", head: true })
+        .eq("plan_key", data.key),
     ]);
+    if ([acc, subs, red, vou, history].some((result) => result.error))
+      throw new Error("Could not verify plan dependencies.");
     const deps = [
+      [history.count, "Stripe price mappings"],
       [acc.count, "accounts on it"],
       [subs.count, "subscription/billing records"],
       [red.count, "voucher redemptions"],

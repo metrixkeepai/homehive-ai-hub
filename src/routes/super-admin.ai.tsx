@@ -50,15 +50,50 @@ function AI() {
         {picker}
       </PageTitle>
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="AI calls" value={d.calls} onClick={() => setView("calls")} />
+        <Kpi label="AI calls" value={d.totals.calls} onClick={() => setView("calls")} />
         <Kpi
           label="Estimated cost"
-          value={money(d.cost, "USD")}
+          value={"$" + d.totals.cost.toFixed(6)}
           hint={d.rates.length ? "Tokens × your rates" : "Set model rates below"}
         />
         <Kpi
           label="Tokens in / out"
           value={`${d.inputTokens.toLocaleString()} / ${d.outputTokens.toLocaleString()}`}
+        />
+        <Kpi
+          label="Cached input tokens"
+          value={d.totals.cache_read.toLocaleString()}
+          hint={d.measuredCalls + " calls with cache telemetry"}
+        />
+        <Kpi label="Estimated cache savings" value={"$" + d.totals.cache_savings.toFixed(6)} />
+        <Kpi label="Transcription minutes" value={d.totals.speech_minutes.toFixed(2)} />
+        <Kpi
+          label="Cached input share"
+          value={
+            d.totals.measured_input
+              ? ((100 * d.totals.cache_read) / d.totals.measured_input).toFixed(1) + "%"
+              : "—"
+          }
+        />
+        <Kpi label="Luna / Sol calls" value={d.totals.luna + " / " + d.totals.sol} />
+        <Kpi
+          label="Escalated operations"
+          value={
+            d.totals.operations
+              ? ((100 * d.totals.sol) / d.totals.operations).toFixed(2) + "%"
+              : "—"
+          }
+        />
+        <Kpi label="Reserved" value={"$" + d.totals.reserved.toFixed(4)} />
+        <Kpi
+          label="Reused results"
+          value={d.totals.hits}
+          hint={d.totals.unpriced + " without a measured original cost"}
+        />
+        <Kpi label="Estimated reuse savings" value={"$" + d.totals.savings.toFixed(6)} />
+        <Kpi
+          label="Cost per AI-active user"
+          value={d.totals.users ? "$" + (d.totals.cost / d.totals.users).toFixed(6) : "—"}
         />
         <Kpi
           label="Errors"
@@ -146,7 +181,9 @@ function AI() {
         <ul className="mt-3 space-y-1">
           {d.rates.map((r) => (
             <li key={r.model}>
-              {r.model}: in ${r.input_per_million_usd} · out ${r.output_per_million_usd}
+              {r.model}: in ${r.input_per_million_usd} · out ${r.output_per_million_usd} · cached $
+              {r.cached_input_per_million_usd ?? "—"} · cache write $
+              {r.write_per_million_usd ?? "—"} · audio/min ${r.audio_per_minute_usd ?? "—"}
             </li>
           ))}
         </ul>

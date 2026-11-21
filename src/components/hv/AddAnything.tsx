@@ -1,3 +1,4 @@
+import { sameRoomFrame } from "@/lib/room-frames";
 import { encodeSpeechWav } from "@/lib/speech-audio";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
@@ -95,15 +96,26 @@ const sectionOptions = [
 type Rec = Extracted & { keep: boolean };
 type Step = "pick" | "capture" | "processing" | "review" | "saving" | "done";
 
-async function toDataUrl(f: File): Promise<string | undefined> {
+async function toDataUrl(f: File, documentPhoto: boolean): Promise<string | undefined> {
+  if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
+    if (f.size > 5 * 1024 * 1024) throw new Error("PDF exceeds capture limit");
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Unreadable PDF"));
+      reader.onload = () =>
+        resolve("data:application/pdf;base64," + String(reader.result).split(",")[1]);
+      reader.readAsDataURL(f);
+    });
+  }
   if (!f.type.startsWith("image/")) return undefined;
-  const img = await createImageBitmap(f);
-  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const img = await createImageBitmap(f, { imageOrientation: "from-image" });
+  const scale = Math.min(1, (documentPhoto ? 2600 : 1600) / Math.max(img.width, img.height));
   const c = document.createElement("canvas");
   c.width = Math.round(img.width * scale);
   c.height = Math.round(img.height * scale);
   c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
-  return c.toDataURL("image/jpeg", 0.82);
+  img.close();
+  return c.toDataURL("image/jpeg", documentPhoto ? 0.9 : 0.82);
 }
 
 async function videoFrames(f: File, count = 6): Promise<string[]> {
@@ -119,6 +131,7 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
       v.onerror = () => bad(new Error("video"));
     });
     const out: string[] = [];
+    let previous: Uint8ClampedArray | undefined;
     const c = document.createElement("canvas");
     const scale = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
     c.width = Math.round(v.videoWidth * scale);
@@ -130,7 +143,11 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
         v.onseeked = () => ok();
       });
       c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
-      out.push(c.toDataURL("image/jpeg", 0.75));
+      const pixels = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+      if (!sameRoomFrame(previous, pixels)) {
+        out.push(c.toDataURL("image/jpeg", 0.75));
+        previous = pixels;
+      }
     }
     return out;
   } finally {
@@ -183,6 +200,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
   };
 
   const recRef = useRef<MediaRecorder | null>(null);
+  const [originalTranscript, setOriginalTranscript] = useState("");
   const [transcribing, setTranscribing] = useState(false);
   useEffect(
     () => () => {
@@ -252,10 +270,19 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         for (let i = 0; i < buf.length; i += 0x8000)
           bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
         const r = await transcribeToEnglish({
-          data: { audio: btoa(bin), mime: "audio/wav", workspaceId: current.id },
+          data: {
+            audio: btoa(bin),
+            mime: "audio/wav",
+            workspaceId: current.id,
+          },
         });
-        if ("error" in r && r.error) toast.error(r.error);
-        else if ("english" in r && r.english) setText((t) => (t ? t + " " : "") + r.english);
+        if ("error" in r && r.error) {
+          if ("original" in r && r.original) setOriginalTranscript(r.original);
+          toast.error(r.error);
+        } else if ("english" in r && r.english) {
+          setOriginalTranscript(r.original);
+          setText((t) => (t ? t + " " : "") + r.english);
+        }
       } catch {
         toast.error("We couldn't understand that recording. Please try again.");
       } finally {
@@ -273,7 +300,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
       toast.error("Please choose a photo or file first");
       return;
     }
-    if (mode.kind !== "file" && !text.trim()) {
+    if (mode.kind !== "file" && !text.trim() && !(mode.key === "email" && file)) {
       toast.error("Please add some text first");
       return;
     }
@@ -297,7 +324,10 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
         setStep("capture");
         return;
       }
-      const image = file && !isVideo && docText === null ? await toDataUrl(file) : undefined;
+      const image =
+        file && !isVideo && docText === null
+          ? await toDataUrl(file, /receipt|document|invoice/i.test(mode.label))
+          : undefined;
       const images = file && isVideo ? await videoFrames(file) : undefined;
       const referenceDate = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the user's locale calendar
       const r = await extractRecords({
@@ -475,6 +505,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   setStep("pick");
                   setFile(null);
                   setText("");
+                  setOriginalTranscript("");
                 }}
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -529,7 +560,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
           {step === "capture" && mode && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">{mode.hint}</p>
-              {mode.kind === "file" && (
+              {(mode.kind === "file" || mode.key === "email") && (
                 <div
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -547,7 +578,9 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                     <div>
                       <mode.icon className="mx-auto h-8 w-8 text-primary" />
                       <p className="mt-2 text-sm font-medium">
-                        Tap to take a photo or choose a file
+                        {mode.key === "email"
+                          ? "Choose an email attachment"
+                          : "Tap to take a photo or choose a file"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Photos, short videos or PDF, up to 20 MB
@@ -557,27 +590,47 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   <input
                     ref={fileRef}
                     type="file"
-                    accept={mode.key === "document" ? DOC_ACCEPT : "image/*,video/*"}
-                    capture={mode.key === "document" ? undefined : "environment"}
+                    accept={
+                      mode.key === "document" || mode.key === "email"
+                        ? DOC_ACCEPT
+                        : "image/*,video/*"
+                    }
+                    capture={
+                      mode.key === "document" || mode.key === "email" ? undefined : "environment"
+                    }
                     className="hidden"
                     onChange={(e) => void pickFile(e.target.files?.[0])}
                   />
                 </div>
               )}
               {mode.kind === "voice" && (
-                <button
-                  type="button"
-                  onClick={listen}
-                  disabled={transcribing}
-                  className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}
-                >
-                  <Mic className="h-5 w-5" />
-                  {transcribing
-                    ? "Translating to English…"
-                    : listening
-                      ? "Listening… tap to finish"
-                      : "Tap and speak"}
-                </button>
+                <>
+                  <div className="block text-sm">
+                    Spoken language
+                    <span className="ml-2 inline-block rounded border bg-background p-2">
+                      Detect automatically
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={listen}
+                    disabled={transcribing}
+                    className={`flex w-full items-center justify-center gap-2 rounded-2xl border py-6 text-sm font-semibold ${listening || transcribing ? "animate-pulse border-primary text-primary" : ""}`}
+                  >
+                    <Mic className="h-5 w-5" />
+                    {transcribing
+                      ? "Translating to English…"
+                      : listening
+                        ? "Listening… tap to finish"
+                        : "Tap and speak"}
+                  </button>
+                  {originalTranscript && (
+                    <details className="text-sm">
+                      <summary>Original transcript</summary>
+                      <p>{originalTranscript}</p>
+                    </details>
+                  )}
+                </>
               )}
               <textarea
                 value={text}
@@ -595,8 +648,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
               />
               {mode.kind === "file" && file && !file.type.startsWith("image/") && (
                 <p className="text-xs text-muted-foreground">
-                  PDFs are saved as evidence; the AI reads the file name and your note. Add key
-                  details in the note for best results.
+                  MatrixKeep reads the supported file and your note. Review extracted records before
+                  saving.
                 </p>
               )}
               <button
@@ -773,6 +826,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                     setStep("pick");
                     setFile(null);
                     setText("");
+                    setOriginalTranscript("");
                     setRecs([]);
                   }}
                   className="flex-1 rounded-full border py-3 text-sm font-semibold"

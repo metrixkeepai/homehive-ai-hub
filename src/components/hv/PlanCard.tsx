@@ -78,12 +78,12 @@ export function PlanCard({
       <p className={`mt-1 text-sm ${sub}`}>{p.positioning}</p>
       <p className="mt-5 font-display text-4xl">
         {priceLabel(p, yearly)}
-        {p.monthly ? (
+        {(yearly ? p.yearly : p.monthly) ? (
           <span className="text-sm opacity-60">{yearly ? "/year" : "/month"}</span>
         ) : null}
       </p>
       <p className={`mt-1 h-4 text-xs ${sub}`}>
-        {p.monthly
+        {p.monthly && p.yearly
           ? yearly
             ? `${gbp(Math.round((p.yearly! / 12) * 100) / 100)}/month · save ${gbp(save)}`
             : `or ${gbp(p.yearly!)}/year`

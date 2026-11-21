@@ -49,16 +49,6 @@ function keepField(k: string, p: Privacy) {
   return true;
 }
 
-/** Records relevant to a single subject: for the property, all saved records; otherwise those that mention it. */
-function related(subject: Item, slug: SectionSlug, added: Record<string, Item[]>, whole: boolean) {
-  const list = added[slug] ?? [];
-  if (whole) return list;
-  const t = subject.title.toLowerCase();
-  return list.filter(
-    (i) => i.id !== subject.id && i.fields.some(([, v]) => (v ?? "").toLowerCase().includes(t)),
-  );
-}
-
 /** Builds a self-contained HTML passport from the subject plus the user's own saved records. */
 export function buildPassportHtml(
   subject: Item,
@@ -66,7 +56,6 @@ export function buildPassportHtml(
   owner: string,
   opts: PassportOptions,
   kindLabel = "Home Digital Passport",
-  whole = true,
 ) {
   const p = opts.privacy;
   const date = new Date().toLocaleDateString("en-GB", {
@@ -83,7 +72,7 @@ export function buildPassportHtml(
   const include = opts.include.filter((s) => p.insurance || s !== "insurance");
   const parts = include
     .map((slug) => {
-      const list = related(subject, slug, added, whole);
+      const list = added[slug] ?? [];
       if (!list.length) return "";
       const title =
         PASSPORT_SECTIONS.find(([s]) => s === slug)?.[1] ??

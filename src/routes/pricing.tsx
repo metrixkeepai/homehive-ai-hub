@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteShell, PageHero, FAQ, CTA, Reveal } from "@/components/hv/Site";
-import { plans, type Audience } from "@/lib/plans";
-import { useInactivePlans } from "@/lib/plan-status";
+import { type Audience } from "@/lib/plans";
+import { useInactivePlans, usePublishedPlans } from "@/lib/plan-status";
 import { PlanCard, BillingToggle, CompareTable } from "@/components/hv/PlanCard";
 
 const t = "Pricing — MatrixKeep";
@@ -32,7 +32,8 @@ function Page() {
   const [tab, setTab] = useState<Audience>("individual");
   const [yearly, setYearly] = useState(false);
   const off = useInactivePlans();
-  const list = plans.filter((p) => p.audience === tab && !off.has(p.key));
+  const catalogue = usePublishedPlans();
+  const list = (catalogue.data ?? []).filter((p) => p.audience === tab && !off.has(p.key));
   return (
     <SiteShell>
       <PageHero
@@ -62,6 +63,10 @@ function Page() {
           key={tab}
           className={`mt-12 grid gap-6 md:grid-cols-2 ${list.length > 2 ? "xl:grid-cols-4" : "mx-auto max-w-4xl"}`}
         >
+          {catalogue.isPending && <p role="status">Loading plans…</p>}
+          {catalogue.isError && (
+            <button onClick={() => void catalogue.refetch()}>Retry loading plans</button>
+          )}
           {list.map((p, i) => (
             <Reveal key={p.key} delay={i * 80}>
               <PlanCard
@@ -71,10 +76,10 @@ function Page() {
                 cta={
                   <>
                     <Link
-                      to={p.monthly === null ? "/contact" : "/auth"}
+                      to={(yearly ? p.yearly : p.monthly) === null ? "/contact" : "/auth"}
                       className="block rounded-full bg-aurora py-2.5 text-center text-sm font-semibold text-primary-foreground"
                     >
-                      {p.monthly === null
+                      {(yearly ? p.yearly : p.monthly) === null
                         ? p.key === "whitelabel"
                           ? "Discuss White-label"
                           : "Contact Enterprise"

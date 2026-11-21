@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
-import { plans } from "./plans";
+import { cataloguePlan } from "./billing-catalogue.server";
 import type { StripeEnv } from "./stripe.server";
 
 export async function existingCustomer(userId: string, environment: StripeEnv) {
@@ -39,9 +39,11 @@ export async function customerForUser(
 }
 export async function validatedPrice(stripe: Stripe, lookup: string) {
   const match = /^(.+)_(monthly|yearly)$/.exec(lookup);
-  const plan = plans.find((p) => p.key === match?.[1]);
-  if (!plan || !plan.monthly || !match) throw new Error("Unknown plan");
-  const expected = Math.round((match[2] === "yearly" ? plan.yearly! : plan.monthly) * 100);
+  if (!match) throw new Error("Unknown plan");
+  const plan = await cataloguePlan(match[1]!);
+  const amount = match[2] === "yearly" ? plan?.yearly : plan?.monthly;
+  if (!amount || amount <= 0) throw new Error("Unavailable billing interval");
+  const expected = Math.round(amount * 100);
   const found = await stripe.prices.list({
     lookup_keys: [lookup],
     active: true,
@@ -62,7 +64,7 @@ export async function validatedPrice(stripe: Stripe, lookup: string) {
     typeof product === "string" ||
     "deleted" in product ||
     product.metadata["app"] !== "matrixkeep" ||
-    product.metadata["plan"] !== plan.key
+    product.metadata["plan"] !== match[1]
   )
     throw new Error("Price configuration mismatch");
   return price;

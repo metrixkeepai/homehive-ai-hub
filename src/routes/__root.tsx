@@ -109,6 +109,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {import.meta.env.PROD && <script src="/matrixkeep-config.js" />}
         <HeadContent />
       </head>
       <body>

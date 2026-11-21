@@ -24,13 +24,12 @@ export function RecordEditor({
 }) {
   const { add, update } = useStore();
   const defaultProperty = useDefaultProperty();
-  const fieldKeys =
-    addFields?.length ? addFields : (item?.fields.map(([k]) => k) ?? []).filter(Boolean);
+  const fieldKeys = addFields?.length
+    ? addFields
+    : (item?.fields.map(([k]) => k) ?? []).filter(Boolean);
   const titleFromFields = Boolean(addFields?.length);
   const [name, setName] = useState(item?.title ?? "");
-  const [propertyId, setPropertyId] = useState<string | null>(
-    item?.propertyId ?? defaultProperty,
-  );
+  const [propertyId, setPropertyId] = useState<string | null>(item?.propertyId ?? defaultProperty);
   const [values, setValues] = useState<Record<string, string>>(() => {
     const fromItem = Object.fromEntries(item?.fields ?? []);
     const init = Object.fromEntries(fieldKeys.map((k) => [k, fromItem[k] ?? ""]));
@@ -41,9 +40,7 @@ export function RecordEditor({
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const title = (
-      titleFromFields && addFields?.[0] ? values[addFields[0]] ?? "" : name
-    ).trim();
+    const title = (titleFromFields && addFields?.[0] ? (values[addFields[0]] ?? "") : name).trim();
     if (!title) {
       toast.error(
         titleFromFields && addFields?.[0]
@@ -78,9 +75,7 @@ export function RecordEditor({
       propertyId,
     };
     setBusy(true);
-    const ok = item
-      ? await update(item.id, record)
-      : await add(section, { ...record, id: "" });
+    const ok = item ? await update(item.id, record) : await add(section, { ...record, id: "" });
     setBusy(false);
     if (!ok) {
       toast.error("Couldn't save — please try again");
@@ -122,11 +117,7 @@ export function RecordEditor({
         )}
         <label className="block text-sm font-medium">
           Property / location
-          <PropertySelect
-            value={propertyId}
-            onChange={setPropertyId}
-            className={inputClass}
-          />
+          <PropertySelect value={propertyId} onChange={setPropertyId} className={inputClass} />
         </label>
         {fieldKeys.map((f, i) => (
           <label key={f} className="block text-sm font-medium">

@@ -4,6 +4,8 @@ import { supabaseAdmin } from "../integrations/supabase/client.server";
 import { validatedPrice } from "./stripe-billing.server";
 
 export async function handleStripeWebhook(request: Request) {
+  if (process.env["STRIPE_ENVIRONMENT"] === "disabled")
+    return new Response("Billing disabled", { status: 503 });
   let event: Stripe.Event;
   const environment = stripeEnvironment();
   const requested = new URL(request.url).searchParams.get("env");
@@ -43,17 +45,41 @@ export async function handleStripeWebhook(request: Request) {
     const customer =
       typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
     const item = subscription.items.data[0];
-    if (!item || subscription.items.data.length !== 1 || !item.price.lookup_key)
+    if (!item || subscription.items.data.length !== 1)
       throw new Error("Unrecognised subscription price");
-    const price = await validatedPrice(stripe, item.price.lookup_key);
-    if (price.id !== item.price.id) throw new Error("Subscription price mismatch");
+    const price = item.price;
+    const product = typeof price.product === "string" ? price.product : price.product.id;
+    const history = await supabaseAdmin
+      .from("billing_price_history")
+      .select("*")
+      .eq("price_id", price.id)
+      .eq("environment", environment)
+      .maybeSingle();
+    if (history.error) throw new Error("Price history unavailable");
+    let planKey: string;
+    if (history.data) {
+      const h = history.data;
+      if (
+        h.product_id !== product ||
+        h.amount !== price.unit_amount ||
+        price.currency !== "gbp" ||
+        h.interval_name !== price.recurring?.interval ||
+        price.recurring.interval_count !== 1
+      )
+        throw new Error("Invalid historical price");
+      planKey = h.plan_key;
+    } else {
+      if (!price.lookup_key || (await validatedPrice(stripe, price.lookup_key)).id !== price.id)
+        throw new Error("Subscription price mismatch");
+      planKey = price.lookup_key.replace(/_(monthly|yearly)$/, "");
+    }
     const invoice = subscription.latest_invoice;
     const paid = !!invoice && typeof invoice !== "string" && invoice.status === "paid";
     const { error } = await supabaseAdmin.rpc("apply_billing_event", {
       _event: event.id,
       _created: event.created,
       _environment: environment,
-      _plan: item.price.lookup_key.replace(/_(monthly|yearly)$/, ""),
+      _plan: planKey,
       _paid: paid,
       _subscription: {
         id: subscription.id,

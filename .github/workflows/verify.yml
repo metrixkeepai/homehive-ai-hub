@@ -1,7 +1,7 @@
 name: Verify hardening
 on:
   push:
-    branches: [production-hardening, main]
+    branches: [production-hardening, main, release/matrixkeep-cloud-run]
   pull_request:
 permissions:
   contents: read
@@ -41,3 +41,87 @@ jobs:
       - name: Build Node runtime
         if: ${{ !cancelled() }}
         run: npm run build
+      - name: Verify the release container starts as non-root
+        run: |
+          docker build --target runtime -t matrixkeep-ci:web .
+          docker run --rm matrixkeep-ci:web sh -ec 'test "$(id -u)" != 0 && test -f .output/server/index.mjs && node -e "require.resolve(\"ws\"); require.resolve(\"@supabase/supabase-js\")"'
+          docker run -d --name matrixkeep-ci -p 127.0.0.1:8080:8080 \
+            -e PORT=8080 -e APP_ENV=test -e APP_ORIGIN=http://127.0.0.1:8080 \
+            -e SUPABASE_URL=http://127.0.0.1:9 -e SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci \
+            -e SUPABASE_SERVICE_ROLE_KEY=ci-only -e STRIPE_ENVIRONMENT=sandbox -e PAYMENTS_ENABLED=false matrixkeep-ci:web
+          trap 'docker rm -f matrixkeep-ci >/dev/null' EXIT
+          curl --fail --retry 12 --retry-all-errors --retry-delay 1 --max-time 5 http://127.0.0.1:8080/health/live
+          [[ $(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health/ready) == 503 ]]
+          for route in / /pricing /auth /super-admin/login /matrixkeep-config.js; do
+            [[ $(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$route") == 200 ]]
+          done
+          docker build --target migrator -t matrixkeep-ci:migrator .
+          docker run --rm matrixkeep-ci:migrator node -e "require.resolve('drizzle-orm/postgres-js/migrator');require.resolve('postgres')"
+
+  staging:
+    needs: verify
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/matrixkeep-cloud-run')
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: staging
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
+      EXPECTED_SUPABASE_REF: cdfpupivjjamhvmfcvry
+      MAX_INSTANCES: ${{ vars.MAX_INSTANCES || '3' }}
+      CONCURRENCY: ${{ vars.RUN_CONCURRENCY || '8' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check MatrixKeep federation settings
+        env:
+          PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          DEPLOYER: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+        run: |
+          missing=()
+          [[ -n "$GCP_PROJECT_ID" ]] || missing+=(GCP_PROJECT_ID)
+          [[ -n "$PROVIDER" ]] || missing+=(GCP_WORKLOAD_IDENTITY_PROVIDER)
+          [[ -n "$DEPLOYER" ]] || missing+=(GCP_DEPLOY_SERVICE_ACCOUNT)
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing MatrixKeep staging environment variables: ${missing[*]}"
+            exit 1
+          fi
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Publish immutable release images
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ $GCP_PROJECT_ID == matrixkeep-* ]]
+          host="$REGION-docker.pkg.dev"
+          gcloud auth configure-docker "$host" --quiet
+          for target in runtime migrator; do
+            name=$target
+            if [[ $target == runtime ]]; then name=web; fi
+            repo="$host/$GCP_PROJECT_ID/matrixkeep/$name"
+            tag="$repo:$GITHUB_SHA"
+            docker build --target "$target" --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$tag" .
+            docker push "$tag"
+            digest=$(gcloud artifacts docker images describe "$tag" --format='value(image_summary.digest)')
+            [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+            field=IMAGE
+            if [[ $target == migrator ]]; then field=MIGRATOR_IMAGE; fi
+            echo "$field=$repo@$digest" >> "$GITHUB_ENV"
+          done
+      - name: Migrate staging, deploy and verify HTTPS health
+        run: bash deploy/cloud-run.sh
+      - name: Configure service monitoring
+        env:
+          MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
+        run: python3 deploy/monitoring.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-staging-release
+          path: release.json
+          if-no-files-found: error

@@ -126,7 +126,7 @@ export async function ensureSuperAdmin(env = process.env) {
   return { status: "ok", email, userId, created, roleGranted, resetPassword };
 }
 
-async function findUserByEmail(db, email) {
+export async function findUserByEmail(db, email) {
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw new Error(`Super Admin lookup failed: ${error.message}`);

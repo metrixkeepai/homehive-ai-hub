@@ -32,7 +32,8 @@ function PlanDetail() {
     queryFn: () => list({ data: { key } }),
     enabled: !isNew,
   });
-  const live = plans.find((p) => p.key === key);
+  const base = plans.find((p) => p.key === key);
+  const live = q.data?.versions.find((v) => v.status === "approved") ?? base;
   const latest = (q.data?.versions ?? [])[0];
   const [f, setF] = useState({
     plan_key: "",
@@ -56,7 +57,7 @@ function PlanDetail() {
       monthly: src.monthly == null ? null : Number(src.monthly),
       yearly: src.yearly == null ? null : Number(src.yearly),
       capacity: Object.fromEntries(
-        Object.entries(latest ? jsonObject(latest.capacity) : (live?.cap ?? {})).map(([k, v]) => [
+        Object.entries(latest ? jsonObject(latest.capacity) : (base?.cap ?? {})).map(([k, v]) => [
           k,
           String(v ?? ""),
         ]),
@@ -72,6 +73,7 @@ function PlanDetail() {
         ),
         ...(z
           .record(
+            z.string(),
             z.object({
               on: z.boolean(),
               limit: z.number().nullable().optional(),
@@ -81,7 +83,7 @@ function PlanDetail() {
           .safeParse(latest?.entitlements).data ?? {}),
       },
     });
-  }, [latest?.id, live?.key, isNew]);
+  }, [latest?.id, base?.key, isNew]);
   useEffect(() => {
     if (isNew) setF((x) => ({ ...x, entitlements: defaultEntitlements("", x.audience) }));
   }, [isNew, f.audience]);
@@ -247,7 +249,7 @@ function PlanDetail() {
                       Approve
                     </button>
                   )}
-                  {v.status !== "archived" && (
+                  {v.status === "draft" && (
                     <button
                       onClick={() => stM.mutate({ id: v.id, status: "archived" })}
                       className="text-muted-foreground"
@@ -260,10 +262,8 @@ function PlanDetail() {
             ))}
           </Table>
           <p className="text-xs text-muted-foreground">
-            Approving a version publishes its features & limits to customer accounts straight away
-            (existing data is never deleted). Customer prices only change when a version is
-            published to the public pricing list, so existing subscribers are never repriced by
-            accident.
+            Approval publishes this plan’s terms and checkout prices. Existing subscribers keep
+            their current Stripe price until they change plans.
           </p>
         </>
       )}

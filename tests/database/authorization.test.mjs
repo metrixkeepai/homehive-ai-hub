@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
+import { createExecutionIdentity } from "../../scripts/staging-qa-identity.mjs";
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
@@ -178,6 +179,18 @@ test("direct inserts cannot bypass record capacities or use unknown sections", a
     /Plan feature unavailable/,
   );
 });
+test("service providers persist in the owner's workspace", async () => {
+  const [saved] = (
+    await asUser(
+      a,
+      "INSERT INTO public.home_items(section,title) VALUES('services','Staging provider') RETURNING id",
+    )
+  ).rows;
+  const owned = await asUser(a, "SELECT title FROM public.home_items WHERE id=$1", [saved.id]);
+  assert.equal(owned.rows[0].title, "Staging provider");
+  const foreign = await asUser(b, "SELECT id FROM public.home_items WHERE id=$1", [saved.id]);
+  assert.equal(foreign.rows.length, 0);
+});
 test("service reservations enforce identity, monthly quotas and emergency ceilings", async () => {
   await assert.rejects(
     asUser(a, `SELECT public.reserve_operation($1,NULL,'capture',1)`, [a]),
@@ -198,7 +211,7 @@ test("service reservations enforce identity, monthly quotas and emergency ceilin
     db.query(`SELECT public.reserve_operation($1,NULL,'speech',1)`, [a]),
     /Monthly quota reached/,
   );
-  await db.exec("UPDATE public.runtime_limits SET daily_ai_budget_usd=5");
+  await db.exec("UPDATE public.runtime_limits SET daily_ai_budget_usd=0.05");
   await assert.rejects(
     db.query(`SELECT public.reserve_operation($1,NULL,'sera',1)`, [a]),
     /Platform AI budget reached/,
@@ -316,10 +329,23 @@ test("storage metadata enforces item ownership, type, size and account quota", a
     insert(`${b}/${item}/large.pdf`, { size: 20971521, mimetype: "application/pdf" }),
     /Unsupported upload/,
   );
+  const pending = `${b}/${item}/pending.pdf`;
+  await insert(pending, { mimetype: "application/pdf" });
   await assert.rejects(
-    insert(`${b}/${item}/missing.pdf`, { mimetype: "application/pdf" }),
+    db.query("UPDATE storage.objects SET metadata=metadata WHERE name=$1", [pending]),
     /Upload size unavailable/,
   );
+  await assert.rejects(
+    db.query("UPDATE storage.objects SET metadata=$2::jsonb WHERE name=$1", [
+      pending,
+      JSON.stringify({ contentLength: 20971521, mimetype: "application/pdf" }),
+    ]),
+    /Unsupported upload/,
+  );
+  await db.query("UPDATE storage.objects SET metadata=$2::jsonb WHERE name=$1", [
+    pending,
+    JSON.stringify({ contentLength: 5, mimetype: "application/pdf" }),
+  ]);
   await db.exec("SELECT set_config('request.jwt.claim.role', 'service_role', false)");
   await db.query("UPDATE public.profiles SET limit_overrides='{\"storage\":100}' WHERE id=$1", [b]);
   await insert(`${b}/${item}/first.pdf`, { size: 60, mimetype: "application/pdf" });
@@ -398,6 +424,123 @@ test("feature switches are enforced by the reservation RPC", async () => {
   );
   await assert.rejects(
     asUser(b, "SELECT public.feature_enabled($1,'sera_text')", [b]),
+    /permission denied/,
+  );
+});
+
+test("a location passport lists only records linked to that location", async () => {
+  const owner = "66c10142-0000-4000-8000-000000000001";
+  await db.query("INSERT INTO auth.users(id,email) VALUES ($1,'locations@example.test')", [owner]);
+  await db.query(
+    "UPDATE public.profiles SET account_type='business', plan='business_scale' WHERE id=$1",
+    [owner],
+  );
+  const locations = await asUser(
+    owner,
+    "INSERT INTO public.home_items(section,title) VALUES ('locations','North'),('locations','South') RETURNING id",
+  );
+  for (const { id } of locations.rows) {
+    await asUser(
+      owner,
+      "INSERT INTO public.home_items(section,title,property_id) VALUES ('assets','Shared model name',$1)",
+      [id],
+    );
+  }
+  const north = locations.rows[0].id;
+  const records = await asUser(owner, "SELECT property_id FROM public.passport_records($1)", [
+    north,
+  ]);
+  assert.deepEqual(records.rows, [{ property_id: north }]);
+  assert.deepEqual(
+    (await asUser(a, "SELECT id FROM public.passport_records($1)", [north])).rows,
+    [],
+  );
+});
+
+test("QA retries isolate fixture emails and recorded outcomes", async () => {
+  const executions = ["1", "2", "2"].map((attempt) => createExecutionIdentity("42", attempt));
+  const outcomes = ["PASS", "FAIL", "TIMEOUT"];
+  for (const [index, { executionId, email }] of executions.entries()) {
+    await db.query("INSERT INTO auth.users(id,email) VALUES(gen_random_uuid(),$1)", [email]);
+    await db.query(
+      "INSERT INTO release_qa_checks(run_id,check_name,outcome) VALUES($1,'checkout',$2)",
+      [executionId, outcomes[index]],
+    );
+  }
+  assert.equal(new Set(executions.map((execution) => execution.email)).size, 3);
+  for (const [index, { executionId }] of executions.entries()) {
+    const result = await db.query("SELECT outcome FROM release_qa_checks WHERE run_id=$1", [
+      executionId,
+    ]);
+    assert.deepEqual(result.rows, [{ outcome: outcomes[index] }]);
+  }
+});
+
+test("same-tenant AI requests coalesce and cached results require current access", async () => {
+  await db.exec("UPDATE runtime_limits SET ai_enabled=true");
+  const key = "a".repeat(64),
+    lease = crypto.randomUUID(),
+    other = crypto.randomUUID();
+  const sql = "select public.claim_ai_request($1,$2,null,'capture',$3) as claim";
+  const claim = async (id, l) => (await db.query(sql, [key, id, l])).rows[0].claim;
+  await assert.rejects(asUser(a, sql, [key, a, lease]), /permission denied/);
+  assert.equal((await claim(a, lease)).state, "owner");
+  assert.equal((await claim(a, other)).state, "pending");
+  await db.query("select public.finish_ai_request($1,$2,$3)", [key, lease, '{"records":[]}']);
+  assert.deepEqual((await claim(a, other)).result, { records: [] });
+  await assert.rejects(claim(b, other), /scope mismatch/);
+  await db.exec("UPDATE runtime_limits SET ai_enabled=false");
+  await assert.rejects(claim(a, other), /AI unavailable/);
+  await db.exec("UPDATE runtime_limits SET ai_enabled=true");
+});
+test("usage accounting prices cache reads, writes and audio from current rate rows", async () => {
+  const { rows } = await db.query(
+    `insert into ai_usage_log(user_id,feature,model,input_tokens,output_tokens,usage_details)
+ values($1,'capture','gpt-6-luna',10000,1000,'{"accounting_version":1,"cached_tokens":5000,"cache_write_tokens":2000}') returning cost_usd`,
+    [a],
+  );
+  assert.equal(Number(rows[0].cost_usd), 0.0011);
+  const audio = await db.query(
+    `insert into ai_usage_log(user_id,feature,model,audio_seconds,usage_details)
+ values($1,'speak-transcribe','gpt-transcribe',30,'{"accounting_version":1}') returning cost_usd`,
+    [a],
+  );
+  assert.equal(Number(audio.rows[0].cost_usd), 0.00225);
+});
+test("settled provider usage releases only its own reservation and records economic cache reuse", async () => {
+  await db.exec("UPDATE feature_flags SET enabled=true WHERE key='sera_text'");
+  await db.exec(
+    "UPDATE runtime_limits SET daily_ai_budget_usd=100,requests_per_minute=60,ai_enabled=true",
+  );
+  const key = "f".repeat(64),
+    lease = crypto.randomUUID();
+  await db.query("select claim_ai_request($1,$2,null,'sera',$3)", [key, b, lease]);
+  const id = (await db.query("select reserve_ai_operation($1,null,'sera',1,0.02) as id", [b]))
+    .rows[0].id;
+  await db.query(
+    "insert into ai_usage_log(user_id,model,feature,input_tokens,output_tokens,usage_details,reservation_id) values($1,'gpt-6-luna','sera',1000,100,'{\"accounting_version\":1}',$2)",
+    [b, id],
+  );
+  await db.query("select settle_ai_operation($1,$2,2)", [id, b]);
+  assert.equal(
+    (await db.query("select settled_usd from operation_reservations where id=$1", [id])).rows[0]
+      .settled_usd,
+    null,
+  );
+  await db.query("select settle_ai_operation($1,$2,1)", [id, b]);
+  assert.equal(
+    Number(
+      (await db.query("select settled_usd from operation_reservations where id=$1", [id])).rows[0]
+        .settled_usd,
+    ),
+    0.00015,
+  );
+  await db.query("select finish_metered_request($1,$2,$3,$4)", [key, lease, '{"reply":"ok"}', id]);
+  await db.query("select claim_ai_request($1,$2,null,'sera',$3)", [key, b, crypto.randomUUID()]);
+  const { rows } = await db.query("select savings_usd from ai_reuse_days where user_id=$1", [b]);
+  assert.equal(Number(rows[0].savings_usd), 0.00015);
+  await assert.rejects(
+    asUser(b, "select ai_cost_summary(now()-interval '1 day',now())"),
     /permission denied/,
   );
 });
