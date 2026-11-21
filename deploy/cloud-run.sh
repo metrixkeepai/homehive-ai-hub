@@ -70,6 +70,29 @@ gcloud run jobs deploy "matrixkeep-$APP_ENV-migrate" "${common[@]}" --service-ac
   --image="$MIGRATOR_IMAGE" --set-secrets="$db_secret" --set-env-vars="APP_ENV=$APP_ENV,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF" \
   --max-retries=0 --tasks=1 --execute-now --wait
 
+# Reconcile an owner-rotated staging credential once, before serving the revision.
+if [[ $APP_ENV == staging ]]; then
+  [[ $GCP_PROJECT_ID == matrixkeep-staging ]]
+  admin_bindings=()
+  for ref in "${secrets[@]}"; do
+    case "$ref" in
+      SUPER_ADMIN_PASSWORD=*) password_version=${ref##*:}; admin_bindings+=("$ref");;
+      SUPER_ADMIN_EMAIL=*|SUPABASE_URL=*|SUPABASE_SERVICE_ROLE_KEY=*|SUPABASE_PUBLISHABLE_KEY=*) admin_bindings+=("$ref");;
+    esac
+  done
+  admin_secret_flags=$(IFS=,; echo "${admin_bindings[*]}")
+  gcloud run jobs deploy matrixkeep-staging-admin-rotation "${common[@]}" --image="$IMAGE" \
+    --service-account="$runtime" --command=node --args=server/sync-staging-admin.mjs \
+    --set-secrets="$admin_secret_flags" --set-env-vars="APP_ENV=staging,ADMIN_PASSWORD_VERSION=${password_version:?}" \
+    --tasks=1 --max-retries=0 --task-timeout=120s --execute-now --wait || {
+      # Emit only the predefined diagnostic, never the underlying request or credentials.
+      gcloud logging read 'resource.type="cloud_run_job" AND resource.labels.job_name="matrixkeep-staging-admin-rotation"' \
+        --project="$GCP_PROJECT_ID" --freshness=10m --limit=50 --format='value(textPayload)' | \
+        grep -Eo 'Invalid staging admin secret configuration|Staging password contains a line break|Configured admin identity is missing, unconfirmed or banned|Configured identity has no Super Admin role|Configured admin profile unavailable|Stale credential version|Configured credential rejected; confirm the enabled secret version|Staging password rotation failed|Rotated credential failed authentication' | head -1 || true
+      exit 1
+    }
+fi
+
 # On an existing service preserve the previous traffic split until the candidate passes its probes.
 existing=$(gcloud run services list "${common[@]}" --filter="metadata.name=$service" --format='value(metadata.name)')
 traffic=()

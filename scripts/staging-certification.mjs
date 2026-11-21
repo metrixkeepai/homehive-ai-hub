@@ -273,7 +273,11 @@ try {
               form = frame;
               break;
             }
-            const card = frame.getByRole("button", { name: "Pay with card", exact: true });
+            const card = frame
+              .getByRole("button", { name: /^(?:Pay with card|Card)$/i })
+              .or(frame.getByTestId("card-accordion-item-button"))
+              .or(frame.getByRole("radio", { name: /^card$/i }))
+              .first();
             if (!cardChosen && (await card.isVisible())) {
               await card.click();
               cardChosen = true;
