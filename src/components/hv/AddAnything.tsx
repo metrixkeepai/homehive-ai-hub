@@ -273,7 +273,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
       toast.error("Please choose a photo or file first");
       return;
     }
-    if (mode.kind !== "file" && !text.trim()) {
+    if (mode.kind !== "file" && !text.trim() && !(mode.key === "email" && file)) {
       toast.error("Please add some text first");
       return;
     }
@@ -529,7 +529,7 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
           {step === "capture" && mode && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">{mode.hint}</p>
-              {mode.kind === "file" && (
+              {(mode.kind === "file" || mode.key === "email") && (
                 <div
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
@@ -547,7 +547,9 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                     <div>
                       <mode.icon className="mx-auto h-8 w-8 text-primary" />
                       <p className="mt-2 text-sm font-medium">
-                        Tap to take a photo or choose a file
+                        {mode.key === "email"
+                          ? "Choose an email attachment"
+                          : "Tap to take a photo or choose a file"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Photos, short videos or PDF, up to 20 MB
@@ -557,8 +559,14 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   <input
                     ref={fileRef}
                     type="file"
-                    accept={mode.key === "document" ? DOC_ACCEPT : "image/*,video/*"}
-                    capture={mode.key === "document" ? undefined : "environment"}
+                    accept={
+                      mode.key === "document" || mode.key === "email"
+                        ? DOC_ACCEPT
+                        : "image/*,video/*"
+                    }
+                    capture={
+                      mode.key === "document" || mode.key === "email" ? undefined : "environment"
+                    }
                     className="hidden"
                     onChange={(e) => void pickFile(e.target.files?.[0])}
                   />
@@ -595,8 +603,8 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
               />
               {mode.kind === "file" && file && !file.type.startsWith("image/") && (
                 <p className="text-xs text-muted-foreground">
-                  PDFs are saved as evidence; the AI reads the file name and your note. Add key
-                  details in the note for best results.
+                  MatrixKeep reads the supported file and your note. Review extracted records before
+                  saving.
                 </p>
               )}
               <button

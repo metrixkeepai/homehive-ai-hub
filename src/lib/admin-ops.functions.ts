@@ -413,7 +413,7 @@ export const setPlanActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** Archive: hidden from new customers and every version archived; existing subscribers keep access. */
+/** Archive: hide the plan from new customers while retaining the published entitlements. */
 export const archivePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
@@ -421,17 +421,13 @@ export const archivePlan = createServerFn({ method: "POST" })
     const db = await adminClient(context as Ctx);
     if (data.key === "free")
       throw new Error("The Free plan can't be archived — new accounts start on it.");
-    await db.from("plan_status").upsert({
+    const { error } = await db.from("plan_status").upsert({
       plan_key: data.key,
       active: false,
       updated_by: context.userId,
       updated_at: new Date().toISOString(),
     });
-    await db
-      .from("plan_versions")
-      .update({ status: "archived" })
-      .eq("plan_key", data.key)
-      .neq("status", "archived");
+    if (error) throw new Error(error.message);
     await audit(db, context.userId, "plan_archived", data.key, null);
     return { ok: true };
   });
@@ -446,7 +442,7 @@ export const deletePlan = createServerFn({ method: "POST" })
       throw new Error(
         "This plan is tied to card payments and can't be deleted — deactivate or archive it instead.",
       );
-    const [acc, subs, red, vou] = await Promise.all([
+    const [acc, subs, red, vou, history] = await Promise.all([
       db.from("profiles").select("id", { count: "exact", head: true }).eq("plan", data.key),
       db
         .from("subscriptions")
@@ -457,8 +453,15 @@ export const deletePlan = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .or(`plan_after.eq.${data.key},plan_before.eq.${data.key}`),
       db.from("vouchers").select("code", { count: "exact", head: true }).eq("plan", data.key),
+      db
+        .from("billing_price_history")
+        .select("price_id", { count: "exact", head: true })
+        .eq("plan_key", data.key),
     ]);
+    if ([acc, subs, red, vou, history].some((result) => result.error))
+      throw new Error("Could not verify plan dependencies.");
     const deps = [
+      [history.count, "Stripe price mappings"],
       [acc.count, "accounts on it"],
       [subs.count, "subscription/billing records"],
       [red.count, "voucher redemptions"],

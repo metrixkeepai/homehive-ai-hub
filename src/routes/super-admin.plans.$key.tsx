@@ -32,7 +32,8 @@ function PlanDetail() {
     queryFn: () => list({ data: { key } }),
     enabled: !isNew,
   });
-  const live = plans.find((p) => p.key === key);
+  const base = plans.find((p) => p.key === key);
+  const live = q.data?.versions.find((v) => v.status === "approved") ?? base;
   const latest = (q.data?.versions ?? [])[0];
   const [f, setF] = useState({
     plan_key: "",
@@ -56,7 +57,7 @@ function PlanDetail() {
       monthly: src.monthly == null ? null : Number(src.monthly),
       yearly: src.yearly == null ? null : Number(src.yearly),
       capacity: Object.fromEntries(
-        Object.entries(latest ? jsonObject(latest.capacity) : (live?.cap ?? {})).map(([k, v]) => [
+        Object.entries(latest ? jsonObject(latest.capacity) : (base?.cap ?? {})).map(([k, v]) => [
           k,
           String(v ?? ""),
         ]),
@@ -82,7 +83,7 @@ function PlanDetail() {
           .safeParse(latest?.entitlements).data ?? {}),
       },
     });
-  }, [latest?.id, live?.key, isNew]);
+  }, [latest?.id, base?.key, isNew]);
   useEffect(() => {
     if (isNew) setF((x) => ({ ...x, entitlements: defaultEntitlements("", x.audience) }));
   }, [isNew, f.audience]);

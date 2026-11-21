@@ -195,12 +195,29 @@ export const createPortalSession = createServerFn({ method: "POST" })
 
 export const chooseFreePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ url?: string; ok?: boolean; error?: string }> => {
+  .inputValidator((value: unknown) =>
+    z
+      .object({ planKey: z.string().regex(/^[a-z0-9_]{2,40}$/) })
+      .optional()
+      .parse(value),
+  )
+  .handler(async ({ context, data }): Promise<{ url?: string; ok?: boolean; error?: string }> => {
     const { stripeEnvironment } = await import("./stripe.server");
     const { existingCustomer } = await import("./stripe-billing.server");
     const { getAppOrigin } = await import("./app-origin.server");
     const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     try {
+      const selected = data?.planKey ?? "free";
+      const { cataloguePlan } = await import("./billing-catalogue.server");
+      const terms = await cataloguePlan(selected);
+      if (!terms || terms.monthly !== 0 || terms.yearly !== 0)
+        throw new Error("Free plan unavailable");
+      const status = await supabaseAdmin
+        .from("plan_status")
+        .select("active")
+        .eq("plan_key", selected)
+        .maybeSingle();
+      if (status.error || status.data?.active === false) throw new Error("Free plan unavailable");
       const environment = stripeEnvironment();
       const customer = await existingCustomer(context.userId, environment);
       const { data: profile, error: profileError } = await context.supabase
@@ -229,7 +246,7 @@ export const chooseFreePlan = createServerFn({ method: "POST" })
       }
       const { error } = await supabaseAdmin
         .from("profiles")
-        .update({ plan: "free", plan_source: "self", updated_at: new Date().toISOString() })
+        .update({ plan: selected, plan_source: "self", updated_at: new Date().toISOString() })
         .eq("id", context.userId);
       if (error) throw new Error("Plan change failed");
       return { ok: true };

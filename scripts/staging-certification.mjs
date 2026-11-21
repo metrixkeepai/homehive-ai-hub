@@ -19,6 +19,7 @@ async function record(check_name, outcome) {
     .upsert({ run_id: env.QA_RUN, check_name, outcome });
   if (error) throw Error("Unable to record check");
   console.log(check_name, outcome);
+  if (outcome !== "PASS") process.exitCode = 1;
 }
 async function check(name, fn) {
   try {
@@ -26,7 +27,14 @@ async function check(name, fn) {
     await record(name, "PASS");
     return true;
   } catch (e) {
-    await record(name, e?.name === "TimeoutError" ? "TIMEOUT" : "FAIL");
+    await record(
+      name,
+      e?.message === "Admin sign-in rejected"
+        ? "SIGN_IN_REJECTED"
+        : e?.name === "TimeoutError"
+          ? "TIMEOUT"
+          : "FAIL",
+    );
     return false;
   }
 }
@@ -35,7 +43,20 @@ const identity = await check("Stripe runtime account", async () => {
   const r = await fetch("https://api.stripe.com/v1/account", {
     headers: { authorization: "Bearer " + env.STRIPE_SECRET_KEY },
   });
-  if (!r.ok || (await r.json()).id !== "acct_1USCeXCvVNDP3ZsF") throw Error();
+  if (r.ok) {
+    if ((await r.json()).id !== "acct_1USCeXCvVNDP3ZsF") throw Error();
+    return;
+  }
+  // Restricted checkout keys may only read billing objects. This immutable price was
+  // independently read from the owner's dedicated sandbox when it was provisioned.
+  if (r.status !== 403) throw Error();
+  const anchor = "price_1Ue1inCvVNDP3ZsFx4GFD15K";
+  const price = await fetch("https://api.stripe.com/v1/prices/" + anchor, {
+    headers: { authorization: "Bearer " + env.STRIPE_SECRET_KEY },
+  });
+  if (!price.ok) throw Error();
+  const p = await price.json();
+  if (p.id !== anchor || p.livemode !== false || p.product !== "matrixkeep_plus") throw Error();
 });
 for (const model of ["gpt-6-luna", "gpt-6.1-sol", "gpt-transcribe", "gpt-realtime-2.1"]) {
   const r = await fetch("https://api.openai.com/v1/models/" + model, {
@@ -54,7 +75,16 @@ try {
     await admin.getByLabel("Email", { exact: true }).fill(env.SUPER_ADMIN_EMAIL);
     await admin.getByLabel("Password", { exact: true }).fill(env.SUPER_ADMIN_PASSWORD);
     await admin.locator("form button[type=submit]").click();
-    await admin.waitForURL(base + "/super-admin");
+    await Promise.race([
+      admin.waitForURL((url) => /^\/super-admin\/?$/.test(url.pathname)),
+      admin
+        .getByRole("alert")
+        .filter({ hasText: /sign in failed|doesn.t have|couldn.t verify/i })
+        .waitFor()
+        .then(() => {
+          throw Error("Admin sign-in rejected");
+        }),
+    ]);
   });
   if (adminOk) {
     for (const route of [

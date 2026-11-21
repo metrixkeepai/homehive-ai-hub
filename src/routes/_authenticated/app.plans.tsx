@@ -103,10 +103,10 @@ function Plans() {
     if ((yearly ? p.yearly : p.monthly) === 0) {
       setBusy(true);
       try {
-        const result = await chooseFreePlan();
+        const result = await chooseFreePlan({ data: { planKey: p.key } });
         if (result.url) window.location.assign(result.url);
         else if (result.ok) {
-          toast.success("You're on Free. Your records are kept.");
+          toast.success(`You're on ${p.name}. Your records are kept.`);
           await reload();
         } else toast.error(result.error ?? "Unable to change plan.");
       } catch {
@@ -138,7 +138,10 @@ function Plans() {
         <h1 className="font-display text-3xl sm:text-4xl">Choose your plan</h1>
         <p className="mt-2 text-muted-foreground">
           Current plan:{" "}
-          <span className="font-semibold text-foreground">{planByKey(profile?.plan).name}</span>
+          <span className="font-semibold text-foreground">
+            {catalogue.data?.find((p) => p.key === profile?.plan)?.name ??
+              planByKey(profile?.plan).name}
+          </span>
           {trial && (trial.expired ? " · trial ended" : ` · trial, ${trial.days} days left`)}
           {profile?.plan_source?.startsWith("voucher:") &&
             ` (voucher ${profile.plan_source.slice(8)})`}
@@ -151,14 +154,14 @@ function Plans() {
         }}
         className="flex max-w-md gap-2"
       >
-        <div className="flex flex-1 items-center gap-2 rounded-full border bg-card px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border bg-card px-4">
           <Ticket className="h-4 w-4 text-primary" />
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             maxLength={40}
             placeholder="Voucher code"
-            className="w-full bg-transparent py-2.5 text-base uppercase outline-none sm:text-sm"
+            className="min-w-0 w-full bg-transparent py-2.5 text-base uppercase outline-none sm:text-sm"
           />
         </div>
         <button
