@@ -1,3 +1,5 @@
+import { connectorAllowed } from "./connector-entitlements";
+export { connectorAllowed } from "./connector-entitlements";
 import { connectorAttribution, scanBudget, ScanBudgetReached } from "./ai-meter.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -91,17 +93,4 @@ export async function requireConnectorPlan(user: string, connector: string) {
   const { data, error } = await db.rpc("account_entitlements", { _user: user });
   if (error || !connectorAllowed(data, connector))
     throw Error("This connector is unavailable on the current plan.");
-}
-export function connectorAllowed(data: Record<string, { on?: boolean }> | null, connector: string) {
-  const email = connector === "google_mail" || connector === "outlook",
-    calendar = connector === "google_calendar";
-  const keys = calendar
-    ? ["google_calendar", "calendar_integration"]
-    : email
-      ? [connector === "outlook" ? "outlook" : "gmail", "email_integration"]
-      : [
-          connector === "onedrive" && data?.["onedrive"] ? "onedrive" : "google_drive",
-          "bulk_imports",
-        ];
-  return keys.some((k) => data?.[k]?.on === true);
 }

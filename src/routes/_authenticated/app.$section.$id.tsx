@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { getSection } from "@/components/hv/data";
 import { useStore, toneClass, PROPERTY_SLUGS } from "@/components/hv/store";
 import { Evidence, type Proposed } from "@/components/hv/Evidence";
-import { useFeature, Locked } from "@/components/hv/Feature";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { TrackingDetail } from "@/components/hv/Tracking";
 import { PropertyContents, PropertyEditButton } from "@/components/hv/Properties";
@@ -76,7 +75,6 @@ function Detail() {
       cancelled = true;
     };
   }, [section, id, findRecord]);
-  const googleOn = useFeature("google_integrations");
   const navigate = useNavigate();
   const item =
     section === "integrations"
@@ -172,13 +170,7 @@ function Detail() {
         {section === "integrations" && (id === "outlook" || id === "onedrive") ? (
           <MicrosoftIntegration provider={id} />
         ) : isGoogle ? (
-          googleOn ? (
-            <GoogleIntegration id={id} />
-          ) : (
-            <div className="mt-5">
-              <Locked name="Google integrations" />
-            </div>
-          )
+          <GoogleIntegration id={id} />
         ) : (
           <>
             <div className="mt-5 flex flex-wrap items-center gap-3">

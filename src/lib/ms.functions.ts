@@ -8,6 +8,7 @@ export const msStatus = createServerFn({ method: "GET" })
     const { listConnectionsForUser } = await import("@/server/appUserConnections.server");
     const { db, connectorAllowed } = await import("./connector-review.server");
     const ent = await db.rpc("account_entitlements", { _user: context.userId });
+    if (ent.error) throw Error("Connector status unavailable");
     return {
       eligible: {
         outlook: connectorAllowed(ent.data, "outlook"),

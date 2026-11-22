@@ -1,3 +1,4 @@
+import { Locked } from "./Feature";
 import { ConnectorChecks } from "./ConnectorChecks";
 import { useState } from "react";
 import { AddAnything } from "./AddAnything";
@@ -163,6 +164,9 @@ export function GoogleIntegration({ id }: { id: string }) {
       setBusy(null);
     }
   };
+  if (!st) return <p>{status.isError ? "Status unavailable" : "Checking…"}</p>;
+  if (!st.connected && !st.entitled) return <Locked name={names[connector]} />;
+  if (!st.connected && !st.available) return <p>Temporarily unavailable</p>;
   const badge: [string, string] = status.isLoading
     ? ["Checking…", "muted"]
     : status.isError
@@ -184,7 +188,9 @@ export function GoogleIntegration({ id }: { id: string }) {
       <div className="mt-6 flex flex-wrap gap-2">
         {(!st?.connected || st.reconnectRequired) && (
           <button
-            disabled={!!busy || status.isLoading || !st?.configured || !st?.entitled}
+            disabled={
+              !!busy || status.isLoading || !st?.available || !st?.configured || !st?.entitled
+            }
             onClick={connect}
             className={`${btn} bg-aurora text-primary-foreground`}
           >

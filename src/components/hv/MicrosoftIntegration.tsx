@@ -1,3 +1,4 @@
+import { Locked } from "./Feature";
 import { ConnectorChecks } from "./ConnectorChecks";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,6 +80,9 @@ export function MicrosoftIntegration({ provider }: { provider: Provider }) {
       toast.success(n ? n + " ready for review" : "No new items in this batch.");
     });
   }
+  if (!status.data) return <p>{status.isError ? "Status unavailable" : "Checking…"}</p>;
+  if (!grant && !status.data.eligible[provider])
+    return <Locked name={provider === "onedrive" ? "OneDrive" : "Outlook"} />;
   return (
     <div className="mt-5 space-y-4">
       <div className="flex flex-wrap gap-2">

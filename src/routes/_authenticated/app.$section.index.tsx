@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { connectionCount } from "@/lib/connector-checks.functions";
+import { getGoogleStatus } from "@/lib/google.functions";
+import { msStatus } from "@/lib/ms.functions";
+import { googleConnectorFor } from "@/components/hv/GoogleIntegration";
 import { ConnectorNotifications } from "@/components/hv/ConnectorNotifications";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -58,11 +60,15 @@ function SectionPage() {
   const [docType, setDocType] = useState("All");
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useViewMode(section);
-  const connected = useQuery({
-    queryKey: ["connected-count"],
-    queryFn: () => connectionCount(),
+  const google = useQuery({
+    queryKey: ["google-status"],
+    queryFn: () => getGoogleStatus(),
     enabled: section === "integrations",
-    staleTime: 0,
+  });
+  const microsoft = useQuery({
+    queryKey: ["ms-status"],
+    queryFn: () => msStatus(),
+    enabled: section === "integrations",
   });
   if (!s) return <Missing />;
   if (section === "notifications") return <ConnectorNotifications />;
@@ -82,7 +88,35 @@ function SectionPage() {
     );
   const own = added[s.slug] ?? [];
   // Integrations keep static connector config; every other section is backend-only.
-  const source = s.slug === "integrations" ? [...own, ...s.items] : own;
+  const source =
+    s.slug === "integrations"
+      ? s.items.map((item) => {
+          const ms = item.id === "onedrive" || item.id === "outlook" ? item.id : null;
+          const key = googleConnectorFor[item.id];
+          if (!key && !ms) return item;
+          const g = key ? google.data?.[key] : undefined;
+          const grant = microsoft.data?.connections.find((c) => c.connector_id === ms);
+          const query = ms ? microsoft : google;
+          const entitled = ms ? microsoft.data?.eligible[ms] : g?.entitled;
+          const configured = ms ? microsoft.data?.configured : g?.configured;
+          let label = "Open to connect";
+          if (query.isError) label = "Status unavailable";
+          else if (entitled === undefined) label = "Checking…";
+          else if (!entitled) label = "Plan upgrade required";
+          else if (!ms && !g?.available) label = "Temporarily unavailable";
+          else if (!configured) label = "Setup required";
+          else if (ms ? grant?.reconnect_required : g?.reconnectRequired)
+            label = "Reconnect needed";
+          else if (ms ? !!grant : g?.connected) label = "Connected";
+          return {
+            ...item,
+            status: [
+              label,
+              label === "Open to connect" ? "primary" : label === "Connected" ? "success" : "muted",
+            ] as NonNullable<typeof item.status>,
+          };
+        })
+      : own;
   const items = source
     .filter((i) =>
       (i.title + i.subtitle + " " + i.fields.map(([, v]) => v).join(" "))
@@ -98,7 +132,16 @@ function SectionPage() {
     s.slug === "integrations"
       ? [
           ["Connectors", String(source.length)],
-          ["Connected", connected.data === undefined ? "—" : String(connected.data)],
+          [
+            "Connected",
+            google.data && microsoft.data
+              ? String(
+                  Object.values(google.data).filter((c) => c.connected && !c.reconnectRequired)
+                    .length +
+                    microsoft.data.connections.filter((c) => !c.reconnect_required).length,
+                )
+              : "—",
+          ],
         ]
       : [
           ["Records", String(own.length)],

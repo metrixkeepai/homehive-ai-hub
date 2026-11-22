@@ -19,6 +19,7 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
     const out: Record<
       string,
       {
+        available: boolean;
         configured: boolean;
         entitled: boolean;
         connected: boolean;
@@ -42,7 +43,11 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
     );
     const latest = await listConnectionsForUser(userId); // an account lookup may have flagged a reconnect
     const { db, connectorAllowed } = await import("./connector-review.server");
-    const ent = await db.rpc("account_entitlements", { _user: userId });
+    const [ent, rollout] = await Promise.all([
+      db.rpc("account_entitlements", { _user: userId }),
+      db.rpc("feature_enabled", { _user: userId, _key: "google_integrations" }),
+    ]);
+    if (ent.error || rollout.error) throw Error("Connector status unavailable");
     for (const c of Object.keys(GOOGLE) as GoogleConnector[]) {
       const cur = latest.find((x) => x.connector_id === c);
       out[c] = {
@@ -51,6 +56,7 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
           process.env["APP_USER_CONNECTION_KEY_SECRET"] &&
           process.env["GOOGLE_CONNECTOR_CLIENT_SECRET"]
         ),
+        available: rollout.data === true,
         entitled: connectorAllowed(ent.data, c),
         connected: !!cur,
         reconnectRequired: !!cur?.reconnect_required,
