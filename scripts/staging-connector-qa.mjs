@@ -330,7 +330,9 @@ try {
           .filter({ has: admin.getByRole("heading", { name: provider, exact: true }) });
         await card.getByText(/AI calls.*estimated provider cost/).waitFor();
         await card.getByText(/Background checks:.*successful/).waitFor();
-        configured[provider] = (await card.getByText(/^Configured ·/).count()) > 0;
+        phase = "verify " + provider + " is configured";
+        await card.getByText(/^Configured ·/).waitFor();
+        configured[provider] = true;
       }
       return { configured };
     } catch {
