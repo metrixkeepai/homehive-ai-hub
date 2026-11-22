@@ -10,7 +10,6 @@ import {
   startGoogleConnect,
   completeGoogleConnect,
   disconnectGoogle,
-  syncGmail,
   syncCalendar,
   listDriveFiles,
   importDriveFile,
@@ -146,13 +145,7 @@ export function GoogleIntegration({ id }: { id: string }) {
   const sync = async () => {
     setBusy("sync");
     try {
-      if (connector === "google_mail") {
-        const r = await handle(syncGmail({ data: { workspaceId: current.id } }), refresh);
-        if (r)
-          toast.success(`Checked ${r.checked} new email(s)`, {
-            description: `${r.created} item(s) ready for review. ${r.alreadyImported} already checked.${r.more ? " More results are available." : ""}`,
-          });
-      } else {
+      {
         const r = await handle(syncCalendar({ data: { workspaceId: current.id } }), refresh);
         if (r)
           toast.success(`${r.created} reminder(s) added, ${r.updated} updated`, {
@@ -187,15 +180,19 @@ export function GoogleIntegration({ id }: { id: string }) {
       <div className="mt-6 flex flex-wrap gap-2">
         {(!st?.connected || st.reconnectRequired) && (
           <button
-            disabled={!!busy || status.isLoading}
+            disabled={!!busy || status.isLoading || !st?.configured || !st?.entitled}
             onClick={connect}
             className={`${btn} bg-aurora text-primary-foreground`}
           >
             {busy === "connect"
               ? "Waiting for Google…"
-              : st?.reconnectRequired
-                ? `Reconnect ${names[connector]}`
-                : "Connect"}
+              : !st?.configured
+                ? "Setup required"
+                : !st?.entitled
+                  ? "Plan upgrade required"
+                  : st?.reconnectRequired
+                    ? `Reconnect ${names[connector]}`
+                    : "Connect"}
           </button>
         )}
         {st?.connected && !st.reconnectRequired && connector === "google_calendar" && (

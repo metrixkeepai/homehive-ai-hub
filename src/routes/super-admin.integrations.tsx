@@ -46,10 +46,11 @@ function Integrations() {
               }
             </h2>
             <p>
-              {p.connected} connected · {p.reconnect} need to reconnect
+              {p.configured ? "Configured" : "Setup required"} · {p.connected} connected ·{" "}
+              {p.reconnect} need to reconnect
             </p>
             <p>
-              Latest connection checks: {p.healthy} successful · {p.failed} failed
+              Background checks: {p.successes} successful · {p.failures} failed
             </p>
             <p>
               {p.discovered} discovered · {p.approved} approved · {p.rejected} dismissed
@@ -58,7 +59,8 @@ function Integrations() {
               {p.ai_calls} AI calls · ${Number(p.estimated_usd).toFixed(5)} estimated provider cost
             </p>
             <p>
-              Last successful sync: {p.last_sync ? when(p.last_sync) : "No successful check yet"}
+              Last successful sync:{" "}
+              {p.last_success ? when(p.last_success) : "No successful check yet"}
             </p>
           </article>
         ))}

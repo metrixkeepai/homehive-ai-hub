@@ -1,3 +1,4 @@
+import { fixtureQA } from "./connector-fixture-qa.mjs";
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
@@ -25,9 +26,10 @@ let sample = 0,
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 async function check(name, run) {
   let passed = true,
-    reason = null;
+    reason = null,
+    metrics = null;
   try {
-    await run();
+    metrics = (await run()) ?? null;
   } catch (e) {
     reason = String(e?.message)
       .split("\n")[0]
@@ -40,7 +42,7 @@ async function check(name, run) {
   }
   const r = await db
     .from("ai_benchmark_results")
-    .insert({ sha, execution, sample: ++sample, observation: { name, passed, reason } });
+    .insert({ sha, execution, sample: ++sample, observation: { name, passed, reason, metrics } });
   if (r.error) throw Error("Evidence unavailable");
   return passed;
 }
@@ -91,8 +93,24 @@ try {
     relationship_type: "EXTRACTED_FROM",
   });
   if (l.error) throw Error("Link failed");
+  const authClient = createClient(SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false },
+  });
+  const authenticated = await authClient.auth.signInWithPassword({ email, password });
+  if (authenticated.error || !authenticated.data.session)
+    throw Error("Could not sign in staging fixture.");
+  await fixtureQA({
+    db,
+    auth: authClient,
+    base,
+    session: authenticated.data.session,
+    user,
+    property,
+    check,
+  });
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
+  const navigate = (url) => page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
   const browserErrors = [];
   page.on("pageerror", (e) =>
     browserErrors.push(
@@ -104,7 +122,7 @@ try {
     ),
   );
   const didLogin = await check("browser fixture sign-in", async () => {
-    await page.goto(base + "/auth");
+    await navigate(base + "/auth");
     // Wait for client hydration before using the server-rendered form.
     const toggle = page.getByRole("button", { name: "Show password", exact: true });
     await toggle.click();
@@ -151,14 +169,19 @@ try {
     ["no result", "Where is my nonexistent ZirconWidget?", "couldn't find"],
   ]) {
     await check(name, async () => {
-      await page.goto(base + (name === "property scope" ? "/app/my-home/" + property : "/app"));
+      await navigate(base + (name === "property scope" ? "/app/my-home/" + property : "/app"));
       await page.getByRole("button", { name: "Ask Sera", exact: true }).click();
       await page.getByPlaceholder("Where's the receipt for the TV?").fill(q);
       await page.getByRole("button", { name: "Send", exact: true }).click();
       await page
         .locator("p.whitespace-pre-wrap.mr-8")
         .filter({ hasText: expected })
-        .waitFor({ timeout: 45000 });
+        .waitFor({ timeout: 35000 })
+        .catch(async () => {
+          throw Error(
+            "Reply: " + (await page.locator("p.mr-8").allTextContents()).join(" ").slice(0, 160),
+          );
+        });
     });
   }
   const draft = await db.from("connector_reviews").insert({
@@ -184,7 +207,7 @@ try {
   for (const width of [320, 375, 390, 430, 768, 1024])
     await check("review width " + width, async () => {
       await page.setViewportSize({ width, height: 800 });
-      await page.goto(base + "/app/integrations/gmail");
+      await navigate(base + "/app/integrations/gmail");
       await page.getByRole("button", { name: "Review", exact: true }).click();
       await page.getByRole("button", { name: /Save 1 record/ }).waitFor();
       if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1))
@@ -219,7 +242,7 @@ try {
       .eq("title", "Reviewed kettle")
       .single();
     if (!r.data) throw Error("Approved record unavailable");
-    await page.goto(base + "/app/assets/" + r.data.id);
+    await navigate(base + "/app/assets/" + r.data.id);
     await page.getByRole("button", { name: "Activity", exact: true }).click();
     await page.getByText(/You reviewed.*Reviewed kettle/).waitFor();
     await page.getByRole("button", { name: /^AI insight$/i }).click();

@@ -67,12 +67,9 @@ export async function markConnection(
 }
 
 export async function deleteConnectionForUser(userId: string, connectorId: string) {
-  const db = await admin();
-  await db
-    .from("app_user_connections")
-    .delete()
-    .eq("user_id", userId)
-    .eq("connector_id", connectorId);
+  const client: import("@supabase/supabase-js").SupabaseClient = await admin();
+  const r = await client.rpc("disconnect_connector", { _user: userId, _provider: connectorId });
+  if (r.error) throw Error("Could not disconnect. Please retry.");
 }
 
 export async function getLinks(userId: string, connectorId: string, externalIds: string[]) {

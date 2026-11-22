@@ -295,6 +295,13 @@
       "when": 1795305600002,
       "tag": "0041_connector_evidence_retrieval",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795305600003,
+      "tag": "0042_connector_disconnect",
+      "breakpoints": true
     }
   ]
 }

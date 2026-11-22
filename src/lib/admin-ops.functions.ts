@@ -796,7 +796,13 @@ export const connectorOperations = createServerFn({ method: "GET" })
     );
     const r = await client.rpc("connector_operations");
     if (r.error) throw Error("Could not load connector monitoring");
-    return r.data as {
+    const totals = await client.rpc("connector_scan_totals");
+    if (totals.error) throw Error("Could not load scan totals.");
+    const names: Record<string, string> = {
+      google_mail: "GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY",
+      google_drive: "GOOGLE_DRIVE_APP_USER_CONNECTOR_CLIENT_API_KEY",
+    };
+    const summary = r.data as {
       provider: string;
       connected: number;
       reconnect: number;
@@ -809,4 +815,28 @@ export const connectorOperations = createServerFn({ method: "GET" })
       ai_calls: number;
       estimated_usd: number;
     }[];
+    return summary.map((p) => {
+      const g = names[p.provider];
+      const t = (
+        totals.data as {
+          provider: string;
+          successes: number;
+          failures: number;
+          last_success: string | null;
+        }[]
+      ).find((t) => t.provider === p.provider);
+      return {
+        ...p,
+        configured: !!(
+          process.env["APP_USER_CONNECTION_KEY_SECRET"] &&
+          (g
+            ? process.env[g] && process.env["LOVABLE_API_KEY"]
+            : process.env["MICROSOFT_CONNECTOR_CLIENT_ID"] &&
+              process.env["MICROSOFT_CONNECTOR_CLIENT_SECRET"])
+        ),
+        successes: t?.successes ?? 0,
+        failures: t?.failures ?? 0,
+        last_success: t?.last_success ?? p.last_sync,
+      };
+    });
   });

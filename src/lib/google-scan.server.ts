@@ -147,7 +147,8 @@ export async function scanGmail(userId: string, workspaceId: string | null) {
     ids.map((id) => prefix + ":" + id),
   );
   let created = 0,
-    skipped = 0;
+    skipped = 0,
+    candidates = 0;
   for (const id of ids) {
     const key = account + ":" + id;
     if (legacy.has(prefix + ":" + id)) {
@@ -179,6 +180,7 @@ export async function scanGmail(userId: string, workspaceId: string | null) {
       /newsletter|weekly digest/i.test(title)
     )
       continue;
+    candidates++;
     const msg = await (
       await google(userId, c, `/gmail/v1/users/me/messages/${id}?format=full`)
     ).json();
@@ -254,7 +256,13 @@ export async function scanGmail(userId: string, workspaceId: string | null) {
     last_sync_count: created,
     last_error: null,
   });
-  return { created, checked: ids.length, alreadyImported: skipped, more: !!list.nextPageToken };
+  return {
+    created,
+    checked: ids.length,
+    candidates,
+    alreadyImported: skipped,
+    more: !!list.nextPageToken,
+  };
 }
 export async function importDrive(userId: string, workspaceId: string | null, fileId: string) {
   const c = "google_drive";
@@ -319,7 +327,8 @@ export async function scanDrive(user: string, ws: string | null) {
   });
   if (state.data?.page_token) params.set("pageToken", state.data.page_token);
   const page = await (await google(user, provider, "/drive/v3/files?" + params)).json();
-  let created = 0;
+  let created = 0,
+    candidates = 0;
   for (const f of page.files ?? []) {
     if (
       !/receipt|contract|warranty|guarantee|policy|invoice|tenancy|renewal|certificate|purchase/i.test(
@@ -328,6 +337,7 @@ export async function scanDrive(user: string, ws: string | null) {
       Number(f.size) > 4800000
     )
       continue;
+    candidates++;
     const r = await importDrive(user, ws, f.id);
     if ("error" in r) continue;
     created += r.created;
@@ -345,7 +355,7 @@ export async function scanDrive(user: string, ws: string | null) {
     { onConflict: "user_id,workspace_id,provider,account" },
   );
   if (saved.error) throw Error("Checkpoint unavailable");
-  return { created, more: !!page.nextPageToken };
+  return { created, checked: (page.files ?? []).length, candidates, more: !!page.nextPageToken };
 }
 
 export async function googleBody(user: string, id: string) {

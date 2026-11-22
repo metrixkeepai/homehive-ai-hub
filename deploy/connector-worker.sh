@@ -12,7 +12,16 @@ done
 gcloud run jobs deploy "$job" "${common[@]}" --service-account="$runtime" --image="$image" --tasks=1 --max-retries=0 --task-timeout=20m --cpu=1 --memory=1Gi --set-env-vars="APP_ENV=staging" --set-secrets="$(IFS=,; echo "${worker_secrets[*]}")"
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" --member="serviceAccount:$runtime" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
-gcloud services enable cloudscheduler.googleapis.com --project="$GCP_PROJECT_ID" --quiet
+configure_cloud_schedule() {
+  gcloud services enable cloudscheduler.googleapis.com --project="$GCP_PROJECT_ID" --quiet || return 1
 verb=create
 if gcloud scheduler jobs describe "$job" "${sched[@]}" >/dev/null 2>&1; then verb=update; fi
 gcloud scheduler jobs "$verb" http "$job" "${sched[@]}" --schedule='0 9 1,15 * *' --time-zone=Europe/London --uri="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" --http-method=POST --oauth-service-account-email="$runtime" --message-body='{}'
+}
+if ! configure_cloud_schedule; then
+  # The database owner can provision a staging-only pg_cron trigger without Google service-enablement privileges.
+  setup=matrixkeep-staging-connector-schedule
+  gcloud run jobs deploy "$setup" "${common[@]}" --service-account="$migrator" --image="$MIGRATOR_IMAGE" --command=node --args=scripts/configure-connector-cron.mjs --tasks=1 --max-retries=0 --task-timeout=3m --set-env-vars="APP_ENV=staging,CONNECTOR_CANDIDATE=$candidate" --set-secrets="$db_secret"
+  gcloud run jobs execute "$setup" "${common[@]}" --wait
+fi
+gcloud run jobs execute "$job" "${common[@]}" --wait

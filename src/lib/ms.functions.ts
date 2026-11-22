@@ -6,7 +6,13 @@ export const msStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { listConnectionsForUser } = await import("@/server/appUserConnections.server");
+    const { db, connectorAllowed } = await import("./connector-review.server");
+    const ent = await db.rpc("account_entitlements", { _user: context.userId });
     return {
+      eligible: {
+        outlook: connectorAllowed(ent.data, "outlook"),
+        onedrive: connectorAllowed(ent.data, "onedrive"),
+      },
       configured: !!(
         process.env["MICROSOFT_CONNECTOR_CLIENT_ID"] &&
         process.env["MICROSOFT_CONNECTOR_CLIENT_SECRET"] &&
@@ -72,7 +78,7 @@ export const msImport = createServerFn({ method: "POST" })
     }
     const s = { user: context.userId, ws: data.workspaceId, provider: data.provider };
     const m = await import("./ms-connector.server");
-    if (data.provider === "outlook") return (await m.scanOutlook(s)).created;
+    if (data.provider !== "onedrive") throw Error("Use Sync now to queue an Outlook check.");
     if (!data.fileId) throw Error("Select a file");
     return m.importMsFile(s, data.fileId);
   });

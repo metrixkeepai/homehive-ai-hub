@@ -19,6 +19,8 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
     const out: Record<
       string,
       {
+        configured: boolean;
+        entitled: boolean;
         connected: boolean;
         reconnectRequired: boolean;
         account: string | null;
@@ -39,9 +41,17 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
         }),
     );
     const latest = await listConnectionsForUser(userId); // an account lookup may have flagged a reconnect
+    const { db, connectorAllowed } = await import("./connector-review.server");
+    const ent = await db.rpc("account_entitlements", { _user: userId });
     for (const c of Object.keys(GOOGLE) as GoogleConnector[]) {
       const cur = latest.find((x) => x.connector_id === c);
       out[c] = {
+        configured: !!(
+          process.env[GOOGLE[c].env] &&
+          process.env["APP_USER_CONNECTION_KEY_SECRET"] &&
+          process.env["LOVABLE_API_KEY"]
+        ),
+        entitled: connectorAllowed(ent.data, c),
         connected: !!cur,
         reconnectRequired: !!cur?.reconnect_required,
         account: cur?.reconnect_required ? null : (accounts[c] ?? null),
@@ -148,20 +158,6 @@ const fail = async (userId: string, c: GoogleConnector, e: unknown) => {
 };
 
 /* ---------------- Gmail ---------------- */
-export const syncGmail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ workspaceId: Ws }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { userId, supabase } = ctxOf(context);
-    const c = "google_mail" as const;
-    try {
-      await checkScope(supabase, data.workspaceId);
-      return await (await import("./google-scan.server")).scanGmail(userId, data.workspaceId);
-    } catch (e) {
-      return fail(userId, c, e);
-    }
-  });
-
 /* ---------------- Calendar ---------------- */
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const plusDay = (d: string) => {

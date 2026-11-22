@@ -18,6 +18,9 @@ for (let batch = 0; batch < 8 && budget.remaining > 0 && Date.now() < end; batch
   let problem: string | null = null,
     more = false,
     created = 0;
+  let examined: number | null = null,
+    candidates: number | null = null,
+    duplicates: number | null = null;
   try {
     await requireConnectorPlan(k.user_id, k.provider);
     if (k.workspace_id) {
@@ -39,6 +42,9 @@ for (let batch = 0; batch < 8 && budget.remaining > 0 && Date.now() < end; batch
             ? scanOutlook(s)
             : scanOneDrive(s),
     );
+    examined = "checked" in result ? Number(result.checked) : null;
+    candidates = "candidates" in result ? Number(result.candidates) : null;
+    duplicates = "alreadyImported" in result ? Number(result.alreadyImported) : null;
     more = result.more;
     created = result.created;
   } catch (e) {
@@ -60,6 +66,17 @@ for (let batch = 0; batch < 8 && budget.remaining > 0 && Date.now() < end; batch
     .eq("id", k.id)
     .eq("lease", k.lease);
   if (saved.error) throw Error("Could not settle scan.");
+  const metrics = await db.from("connector_scan_runs").insert({
+    user_id: k.user_id,
+    workspace_id: k.workspace_id,
+    provider: k.provider,
+    success: !problem,
+    examined,
+    candidates,
+    duplicates,
+    prepared: created,
+  });
+  if (metrics.error) throw Error("Could not record scan metrics.");
   await markConnection(k.user_id, k.provider, {
     last_sync_count: created,
     last_error: problem,

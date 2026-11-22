@@ -82,12 +82,17 @@ export function MicrosoftIntegration({ provider }: { provider: Provider }) {
   return (
     <div className="mt-5 space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button disabled={busy || !status.data?.configured} onClick={connect}>
+        <Button
+          disabled={busy || !status.data?.configured || !status.data.eligible[provider]}
+          onClick={connect}
+        >
           {status.data && !status.data.configured
             ? "Setup required"
-            : grant
-              ? "Reconnect"
-              : "Connect"}
+            : status.data && !status.data.eligible[provider]
+              ? "Plan upgrade required"
+              : grant
+                ? "Reconnect"
+                : "Connect"}
         </Button>
         {grant && (
           <>

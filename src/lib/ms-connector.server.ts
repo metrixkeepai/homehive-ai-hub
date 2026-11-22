@@ -224,11 +224,18 @@ export async function scanOutlook(s: Scope) {
     $top: "8",
     $orderby: "receivedDateTime asc",
   });
-  const page = await (
-    await graph(s.user, "outlook", data?.page_token ?? "me/mailFolders/inbox/messages?" + params)
-  ).json();
-  let count = 0;
-  for (const m of page.value) {
+  const continuation = data?.page_token?.startsWith("{") ? JSON.parse(data.page_token) : null;
+  const pageUrl =
+    continuation?.page ?? data?.page_token ?? "me/mailFolders/inbox/messages?" + params;
+  const page = await (await graph(s.user, "outlook", pageUrl)).json();
+  let count = 0,
+    candidates = 0,
+    skipped = 0;
+  let more = page["@odata.nextLink"] ?? null;
+  const resumeAt = continuation
+    ? page.value.findIndex((m: { id: string }) => m.id === continuation.message)
+    : 0;
+  for (const m of page.value.slice(Math.max(0, resumeAt))) {
     if (
       !/receipt|invoice|warranty|guarantee|renewal|policy|contract|order confirmation|purchase|subscription/i.test(
         m.subject,
@@ -236,6 +243,7 @@ export async function scanOutlook(s: Scope) {
       /newsletter|digest|promotion/i.test(m.subject)
     )
       continue;
+    candidates++;
     const prefix = account + ":" + m.id,
       source = [
         ["Source", "Outlook"],
@@ -250,11 +258,12 @@ export async function scanOutlook(s: Scope) {
           await graph(
             s.user,
             "outlook",
-            path + "/attachments?$select=id,name,size,contentType,isInline&$top=20",
+            (continuation?.message === m.id ? continuation.attachments : null) ??
+              path + "/attachments?$select=id,name,size,contentType,isInline&$top=4",
           )
         ).json()
       : { value: [] };
-    if (files["@odata.nextLink"]) throw Error("This message exceeds the attachment scan limit.");
+
     const attachments: Attachment[] = files.value
       .filter((f: { isInline: boolean }) => !f.isInline)
       .map((f: { id: string; name: string; size: number; contentType: string }) => ({
@@ -265,12 +274,19 @@ export async function scanOutlook(s: Scope) {
         size: f.size,
       }))
       .filter(eligible);
-    if (attachments.length > 4) throw Error("This message exceeds the attachment scan limit.");
-    for (const a of attachments.length ? attachments : [undefined]) {
+
+    for (const a of attachments.length ||
+    files["@odata.nextLink"] ||
+    (continuation?.message === m.id && continuation?.hadFiles)
+      ? attachments
+      : [undefined]) {
       const key = a ? prefix + ":" + a.attachmentId : prefix;
       const seen = await scoped("connector_reviews", s).eq("external_key", key).maybeSingle();
       if (seen.error) throw Error("Review unavailable");
-      if (seen.data) continue;
+      if (seen.data) {
+        skipped++;
+        continue;
+      }
       if (a)
         count += await queue(
           s,
@@ -292,8 +308,17 @@ export async function scanOutlook(s: Scope) {
         );
       }
     }
+    if (files["@odata.nextLink"]) {
+      more = JSON.stringify({
+        page: pageUrl,
+        message: m.id,
+        attachments: files["@odata.nextLink"],
+        hadFiles:
+          attachments.length > 0 || (continuation?.message === m.id && continuation.hadFiles),
+      });
+      break;
+    }
   }
-  const more = page["@odata.nextLink"] ?? null;
   const saved = await db.from("connector_scan_state").upsert(
     {
       user_id: s.user,
@@ -312,7 +337,13 @@ export async function scanOutlook(s: Scope) {
     last_sync_count: count,
     last_error: null,
   });
-  return { created: count, more: !!more };
+  return {
+    created: count,
+    checked: page.value.length,
+    candidates,
+    alreadyImported: skipped,
+    more: !!more,
+  };
 }
 export async function scanOneDrive(s: Scope) {
   const info = await (await graph(s.user, "onedrive", "me/drive?$select=id")).json();

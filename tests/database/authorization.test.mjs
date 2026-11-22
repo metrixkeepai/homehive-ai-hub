@@ -515,6 +515,7 @@ test("settled provider usage releases only its own reservation and records econo
   const key = "f".repeat(64),
     lease = crypto.randomUUID();
   await db.query("select claim_ai_request($1,$2,null,'sera',$3)", [key, b, lease]);
+  await db.query("select reserve_ai_operation($1,null,'sera',1,0)", [b]);
   const id = (await db.query("select reserve_ai_operation($1,null,'sera',1,0.02) as id", [b]))
     .rows[0].id;
   await db.query(
@@ -650,4 +651,38 @@ test("Sera totals explicit currencies separately and never infers a currency", a
     GBP: 65,
     EUR: 12.5,
   });
+});
+test("connector evidence is tied to the approved document, with idempotent attachment and tenant-scoped metadata", async () => {
+  const hash = "f".repeat(64);
+  const draft = (
+    await db.query(
+      "insert into connector_reviews(user_id,provider,external_key,title,source,proposals,attachment) values($1,'google_mail','synthetic-evidence','Fixture receipt','[]','[]',$2) returning id",
+      [a, JSON.stringify({ name: "receipt.pdf", mime: "application/pdf", size: 12, hash })],
+    )
+  ).rows[0].id;
+  const proposal = JSON.stringify([
+    { section: "documents", title: "Evidence fixture", subtitle: "", relates_to: "", fields: [] },
+  ]);
+  const saved = (
+    await db.query("select confirm_connector_review($1,$2,null,null,'',$3,null) r", [
+      draft,
+      a,
+      proposal,
+    ])
+  ).rows[0].r;
+  const id = saved[0].id,
+    path = a + "/" + id + "/" + hash;
+  await assert.rejects(
+    db.query("select complete_connector_evidence($1,$2,null,'wrong')", [draft, a]),
+  );
+  await assert.rejects(
+    asUser(b, "select complete_connector_evidence($1,$2,null,$3)", [draft, a, path]),
+  );
+  for (let i = 0; i < 2; i++)
+    await db.query("select complete_connector_evidence($1,$2,null,$3)", [draft, a, path]);
+  const find = "select name,mime,size,connector_source from evidence_files where item_id=$1";
+  assert.equal((await asUser(b, find, [id])).rows.length, 0);
+  assert.deepEqual((await asUser(a, find, [id])).rows, [
+    { name: "receipt.pdf", mime: "application/pdf", size: 12, connector_source: "Gmail" },
+  ]);
 });

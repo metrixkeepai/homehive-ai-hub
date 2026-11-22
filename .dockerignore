@@ -31,3 +31,5 @@
 !scripts/staging-connector-qa.mjs
 
 !scripts/connector-worker.ts
+!scripts/connector-fixture-qa.mjs
+!scripts/configure-connector-cron.mjs

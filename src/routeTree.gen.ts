@@ -46,6 +46,7 @@ import { Route as UseCasesSlugRouteImport } from './routes/use-cases.$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app.index'
 import { Route as AuthenticatedAppCalendarRouteImport } from './routes/_authenticated/app.calendar'
 import { Route as AuthenticatedAppPlansRouteImport } from './routes/_authenticated/app.plans'
+import { Route as ApiInternalConnectorTickRouteImport } from './routes/api/internal/connector-tick'
 import { Route as SuperAdminBillingIndexRouteImport } from './routes/super-admin.billing.index'
 import { Route as SuperAdminBillingKindRouteImport } from './routes/super-admin.billing.$kind'
 import { Route as SuperAdminPlansIndexRouteImport } from './routes/super-admin.plans.index'
@@ -247,6 +248,12 @@ const AuthenticatedAppPlansRoute = AuthenticatedAppPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AuthenticatedAppRoute,
 } as any)
+const ApiInternalConnectorTickRoute =
+  ApiInternalConnectorTickRouteImport.update({
+    id: '/api/internal/connector-tick',
+    path: '/api/internal/connector-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SuperAdminBillingIndexRoute = SuperAdminBillingIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -358,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/use-cases/': typeof UseCasesIndexRoute
   '/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
+  '/api/internal/connector-tick': typeof ApiInternalConnectorTickRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
@@ -407,6 +415,7 @@ export interface FileRoutesByTo {
   '/use-cases': typeof UseCasesIndexRoute
   '/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/app/plans': typeof AuthenticatedAppPlansRoute
+  '/api/internal/connector-tick': typeof ApiInternalConnectorTickRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
@@ -461,6 +470,7 @@ export interface FileRoutesById {
   '/use-cases/': typeof UseCasesIndexRoute
   '/_authenticated/app/calendar': typeof AuthenticatedAppCalendarRoute
   '/_authenticated/app/plans': typeof AuthenticatedAppPlansRoute
+  '/api/internal/connector-tick': typeof ApiInternalConnectorTickRoute
   '/super-admin/billing/$kind': typeof SuperAdminBillingKindRoute
   '/super-admin/plans/$key': typeof SuperAdminPlansKeyRoute
   '/super-admin/reports/$key': typeof SuperAdminReportsKeyRoute
@@ -515,6 +525,7 @@ export interface FileRouteTypes {
     | '/use-cases/'
     | '/app/calendar'
     | '/app/plans'
+    | '/api/internal/connector-tick'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
@@ -564,6 +575,7 @@ export interface FileRouteTypes {
     | '/use-cases'
     | '/app/calendar'
     | '/app/plans'
+    | '/api/internal/connector-tick'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
@@ -617,6 +629,7 @@ export interface FileRouteTypes {
     | '/use-cases/'
     | '/_authenticated/app/calendar'
     | '/_authenticated/app/plans'
+    | '/api/internal/connector-tick'
     | '/super-admin/billing/$kind'
     | '/super-admin/plans/$key'
     | '/super-admin/reports/$key'
@@ -655,6 +668,7 @@ export interface RootRouteChildren {
   UseCasesSlugRoute: typeof UseCasesSlugRoute
   IndustriesIndexRoute: typeof IndustriesIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
+  ApiInternalConnectorTickRoute: typeof ApiInternalConnectorTickRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
   ApiOauthMicrosoftReturnRoute: typeof ApiOauthMicrosoftReturnRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -921,6 +935,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPlansRouteImport
       parentRoute: typeof AuthenticatedAppRoute
     }
+    '/api/internal/connector-tick': {
+      id: '/api/internal/connector-tick'
+      path: '/api/internal/connector-tick'
+      fullPath: '/api/internal/connector-tick'
+      preLoaderRoute: typeof ApiInternalConnectorTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/super-admin/billing/': {
       id: '/super-admin/billing/'
       path: '/'
@@ -1136,6 +1157,7 @@ const rootRouteChildren: RootRouteChildren = {
   UseCasesSlugRoute: UseCasesSlugRoute,
   IndustriesIndexRoute: IndustriesIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
+  ApiInternalConnectorTickRoute: ApiInternalConnectorTickRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
   ApiOauthMicrosoftReturnRoute: ApiOauthMicrosoftReturnRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,

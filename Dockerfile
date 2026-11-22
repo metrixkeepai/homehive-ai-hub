@@ -12,6 +12,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --from=build /app/scripts/configure-connector-cron.mjs ./scripts/configure-connector-cron.mjs
 COPY --from=build /app/drizzle/migrations ./drizzle/migrations
 COPY --from=build /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=build /app/node_modules/postgres ./node_modules/postgres
