@@ -63,6 +63,9 @@ if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
     if [[ $APP_ENV == production ]]; then stripe=live; fi
   fi
 fi
+if [[ $APP_ENV == staging ]]; then
+  for key in MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET; do if has_secret "$key"; then bind "$key"; fi; done
+fi
 secret_flags=$(IFS=,; echo "${secrets[*]}")
 env_flags="APP_ENV=$APP_ENV,APP_ORIGIN=$origin,VITE_APP_ORIGIN=$origin,APP_ADDITIONAL_RETURN_ORIGINS=,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF,STRIPE_ENVIRONMENT=$stripe,PAYMENTS_ENABLED=$payments"
 db_secret=$(binding DATABASE_MIGRATION_URL DATABASE_MIGRATION_URL)
@@ -133,6 +136,7 @@ check "$origin"
 config=$(curl --proto '=https' -fsS "$origin/matrixkeep-config.js")
 grep -Fq "\"VITE_APP_ORIGIN\":\"$origin\"" <<< "$config"
 grep -Fq "https://$EXPECTED_SUPABASE_REF.supabase.co" <<< "$config"
+if [[ $APP_ENV == staging ]]; then env_flags=${env_flags/APP_ADDITIONAL_RETURN_ORIGINS=,/APP_ADDITIONAL_RETURN_ORIGINS=$candidate,}; fi
 deploy_revision true
 check "$candidate"
 curl -fsS -D "$RUNNER_TEMP/candidate.headers" "$candidate/health/live" -o /dev/null
@@ -146,7 +150,10 @@ if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[ai-benchmark]"* ]];
   bash deploy/staging-ai-benchmark.sh "$candidate"
 fi
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[connector-qa]"* ]]; then
-  bash deploy/staging-connector-qa.sh "$candidate"
+  qa_status=0
+  bash deploy/staging-connector-qa.sh "$candidate" || qa_status=$?
+  if [[ $(git log -1 --format=%s) == *"[connector-worker]"* ]]; then source deploy/connector-worker.sh; fi
+  if ((qa_status)); then exit "$qa_status"; fi
 fi
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; then
   jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg revision "$revision" --arg url "$candidate" '{sha:$sha,image:$image,revision:$revision,candidate_url:$url,public_traffic_switched:false}' > release.json

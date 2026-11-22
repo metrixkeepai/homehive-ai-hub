@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { listIntegrations, testIntegration } from "@/lib/admin-ops.functions";
+import { connectorOperations, listIntegrations, testIntegration } from "@/lib/admin-ops.functions";
 import { PageTitle, when } from "@/components/hv/AdminKpi";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,10 @@ function Integrations() {
   const list = useServerFn(listIntegrations),
     test = useServerFn(testIntegration);
   const q = useQuery({ queryKey: ["admin", "integrations"], queryFn: () => list() });
+  const stats = useQuery({
+    queryKey: ["admin", "connector-operations"],
+    queryFn: () => connectorOperations(),
+  });
   const t = useMutation({
     mutationFn: (provider: string) => test({ data: { provider } }),
     onSuccess: (r) => {
@@ -27,6 +31,38 @@ function Integrations() {
         title="Integrations"
         sub="Every outside service MatrixKeep depends on, with a live connection test."
       />
+      <section className="grid gap-3 sm:grid-cols-2">
+        {stats.isError && <p>Connector metrics unavailable.</p>}
+        {stats.data?.map((p) => (
+          <article key={p.provider} className="rounded-xl border bg-card p-4 text-sm">
+            <h2 className="font-semibold">
+              {
+                {
+                  google_mail: "Gmail",
+                  google_drive: "Google Drive",
+                  outlook: "Outlook",
+                  onedrive: "OneDrive",
+                }[p.provider]
+              }
+            </h2>
+            <p>
+              {p.connected} connected · {p.reconnect} need to reconnect
+            </p>
+            <p>
+              Latest connection checks: {p.healthy} successful · {p.failed} failed
+            </p>
+            <p>
+              {p.discovered} discovered · {p.approved} approved · {p.rejected} dismissed
+            </p>
+            <p>
+              {p.ai_calls} AI calls · ${Number(p.estimated_usd).toFixed(5)} estimated provider cost
+            </p>
+            <p>
+              Last successful sync: {p.last_sync ? when(p.last_sync) : "No successful check yet"}
+            </p>
+          </article>
+        ))}
+      </section>
       {q.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (

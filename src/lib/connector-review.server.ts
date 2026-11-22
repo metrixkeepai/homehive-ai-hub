@@ -1,3 +1,4 @@
+import { connectorAttribution } from "./ai-meter.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createHash } from "node:crypto";
@@ -34,14 +35,27 @@ export async function queue(
   const found = await scoped("connector_reviews", s).eq("external_key", key).maybeSingle();
   if (found.error) throw Error("Review queue unavailable");
   if (found.data) return 0;
-  const result = await runExtraction(
-    {
-      workspaceId: s.ws,
-      mode: a ? "Upload document" : "Import email",
-      text: a ? "" : text.slice(0, 9000),
-      ...(a && bytes ? { image: "data:" + a.mime + ";base64," + bytes.toString("base64") } : {}),
-    },
-    s.user,
+  const contentHash = fingerprint(bytes ?? Buffer.from(text.trim()));
+  let prior = db
+    .from("connector_reviews")
+    .select("id")
+    .eq("user_id", s.user)
+    .eq("content_hash", contentHash)
+    .eq("extraction_version", "capture-v1-luna-sol-schema1");
+  prior = s.ws ? prior.eq("workspace_id", s.ws) : prior.is("workspace_id", null);
+  const duplicate = await prior.limit(1);
+  if (duplicate.error) throw Error("Duplicate check unavailable");
+  if (duplicate.data?.length) return 0;
+  const result = await connectorAttribution.run(s.provider, () =>
+    runExtraction(
+      {
+        workspaceId: s.ws,
+        mode: a ? "Upload document" : "Import email",
+        text: a ? "" : text.slice(0, 9000),
+        ...(a && bytes ? { image: "data:" + a.mime + ";base64," + bytes.toString("base64") } : {}),
+      },
+      s.user,
+    ),
   );
   if ("error" in result) throw Error("Extraction unavailable. Retry the scan.");
   const records = result.records;
@@ -51,6 +65,8 @@ export async function queue(
       workspace_id: s.ws,
       provider: s.provider,
       external_key: key,
+      content_hash: contentHash,
+      extraction_version: "capture-v1-luna-sol-schema1",
       title: title.slice(0, 200),
       source: [...source, ["Found on", new Date().toISOString()]],
       proposals: records,
@@ -59,6 +75,7 @@ export async function queue(
     },
     { onConflict: "user_id,workspace_id,provider,external_key", ignoreDuplicates: true },
   );
+  if (error?.code === "23505") return 0;
   if (error) throw Error("Couldn't prepare review");
   return records.length ? 1 : 0;
 }

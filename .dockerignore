@@ -29,3 +29,5 @@
 !scripts/ai-speech-comparison.mjs
 !scripts/speech-browser-qa.mjs
 !scripts/staging-connector-qa.mjs
+
+!scripts/connector-worker.ts

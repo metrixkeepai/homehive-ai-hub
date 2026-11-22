@@ -169,7 +169,7 @@ export function AddAnything({
     id: string;
     title: string;
     proposals: Extracted[];
-    provider: "google_mail" | "google_drive";
+    provider: "google_mail" | "google_drive" | "outlook" | "onedrive";
   };
 }) {
   const { reload, addReturning, added, current, update, properties } = useStore();
@@ -413,8 +413,12 @@ export function AddAnything({
         await reload();
         setSaved(saved);
         setStep("done");
-      } catch {
-        toast.error("Couldn't save these records. Check the property and room, then retry.");
+      } catch (e) {
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : "Couldn't save these records. Check the property and room, then retry.",
+        );
         setStep("review");
       }
       return;

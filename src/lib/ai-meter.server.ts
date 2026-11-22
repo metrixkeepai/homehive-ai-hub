@@ -6,3 +6,5 @@ export interface OperationMeter {
   complete: boolean;
 }
 export const operationMeter = new AsyncLocalStorage<OperationMeter>();
+
+export const connectorAttribution = new AsyncLocalStorage<string>();

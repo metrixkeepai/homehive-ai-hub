@@ -608,3 +608,32 @@ test("connector proposal stays outside normal records until approval, then retri
     ).rows.length,
   );
 });
+test("connector worker claims one authorised schedule and disconnect removes future checks", async () => {
+  await db.query(
+    "insert into app_user_connections(user_id,connector_id,connection_key_ciphertext) values($1,'onedrive','test-fixture')",
+    [a],
+  );
+  await db.query("insert into connector_checks(user_id,provider) values($1,'onedrive')", [a]);
+  assert.equal((await db.query("select id from claim_connector_check()")).rows.length, 0);
+  await assert.rejects(asUser(a, "select id from claim_connector_check()"));
+  await db.query(
+    "update connector_checks set auto_check=true where user_id=$1 and provider='onedrive'",
+    [a],
+  );
+  assert.equal((await db.query("select id from claim_connector_check()")).rows.length, 1);
+  assert.equal((await db.query("select id from claim_connector_check()")).rows.length, 0);
+  await db.query("delete from app_user_connections where user_id=$1 and connector_id='onedrive'", [
+    a,
+  ]);
+  assert.equal(
+    (
+      await db.query("select id from connector_checks where user_id=$1 and provider='onedrive'", [
+        a,
+      ])
+    ).rows.length,
+    0,
+  );
+  await assert.rejects(asUser(b, "select * from connector_operations()"));
+  const results = await db.query("select provider from connector_operations()");
+  assert.equal(results.rows.length, 4);
+});

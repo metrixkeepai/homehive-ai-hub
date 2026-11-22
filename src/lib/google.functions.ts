@@ -2,100 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const GATEWAY = "https://connector-gateway.lovable.dev";
-const BASE = [
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/userinfo.profile",
-];
-export const GOOGLE = {
-  google_mail: {
-    scopes: [...BASE, "https://www.googleapis.com/auth/gmail.readonly"],
-    env: "GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY",
-  },
-  google_calendar: {
-    scopes: [...BASE, "https://www.googleapis.com/auth/calendar.events"],
-    env: "GOOGLE_CALENDAR_APP_USER_CONNECTOR_CLIENT_API_KEY",
-  },
-  google_drive: {
-    scopes: [...BASE, "https://www.googleapis.com/auth/drive.readonly"],
-    env: "GOOGLE_DRIVE_APP_USER_CONNECTOR_CLIENT_API_KEY",
-  },
-} as const;
-export type GoogleConnector = keyof typeof GOOGLE;
+import { GOOGLE, GATEWAY, type GoogleConnector } from "./google-config";
+export { GOOGLE, type GoogleConnector } from "./google-config";
 const Connector = z.enum(["google_mail", "google_calendar", "google_drive"]);
 const Ws = z.string().uuid().nullable();
 
 type Ctx = { userId: string; supabase: import("@supabase/supabase-js").SupabaseClient };
 const ctxOf = (c: unknown) => c as Ctx;
-
-/** Call Google as the signed-in user; marks the connection for reconnect when the grant is no longer valid. */
-async function google(
-  userId: string,
-  connector: GoogleConnector,
-  path: string,
-  init?: RequestInit,
-) {
-  const { requireConnectorPlan } = await import("./connector-review.server");
-  await requireConnectorPlan(userId, connector);
-  const { requireFeature } = await import("./feature-access.server");
-  await requireFeature(userId, "google_integrations");
-  const { getConnectionKeyForUser, markConnection } =
-    await import("@/server/appUserConnections.server");
-  const { callAsAppUser, appUserReconnectRequired } =
-    await import("@/integrations/lovable/appUserConnector");
-  const key = await getConnectionKeyForUser(userId, connector);
-  if (!key) throw new Error("NOT_CONNECTED");
-  const res = await callAsAppUser({
-    gatewayBaseUrl: GATEWAY,
-    connectionAPIKey: key,
-    connectorId: connector,
-    path,
-    init,
-    requiredScopes: [...GOOGLE[connector].scopes],
-  });
-  if (await appUserReconnectRequired(res)) {
-    await markConnection(userId, connector, { reconnect_required: true });
-    throw new Error("RECONNECT");
-  }
-  if (!res.ok) {
-    await res.body?.cancel();
-    console.error(
-      JSON.stringify({ event: "google_request_failed", connector, status: res.status }),
-    );
-    throw new Error(`Google request failed (${res.status})`);
-  }
-  return res;
-}
-
-async function accountEmail(userId: string, c: GoogleConnector): Promise<string | null> {
-  try {
-    if (c === "google_mail")
-      return (
-        (
-          (await (await google(userId, c, "/gmail/v1/users/me/profile")).json()) as {
-            emailAddress?: string;
-          }
-        ).emailAddress ?? null
-      );
-    if (c === "google_calendar")
-      return (
-        (
-          (await (await google(userId, c, "/calendar/v3/calendars/primary")).json()) as {
-            id?: string;
-          }
-        ).id ?? null
-      );
-    return (
-      (
-        (await (await google(userId, c, "/drive/v3/about?fields=user(emailAddress)")).json()) as {
-          user?: { emailAddress?: string };
-        }
-      ).user?.emailAddress ?? null
-    );
-  } catch {
-    return null;
-  }
-}
 
 export const getGoogleStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -120,7 +33,9 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
       rows
         .filter((r) => r.connector_id in GOOGLE && !r.reconnect_required)
         .map(async (r) => {
-          accounts[r.connector_id] = await accountEmail(userId, r.connector_id as GoogleConnector);
+          accounts[r.connector_id] = await (
+            await import("./google-scan.server")
+          ).accountEmail(userId, r.connector_id as GoogleConnector);
         }),
     );
     const latest = await listConnectionsForUser(userId); // an account lookup may have flagged a reconnect
@@ -222,31 +137,6 @@ const fail = async (userId: string, c: GoogleConnector, e: unknown) => {
 };
 
 /* ---------------- Gmail ---------------- */
-const b64url = (s: string) =>
-  Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-type Part = {
-  filename?: string;
-  mimeType?: string;
-  body?: { data?: string; size?: number; attachmentId?: string };
-  parts?: Part[];
-};
-const plainText = (p: Part): string => {
-  if (p.mimeType === "text/plain" && p.body?.data) return b64url(p.body.data);
-  for (const c of p.parts ?? []) {
-    const t = plainText(c);
-    if (t) return t;
-  }
-  if (p.mimeType === "text/html" && p.body?.data)
-    return b64url(p.body.data)
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ");
-  for (const c of p.parts ?? [])
-    if (c.mimeType === "text/html" && c.body?.data) return plainText({ ...c });
-  return "";
-};
-
 export const syncGmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ workspaceId: Ws }).parse(d))
@@ -254,146 +144,8 @@ export const syncGmail = createServerFn({ method: "POST" })
     const { userId, supabase } = ctxOf(context);
     const c = "google_mail" as const;
     try {
-      const { scoped, db, queue, eligible } = await import("./connector-review.server");
-      const { getLinks, markConnection } = await import("@/server/appUserConnections.server");
-      const scope = { user: userId, ws: data.workspaceId, provider: c };
       await checkScope(supabase, data.workspaceId);
-      const account = await accountEmail(userId, c);
-      if (!account) throw Error("Couldn't identify the connected mailbox.");
-      const state = await scoped("connector_scan_state", scope)
-        .eq("account", account)
-        .maybeSingle();
-      if (state.error) throw Error("Checkpoint unavailable");
-      const lower = Number(state.data?.watermark) || Math.floor(Date.now() / 1000) - 180 * 86400;
-      const upper = Number(state.data?.upper_bound) || Math.floor(Date.now() / 1000);
-      const q = `after:${lower - 1} before:${upper} {receipt invoice warranty guarantee renewal policy contract subscription "order confirmation" "purchase confirmation"} -in:spam -in:trash -category:promotions -category:social`;
-      const params = new URLSearchParams({ q, maxResults: "4" });
-      if (state.data?.page_token) params.set("pageToken", state.data.page_token);
-      const list = (await (
-        await google(userId, c, "/gmail/v1/users/me/messages?" + params)
-      ).json()) as { messages?: { id: string }[]; nextPageToken?: string };
-      const ids = (list.messages ?? []).map((m) => m.id),
-        prefix = data.workspaceId ?? "personal";
-      const legacy = await getLinks(
-        userId,
-        c,
-        ids.map((id) => prefix + ":" + id),
-      );
-      let created = 0,
-        skipped = 0;
-      for (const id of ids) {
-        const key = account + ":" + id;
-        if (legacy.has(prefix + ":" + id)) {
-          skipped++;
-          continue;
-        }
-        const existing = await scoped("connector_reviews", scope)
-          .eq("external_key", key)
-          .maybeSingle();
-        if (existing.error) throw Error("Review lookup failed");
-        if (existing.data) {
-          skipped++;
-          continue;
-        }
-        const meta = await (
-          await google(
-            userId,
-            c,
-            `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=List-Unsubscribe`,
-          )
-        ).json();
-        const header = (name: string) =>
-          String(
-            meta.payload?.headers?.find(
-              (h: { name: string }) => h.name.toLowerCase() === name.toLowerCase(),
-            )?.value ?? "",
-          ).slice(0, 250);
-        const title = header("Subject");
-        if (
-          (header("List-Unsubscribe") && !/invoice|receipt|warranty|policy|renewal/i.test(title)) ||
-          /newsletter|weekly digest/i.test(title)
-        )
-          continue;
-        const msg = await (
-          await google(userId, c, `/gmail/v1/users/me/messages/${id}?format=full`)
-        ).json();
-        const source = [
-          ["Source", "Gmail"],
-          ["Connected account", account],
-          ["Sender", header("From")],
-          ["Email subject", title],
-          ["Received", header("Date")],
-          ["Message ID", id],
-        ];
-        const files: import("./connector-review.server").Attachment[] = [];
-        const walk = (part: Part) => {
-          if (part.filename && part.body?.attachmentId) {
-            const a = {
-              name: part.filename,
-              mime: part.mimeType ?? "",
-              size: part.body.size ?? 0,
-              message: id,
-              attachmentId: part.body.attachmentId,
-            };
-            if (eligible(a)) files.push(a);
-          }
-          for (const child of part.parts ?? []) walk(child);
-        };
-        walk(msg.payload ?? {});
-        if (files.length > 4)
-          throw Error(
-            "Message has more than four eligible attachments. Select individual files through Add anything.",
-          );
-        if (files.length) {
-          for (const file of files) {
-            const external = key + ":" + file.attachmentId;
-            const seen = await scoped("connector_reviews", scope)
-              .eq("external_key", external)
-              .maybeSingle();
-            if (seen.error) throw Error("Review lookup failed");
-            if (seen.data) {
-              skipped++;
-              continue;
-            }
-            const bytes = await googleAttachment(userId, c, file);
-            created += await queue(
-              scope,
-              external,
-              title,
-              [...source, ["Attachment", file.name]],
-              "",
-              file,
-              bytes,
-            );
-          }
-        } else
-          created += await queue(
-            scope,
-            key,
-            title,
-            source,
-            "Subject: " + title + "\n" + plainText(msg.payload ?? {}),
-          );
-      }
-      const saved = await db.from("connector_scan_state").upsert(
-        {
-          user_id: userId,
-          workspace_id: data.workspaceId,
-          provider: c,
-          account,
-          watermark: list.nextPageToken ? lower : upper,
-          upper_bound: list.nextPageToken ? upper : null,
-          page_token: list.nextPageToken ?? null,
-        },
-        { onConflict: "user_id,workspace_id,provider,account" },
-      );
-      if (saved.error) throw Error("Couldn't save checkpoint");
-      await markConnection(userId, c, {
-        last_sync_at: new Date().toISOString(),
-        last_sync_count: created,
-        last_error: null,
-      });
-      return { created, checked: ids.length, alreadyImported: skipped, more: !!list.nextPageToken };
+      return await (await import("./google-scan.server")).scanGmail(userId, data.workspaceId);
     } catch (e) {
       return fail(userId, c, e);
     }
@@ -470,7 +222,9 @@ export const syncCalendar = createServerFn({ method: "POST" })
         let eventId: string | null = null;
         if (existing) {
           try {
-            const r = await google(
+            const r = await (
+              await import("./google-scan.server")
+            ).google(
               userId,
               c,
               `/calendar/v3/calendars/primary/events/${encodeURIComponent(existing)}`,
@@ -487,7 +241,9 @@ export const syncCalendar = createServerFn({ method: "POST" })
           }
         }
         if (!eventId) {
-          const r = await google(userId, c, "/calendar/v3/calendars/primary/events", {
+          const r = await (
+            await import("./google-scan.server")
+          ).google(userId, c, "/calendar/v3/calendars/primary/events", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(ev),
@@ -517,7 +273,9 @@ export const listDriveFiles = createServerFn({ method: "POST" })
     try {
       const s = data.search.replace(/['\\]/g, "");
       const q = `trashed=false and (mimeType='application/pdf' or mimeType contains 'image/')${s ? ` and name contains '${s}'` : ""}`;
-      const r = await google(
+      const r = await (
+        await import("./google-scan.server")
+      ).google(
         userId,
         "google_drive",
         `/drive/v3/files?pageSize=30&orderBy=modifiedTime desc&fields=files(id,name,mimeType,size,modifiedTime)&q=${encodeURIComponent(q)}`,
@@ -555,45 +313,9 @@ export const importDriveFile = createServerFn({ method: "POST" })
     const c = "google_drive" as const;
     try {
       await checkScope(supabase, data.workspaceId);
-      const { queue, eligible, scoped } = await import("./connector-review.server");
-      const account = await accountEmail(userId, c);
-      if (!account) throw Error("Couldn't identify the connected Drive.");
-      const meta = await (
-        await google(
-          userId,
-          c,
-          `/drive/v3/files/${data.fileId}?fields=id,name,mimeType,size,modifiedTime`,
-        )
-      ).json();
-      const file = {
-        name: meta.name,
-        mime: meta.mimeType,
-        size: Number(meta.size),
-        fileId: data.fileId,
-      };
-      if (!eligible(file)) return { error: "Choose a PDF, JPEG, PNG or WebP under 4.8 MB." };
-      const scope = { user: userId, ws: data.workspaceId, provider: c },
-        key = [account, data.fileId, meta.modifiedTime].join(":");
-      const seen = await scoped("connector_reviews", scope).eq("external_key", key).maybeSingle();
-      if (seen.error) throw Error("Review lookup failed");
-      if (seen.data) return { created: 0 };
-      const bytes = await googleAttachment(userId, c, file);
-      return {
-        created: await queue(
-          scope,
-          key,
-          file.name,
-          [
-            ["Source", "Google Drive"],
-            ["Connected account", account],
-            ["File name", file.name],
-            ["Modified", meta.modifiedTime],
-          ],
-          "",
-          file,
-          bytes,
-        ),
-      };
+      return await (
+        await import("./google-scan.server")
+      ).importDrive(userId, data.workspaceId, data.fileId);
     } catch (e) {
       return fail(userId, c, e);
     }
@@ -603,37 +325,9 @@ async function checkScope(client: Ctx["supabase"], ws: string | null) {
   const access = await client.rpc("can_access_workspace", { _workspace: ws });
   if (access.error || !access.data) throw Error("Workspace unavailable");
 }
-async function googleAttachment(
-  user: string,
-  c: GoogleConnector,
-  file: import("./connector-review.server").Attachment,
-) {
-  if (file.message && file.attachmentId) {
-    const r = await (
-      await google(
-        user,
-        c,
-        "/gmail/v1/users/me/messages/" +
-          encodeURIComponent(file.message) +
-          "/attachments/" +
-          encodeURIComponent(file.attachmentId),
-      )
-    ).json();
-    return Buffer.from(r.data, "base64url");
-  }
-  return Buffer.from(
-    await (
-      await google(
-        user,
-        c,
-        "/drive/v3/files/" + encodeURIComponent(file.fileId ?? "") + "?alt=media",
-      )
-    ).arrayBuffer(),
-  );
-}
 const reviewScope = z.object({
   workspaceId: Ws,
-  connector: z.enum(["google_mail", "google_drive"]),
+  connector: z.enum(["google_mail", "google_drive", "outlook", "onedrive"]),
 });
 export const pendingReviews = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -705,7 +399,14 @@ export const decideReview = createServerFn({ method: "POST" })
     }
     let bytes: Buffer | undefined;
     if (draft.attachment) {
-      bytes = await googleAttachment(userId, data.connector, draft.attachment);
+      bytes =
+        data.connector === "outlook" || data.connector === "onedrive"
+          ? await (
+              await import("./ms-connector.server")
+            ).msBytes(userId, data.connector, draft.attachment)
+          : await (
+              await import("./google-scan.server")
+            ).googleAttachment(userId, data.connector, draft.attachment);
       if (fingerprint(bytes) !== draft.attachment.hash)
         throw Error("The attachment changed. Review the updated version.");
     }

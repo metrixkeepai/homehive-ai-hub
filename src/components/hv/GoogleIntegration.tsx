@@ -1,3 +1,4 @@
+import { ConnectorChecks } from "./ConnectorChecks";
 import { useState } from "react";
 import { AddAnything } from "./AddAnything";
 import { pendingReviews, decideReview } from "@/lib/google.functions";
@@ -194,17 +195,13 @@ export function GoogleIntegration({ id }: { id: string }) {
                 : "Connect"}
           </button>
         )}
-        {st?.connected && !st.reconnectRequired && connector !== "google_drive" && (
+        {st?.connected && !st.reconnectRequired && connector === "google_calendar" && (
           <button
             disabled={!!busy}
             onClick={sync}
             className={`${btn} bg-aurora text-primary-foreground`}
           >
-            {busy === "sync"
-              ? "Syncing…"
-              : connector === "google_mail"
-                ? "Sync now"
-                : "Add reminders to calendar"}
+            {busy === "sync" ? "Syncing…" : "Add reminders to calendar"}
           </button>
         )}
         {st?.connected && (
@@ -225,6 +222,9 @@ export function GoogleIntegration({ id }: { id: string }) {
           </button>
         )}
       </div>
+      {st?.connected && !st.reconnectRequired && connector !== "google_calendar" && (
+        <ConnectorChecks provider={connector} />
+      )}
       {st?.reconnectRequired && (
         <p className="mt-3 text-sm text-midnight-foreground/70">
           Your Google access needs to be renewed.
@@ -256,14 +256,6 @@ export function GoogleOverviewFields({ id }: { id: string }) {
     { id: string; name: string; mimeType: string; size: number; modifiedTime: string }[] | null
   >(null);
   const provider = connector === "google_drive" ? "google_drive" : "google_mail";
-  const queue = useQuery({
-    queryKey: ["connector-reviews", provider, current.id],
-    enabled: connector !== "google_calendar",
-    queryFn: () => pendingReviews({ data: { workspaceId: current.id, connector: provider } }),
-  });
-  const [selected, setSelected] = useState<string | null>(null);
-  const draft = queue.data?.find((d) => d.id === selected);
-
   const browse = async () => {
     setBusy("browse");
     try {
@@ -323,6 +315,74 @@ export function GoogleOverviewFields({ id }: { id: string }) {
           </div>
         ))}
       </dl>
+      {connector !== "google_calendar" && <ConnectorReviews provider={provider} />}
+      {connector === "google_drive" && usable && (
+        <div className="mt-6 space-y-3 border-t pt-6">
+          <p className="font-semibold">Import from Google Drive</p>
+          <div className="flex gap-2">
+            <input
+              aria-label="Search Drive files"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search file names (PDFs and photos)"
+              className="min-w-0 flex-1 rounded-md border bg-card px-3 py-2 text-sm"
+            />
+            <button
+              onClick={browse}
+              disabled={!!busy}
+              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {busy === "browse" ? "Loading…" : files ? "Search" : "Choose files"}
+            </button>
+          </div>
+          {files && files.length === 0 && (
+            <p className="text-sm text-muted-foreground">No PDFs or photos found.</p>
+          )}
+          {files?.map((f) => (
+            <div key={f.id} className="flex items-center gap-3 rounded-2xl border p-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{f.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {f.mimeType === "application/pdf" ? "PDF" : "Photo"} ·{" "}
+                  {(f.size / 1024 / 1024).toFixed(1)} MB ·{" "}
+                  {new Date(f.modifiedTime).toLocaleDateString("en-GB")}
+                </p>
+              </div>
+              <button
+                disabled={!!busy}
+                onClick={() => importFile(f.id)}
+                className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {busy === f.id ? "Importing…" : "Import"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ConnectorReviews({
+  provider,
+}: {
+  provider: "google_mail" | "google_drive" | "outlook" | "onedrive";
+}) {
+  const { current } = useStore();
+  const qc = useQueryClient();
+  const refresh = () => qc.invalidateQueries({ queryKey: ["connector-reviews"] });
+  const queue = useQuery({
+    queryKey: ["connector-reviews", provider, current.id],
+
+    refetchInterval: 30000,
+    queryFn: () => pendingReviews({ data: { workspaceId: current.id, connector: provider } }),
+  });
+  const [selected, setSelected] = useState<string | null>(null);
+  const draft = queue.data?.find((d) => d.id === selected);
+
+  return (
+    <>
+      {" "}
       {!!queue.data?.length && (
         <section className="mt-6 space-y-2 border-t pt-4">
           <h3 className="font-semibold">Ready for review ({queue.data.length})</h3>
@@ -391,7 +451,7 @@ export function GoogleOverviewFields({ id }: { id: string }) {
       {draft && (
         <AddAnything
           key={draft.id}
-          initial={provider === "google_drive" ? "document" : "email"}
+          initial={provider === "google_drive" || provider === "onedrive" ? "document" : "email"}
           review={{ ...draft, provider }}
           onClose={() => {
             setSelected(null);
@@ -399,49 +459,6 @@ export function GoogleOverviewFields({ id }: { id: string }) {
           }}
         />
       )}
-      {connector === "google_drive" && usable && (
-        <div className="mt-6 space-y-3 border-t pt-6">
-          <p className="font-semibold">Import from Google Drive</p>
-          <div className="flex gap-2">
-            <input
-              aria-label="Search Drive files"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search file names (PDFs and photos)"
-              className="min-w-0 flex-1 rounded-md border bg-card px-3 py-2 text-sm"
-            />
-            <button
-              onClick={browse}
-              disabled={!!busy}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {busy === "browse" ? "Loading…" : files ? "Search" : "Choose files"}
-            </button>
-          </div>
-          {files && files.length === 0 && (
-            <p className="text-sm text-muted-foreground">No PDFs or photos found.</p>
-          )}
-          {files?.map((f) => (
-            <div key={f.id} className="flex items-center gap-3 rounded-2xl border p-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{f.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {f.mimeType === "application/pdf" ? "PDF" : "Photo"} ·{" "}
-                  {(f.size / 1024 / 1024).toFixed(1)} MB ·{" "}
-                  {new Date(f.modifiedTime).toLocaleDateString("en-GB")}
-                </p>
-              </div>
-              <button
-                disabled={!!busy}
-                onClick={() => importFile(f.id)}
-                className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {busy === f.id ? "Importing…" : "Import"}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }

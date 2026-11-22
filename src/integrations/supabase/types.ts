@@ -1042,6 +1042,7 @@ export type Database = {
         Args: { _key: string; _lease: string; _result: Json };
         Returns: undefined;
       };
+      can_access_workspace: { Args: { _workspace: string }; Returns: boolean };
       sera_retrieve: {
         Args: { _workspace: string | null; _property: string | null; _intent: Json };
         Returns: Json;

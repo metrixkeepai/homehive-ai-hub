@@ -58,6 +58,7 @@ import { Route as SuperAdminVouchersCodeRouteImport } from './routes/super-admin
 import { Route as AuthenticatedAppSectionIndexRouteImport } from './routes/_authenticated/app.$section.index'
 import { Route as AuthenticatedAppSectionIdRouteImport } from './routes/_authenticated/app.$section.$id'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
+import { Route as ApiOauthMicrosoftReturnRouteImport } from './routes/api/oauth/microsoft/return'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -309,6 +310,11 @@ const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   path: '/api/oauth/google/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOauthMicrosoftReturnRoute = ApiOauthMicrosoftReturnRouteImport.update({
+  id: '/api/oauth/microsoft/return',
+  path: '/api/oauth/microsoft/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -364,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/oauth/microsoft/return': typeof ApiOauthMicrosoftReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -412,6 +419,7 @@ export interface FileRoutesByTo {
   '/super-admin/subscribers': typeof SuperAdminSubscribersIndexRoute
   '/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/oauth/microsoft/return': typeof ApiOauthMicrosoftReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/app/$section': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/super-admin/subscribers/': typeof SuperAdminSubscribersIndexRoute
   '/_authenticated/app/$section/$id': typeof AuthenticatedAppSectionIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/oauth/microsoft/return': typeof ApiOauthMicrosoftReturnRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/app/$section/': typeof AuthenticatedAppSectionIndexRoute
 }
@@ -518,6 +527,7 @@ export interface FileRouteTypes {
     | '/super-admin/subscribers/'
     | '/app/$section/$id'
     | '/api/oauth/google/return'
+    | '/api/oauth/microsoft/return'
     | '/api/public/payments/webhook'
     | '/app/$section/'
   fileRoutesByTo: FileRoutesByTo
@@ -566,6 +576,7 @@ export interface FileRouteTypes {
     | '/super-admin/subscribers'
     | '/app/$section/$id'
     | '/api/oauth/google/return'
+    | '/api/oauth/microsoft/return'
     | '/api/public/payments/webhook'
     | '/app/$section'
   id:
@@ -618,6 +629,7 @@ export interface FileRouteTypes {
     | '/super-admin/subscribers/'
     | '/_authenticated/app/$section/$id'
     | '/api/oauth/google/return'
+    | '/api/oauth/microsoft/return'
     | '/api/public/payments/webhook'
     | '/_authenticated/app/$section/'
   fileRoutesById: FileRoutesById
@@ -644,6 +656,7 @@ export interface RootRouteChildren {
   IndustriesIndexRoute: typeof IndustriesIndexRoute
   UseCasesIndexRoute: typeof UseCasesIndexRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
+  ApiOauthMicrosoftReturnRoute: typeof ApiOauthMicrosoftReturnRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -992,6 +1005,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/oauth/microsoft/return': {
+      id: '/api/oauth/microsoft/return'
+      path: '/api/oauth/microsoft/return'
+      fullPath: '/api/oauth/microsoft/return'
+      preLoaderRoute: typeof ApiOauthMicrosoftReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -1117,6 +1137,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndustriesIndexRoute: IndustriesIndexRoute,
   UseCasesIndexRoute: UseCasesIndexRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
+  ApiOauthMicrosoftReturnRoute: ApiOauthMicrosoftReturnRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport

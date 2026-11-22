@@ -1,3 +1,4 @@
+import { MicrosoftIntegration } from "@/components/hv/MicrosoftIntegration";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
@@ -167,7 +168,9 @@ function Detail() {
         <p className="text-sm text-midnight-foreground/60">{s.title}</p>
         <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
         <p className="mt-2 text-midnight-foreground/70">{item.subtitle}</p>
-        {isGoogle ? (
+        {section === "integrations" && (id === "outlook" || id === "onedrive") ? (
+          <MicrosoftIntegration provider={id} />
+        ) : isGoogle ? (
           googleOn ? (
             <GoogleIntegration id={id} />
           ) : (

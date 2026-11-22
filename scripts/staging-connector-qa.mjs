@@ -27,7 +27,8 @@ async function check(name, run) {
   let passed = true;
   try {
     await run();
-  } catch {
+  } catch (e) {
+    console.error("QA:", name, String(e?.message).split("\n").slice(0, 2).join(" ").slice(0, 240));
     passed = false;
     failures++;
   }
@@ -77,7 +78,7 @@ try {
   await page.goto(base + "/auth");
   await page.locator("input[type=email]").fill(email);
   await page.locator("input[type=password]").fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
   await page.waitForURL(/\/app(?:\/|$)/);
   for (const [name, q, expected] of [
     ["count", "How many records are in assets?", "3 matching assets"],

@@ -878,10 +878,16 @@ export const sections: Section[] = [
       {
         id: "outlook",
         title: "Outlook",
-        subtitle: "Import receipts from Outlook",
-        status: ["Not connected", "muted"],
-        fields: [["Status", "Coming soon"]],
-        actions: ["Connect"],
+        subtitle: "Review receipts and documents from Outlook",
+        fields: [["Access", "Read-only mail"]],
+        status: ["Open to connect", "primary"],
+      },
+      {
+        id: "onedrive",
+        title: "OneDrive",
+        subtitle: "Review documents from OneDrive",
+        fields: [["Access", "Read-only files"]],
+        status: ["Open to connect", "primary"],
       },
       {
         id: "whatsapp",

@@ -281,6 +281,13 @@
       "when": 1795305600000,
       "tag": "0039_sera_connector_review",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1795305600001,
+      "tag": "0040_connector_operations",
+      "breakpoints": true
     }
   ]
 }

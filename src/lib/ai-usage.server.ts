@@ -1,4 +1,4 @@
-import { operationMeter } from "./ai-meter.server";
+import { connectorAttribution, operationMeter } from "./ai-meter.server";
 // Records each AI call (tokens, latency, outcome) for the Super Admin cost views. Never throws.
 export async function logAiUsage(e: {
   userId: string | null;
@@ -34,6 +34,7 @@ export async function logAiUsage(e: {
       workspace_id: e.workspaceId ?? null,
       usage_details: {
         accounting_version: 1,
+        connector: connectorAttribution.getStore() ?? null,
         cached_tokens: e.cached ?? 0,
         cache_write_tokens: e.cacheWrites ?? 0,
         processing_mode: e.processingMode ?? "default",

@@ -18,6 +18,12 @@ COPY --from=build /app/node_modules/postgres ./node_modules/postgres
 USER node
 CMD ["npm", "run", "db:migrate"]
 
+FROM build AS connector-worker
+RUN apt-get update && apt-get install --no-install-recommends -y poppler-utils mupdf-tools && rm -rf /var/lib/apt/lists/*
+RUN ./node_modules/.bin/esbuild scripts/connector-worker.ts --bundle --platform=node --format=esm --packages=external --outfile=/app/connector-worker.mjs
+USER node
+CMD ["node","connector-worker.mjs"]
+
 FROM build AS staging-qa
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/matrixkeep-browsers
 RUN ./node_modules/.bin/playwright install --with-deps chromium

@@ -20,4 +20,7 @@ for ((i=0;i<175;i++)); do
   sleep 10
 done
 echo "Benchmark execution $execution completed with status $status"
+if [[ $status != 0 ]]; then
+ gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$job AND labels.\"run.googleapis.com/execution_name\"=\"$execution\"" --project="$GCP_PROJECT_ID" --limit=60 --format='value(textPayload)' | grep -E 'Error:|TimeoutError|strict mode violation|^QA:' | cut -c1-360 || true
+fi
 exit "$status"

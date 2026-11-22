@@ -787,3 +787,26 @@ export const apiUsage = createServerFn({ method: "GET" })
         .sort((a, b) => b.count - a.count),
     };
   });
+
+export const connectorOperations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const client: import("@supabase/supabase-js").SupabaseClient = await adminClient(
+      context as Ctx,
+    );
+    const r = await client.rpc("connector_operations");
+    if (r.error) throw Error("Could not load connector monitoring");
+    return r.data as {
+      provider: string;
+      connected: number;
+      reconnect: number;
+      healthy: number;
+      failed: number;
+      last_sync: string | null;
+      discovered: number;
+      approved: number;
+      rejected: number;
+      ai_calls: number;
+      estimated_usd: number;
+    }[];
+  });

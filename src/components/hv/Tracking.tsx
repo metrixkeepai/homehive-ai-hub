@@ -531,11 +531,18 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
           </div>
         )}
         {tab === "Activity" && (
-          <p className="text-sm text-muted-foreground">
-            {date
-              ? `${section === "warranties" ? "Expires" : "Renews"} on ${format(date, "d MMMM yyyy")}. Download a calendar reminder to be notified.`
-              : "Add a date to start tracking this record."}
-          </p>
+          <div>
+            {item.timeline?.map(([time, event]) => (
+              <p key={time + event} className="mb-2 text-sm">
+                {event} · {time}
+              </p>
+            ))}
+            <p className="text-sm text-muted-foreground">
+              {date
+                ? `${section === "warranties" ? "Expires" : "Renews"} on ${format(date, "d MMMM yyyy")}. Download a calendar reminder to be notified.`
+                : "Add a date to start tracking this record."}
+            </p>
+          </div>
         )}
       </section>
       {edit && <TrackingEditor section={section} item={item} onClose={() => setEdit(false)} />}
