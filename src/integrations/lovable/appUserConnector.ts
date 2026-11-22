@@ -46,13 +46,12 @@ export async function authorizeAppUserOAuth(
     }),
   });
   const text = await res.text();
-  if (!res.ok)
-    throw new Error(`App User OAuth start failed (${res.status}): ${text || res.statusText}`);
+  if (!res.ok) throw new Error(`App User OAuth start failed (${res.status})`);
   let body: { authorization_url?: string; session_id?: string };
   try {
     body = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(`App User OAuth start returned invalid JSON: ${text.slice(0, 200)}`);
+    throw new Error(`App User OAuth start returned invalid JSON`);
   }
   if (!body.authorization_url)
     throw new Error("App User OAuth start response missing authorization_url");
@@ -114,8 +113,7 @@ export async function disconnectAppUser({
     body: JSON.stringify({ connector_id: connectorId }),
   });
   const text = await res.text();
-  if (!res.ok)
-    throw new Error(`App User disconnect failed (${res.status}): ${text || res.statusText}`);
+  if (!res.ok) throw new Error(`App User disconnect failed (${res.status})`);
 }
 
 export interface ExchangeAppUserOAuthCodeResult {
@@ -133,13 +131,12 @@ export async function exchangeAppUserOAuthCode(
     body: JSON.stringify({ code }),
   });
   const text = await res.text();
-  if (!res.ok)
-    throw new Error(`App User OAuth exchange failed (${res.status}): ${text || res.statusText}`);
+  if (!res.ok) throw new Error(`App User OAuth exchange failed (${res.status})`);
   let body: { api_key?: string; connector_id?: string };
   try {
     body = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(`App User OAuth exchange returned invalid JSON: ${text.slice(0, 200)}`);
+    throw new Error(`App User OAuth exchange returned invalid JSON`);
   }
   if (!body.api_key) throw new Error("App User OAuth exchange response missing api_key");
   if (!body.connector_id) throw new Error("App User OAuth exchange response missing connector_id");

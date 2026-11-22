@@ -205,10 +205,6 @@ export async function scanGmail(userId: string, workspaceId: string | null) {
       for (const child of part.parts ?? []) walk(child);
     };
     walk(msg.payload ?? {});
-    if (files.length > 4)
-      throw Error(
-        "Message has more than four eligible attachments. Select individual files through Add anything.",
-      );
     if (files.length) {
       for (const file of files) {
         const external = key + ":" + file.attachmentId;
@@ -350,4 +346,15 @@ export async function scanDrive(user: string, ws: string | null) {
   );
   if (saved.error) throw Error("Checkpoint unavailable");
   return { created, more: !!page.nextPageToken };
+}
+
+export async function googleBody(user: string, id: string) {
+  const msg = await (
+    await google(
+      user,
+      "google_mail",
+      "/gmail/v1/users/me/messages/" + encodeURIComponent(id) + "?format=full",
+    )
+  ).json();
+  return plainText(msg.payload ?? {});
 }

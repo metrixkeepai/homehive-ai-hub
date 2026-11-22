@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/oauth/google/return")({
 <p>${result.success ? "Connected. You can close this window." : "Failed: " + esc(String((result as { error?: string }).error ?? "Unknown error"))}</p>
 <script>
 const r = ${safeJson};
-if (window.opener && window.opener !== window) window.opener.postMessage({ type: r.success ? "appUserConnectorOAuthComplete" : "appUserConnectorOAuthFailed", connectorId: r.connectorId, code: r.code ?? null }, window.location.origin);
+if (window.opener && window.opener !== window) window.opener.postMessage({ type: r.success ? "appUserConnectorOAuthComplete" : "appUserConnectorOAuthFailed", connectorId: r.connectorId, state:new URL(location.href).searchParams.get("mkstate"),code: r.code ?? null }, window.location.origin);
 window.close();
 </script></body></html>`;
         return new Response(html, {

@@ -353,3 +353,8 @@ export async function scanOneDrive(s: Scope) {
   if (r.error) throw Error("Could not save checkpoint.");
   return { created, more: !!page["@odata.nextLink"] };
 }
+
+export async function outlookBody(user: string, id: string) {
+  const m = await (await graph(user, "outlook", "me/messages/" + enc(id) + "?$select=body")).json();
+  return String(m.body?.content ?? "").slice(0, 9000);
+}

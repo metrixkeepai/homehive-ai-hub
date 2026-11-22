@@ -189,8 +189,11 @@ export function AddAnything({
   const [saved, setSaved] = useState<{ section: string; id: string; title: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const biz = current.type !== "individual";
-  const rooms = [...(added["rooms"] ?? []).map((i) => i.title)];
+
   const selectedProperty = properties.find((p) => p.id === location || p.title === location);
+  const rooms = (added["rooms"] ?? [])
+    .filter((r) => !review || !selectedProperty || r.propertyId === selectedProperty.id)
+    .map((r) => r.title);
 
   useEffect(
     () => () => {
@@ -725,7 +728,10 @@ export function AddAnything({
                   {biz ? "Location" : "Property"}
                   <select
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      if (review) setRoom("");
+                    }}
                     className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground"
                   >
                     <option value="">
@@ -774,7 +780,7 @@ export function AddAnything({
                           x.map((y, j) => (j === i ? { ...y, title: e.target.value } : y)),
                         )
                       }
-                      className="flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold"
+                      className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm font-semibold"
                     />
                     <select
                       value={r.section}

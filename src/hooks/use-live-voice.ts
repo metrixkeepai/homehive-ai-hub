@@ -4,6 +4,7 @@ export type LiveEvent = { type: string; error?: { message?: string }; [key: stri
 export function useLiveVoice(
   options: {
     getToken?: () => Promise<string | undefined>;
+    propertyId?: string | null;
     workspaceId?: string | null;
     onEvent?: (event: LiveEvent) => void | Promise<void>;
   } = {},
@@ -79,6 +80,7 @@ export function useLiveVoice(
       if (closed) return;
       const url = new URL("/api/live", window.location.href);
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      if (latest.current.propertyId) url.searchParams.set("property", latest.current.propertyId);
       if (latest.current.workspaceId) url.searchParams.set("workspace", latest.current.workspaceId);
       socket = new WebSocket(url, ["matrixkeep", `auth.${token}`]);
       worklet = new AudioWorkletNode(context, "pcm-capture");

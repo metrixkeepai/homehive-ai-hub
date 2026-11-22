@@ -8,7 +8,6 @@ export const STUB_NAV_SLUGS = new Set([
   "roles",
   "security",
   "privacy",
-  "notifications",
   "settings",
   "help",
 ]);

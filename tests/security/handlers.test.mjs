@@ -37,7 +37,8 @@ globalThis.__matrixkeepSecurityMocks = {
   },
 };
 const mocks = {
-  "./connector-review.server": "export const requireConnectorPlan=async()=>{};",
+  "./connector-review.server":
+    "export const requireConnectorPlan=async()=>{};export const db={from:()=>({insert:async()=>({error:null})})};",
   "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":
@@ -198,10 +199,9 @@ test("portal always receives a configured fallback return", async () => {
 });
 test("forged forwarded-host cannot determine the Google callback", async () => {
   await startGoogleConnect({ data: { connector: "google_mail" }, context });
-  assert.equal(
-    calls.find((c) => c[0] === "oauth")[1].returnUrl,
-    "https://matrixkeep.com/api/oauth/google/return",
-  );
+  const url = new URL(calls.find((c) => c[0] === "oauth")[1].returnUrl);
+  assert.equal(url.origin + url.pathname, "https://matrixkeep.com/api/oauth/google/return");
+  assert.ok(url.searchParams.get("mkstate")?.length >= 32);
 });
 test("OAuth fails closed without server origin configuration", async () => {
   delete process.env.APP_ORIGIN;

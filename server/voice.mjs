@@ -1,3 +1,4 @@
+import { seraIntent } from "./sera-intent.ts";
 import WebSocket, { WebSocketServer } from "ws";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
@@ -18,12 +19,20 @@ export function attachVoice(server, env = process.env) {
     const timer = setTimeout(() => socket.destroy(), 10_000);
     try {
       const url = new URL(request.url, env.APP_ORIGIN);
-      if (url.pathname !== "/api/live" || request.headers.origin !== env.APP_ORIGIN)
+      if (
+        url.pathname !== "/api/live" ||
+        ![
+          env.APP_ORIGIN,
+          ...(env.APP_ADDITIONAL_RETURN_ORIGINS ?? "").split(",").filter(Boolean),
+        ].includes(request.headers.origin)
+      )
         return reject(403);
       const protocols = String(request.headers["sec-websocket-protocol"] ?? "")
         .split(",")
         .map((s) => s.trim());
       const token = protocols.find((s) => s.startsWith("auth."))?.slice(5);
+      const property = url.searchParams.get("property") || null;
+      if (property && !/^[0-9a-f-]{36}$/i.test(property)) return reject(400);
       const workspace = url.searchParams.get("workspace") || null;
       if (!token || token.length > 8000 || (workspace && !/^[0-9a-f-]{36}$/i.test(workspace)))
         return reject(401);
@@ -45,7 +54,7 @@ export function attachVoice(server, env = process.env) {
       if (reservation.error || !reservation.data || !env.OPENAI_API_KEY) return reject(403);
       if (socket.destroyed) return;
       wss.handleUpgrade(request, socket, head, (browser) =>
-        relay(browser, { db, admin, userId: data.user.id, workspace, env }),
+        relay(browser, { db, admin, userId: data.user.id, workspace, property, env }),
       );
     } catch {
       reject(503);
@@ -56,7 +65,7 @@ export function attachVoice(server, env = process.env) {
   return wss;
 }
 
-function relay(browser, { db, admin, userId, workspace, env }) {
+function relay(browser, { db, admin, userId, workspace, property, env }) {
   const upstream = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1", {
     headers: {
       Authorization: `Bearer ${env.OPENAI_API_KEY}`,
@@ -121,7 +130,8 @@ function relay(browser, { db, admin, userId, workspace, env }) {
             {
               type: "function",
               name: "find_records",
-              description: "Find saved records in the authenticated workspace.",
+              description:
+                "Answer a user question against the active MatrixKeep scope. Pass their complete question, including count, dates, source and relationships.",
               parameters: {
                 type: "object",
                 properties: { query: { type: "string" } },
@@ -151,17 +161,25 @@ function relay(browser, { db, admin, userId, workspace, env }) {
       if (event.type === "response.function_call_arguments.done") {
         if (++toolCalls > 20 || event.name !== "find_records") return close();
         const args = JSON.parse(event.arguments);
-        const words =
-          String(args.query ?? "")
-            .match(/[\p{L}\p{N}]{3,30}/gu)
-            ?.slice(0, 5) ?? [];
-        let query = db
-          .from("home_items")
-          .select("section,title,subtitle,fields")
-          .eq("user_id", userId);
-        query = workspace ? query.eq("workspace_id", workspace) : query.is("workspace_id", null);
-        if (words.length) query = query.or(words.map((w) => `title.ilike.%${w}%`).join(","));
-        const result = await query.order("created_at", { ascending: false }).limit(8);
+        const intent = seraIntent(String(args.query ?? "").slice(0, 500));
+        const result = await db.rpc("sera_retrieve", {
+          _workspace: workspace,
+          _property: property,
+          _intent: intent,
+        });
+        const evidence = result.data
+          ? {
+              total: result.data.total,
+              groups: result.data.groups,
+              sums: result.data.sums,
+              records: result.data.rows.map((r) => ({
+                section: r.section,
+                title: r.title,
+                due: r.due,
+                fields: r.fields.slice(0, 10).map((f) => f.map((v) => String(v).slice(0, 110))),
+              })),
+            }
+          : null;
         if (closed) return;
         upstream.send(
           JSON.stringify({
@@ -169,9 +187,7 @@ function relay(browser, { db, admin, userId, workspace, env }) {
             item: {
               type: "function_call_output",
               call_id: event.call_id,
-              output: JSON.stringify(
-                result.error ? { error: "Retrieval unavailable" } : { records: result.data },
-              ).slice(0, 8000),
+              output: JSON.stringify(result.error ? { error: "Retrieval unavailable" } : evidence),
             },
           }),
         );

@@ -18,6 +18,7 @@ import { useStore } from "./store";
 import { useFeature } from "./Feature";
 
 type Ev = {
+  item_id: string;
   id: string;
   path: string;
   name: string;
@@ -25,6 +26,7 @@ type Ev = {
   size: number;
   created_at: string;
   url?: string;
+  connector_source?: string | null;
 };
 export type Proposed = { file: string; fields: [string, string][] };
 
@@ -98,10 +100,17 @@ export function Evidence({
   };
 
   const load = useCallback(async () => {
+    const rel = await supabase
+      .from("record_links")
+      .select("target_item_id")
+      .eq("source_item_id", itemId)
+      .eq("confirmed", true)
+      .eq("relationship_type", "EXTRACTED_FROM");
+    const ids = [itemId, ...(rel.data ?? []).map((r) => r.target_item_id)];
     const { data } = await supabase
       .from("evidence_files")
       .select("*")
-      .eq("item_id", itemId)
+      .in("item_id", ids)
       .order("created_at", { ascending: false });
     const rows = (data ?? []) as Ev[];
     if (rows.length) {
@@ -152,6 +161,7 @@ export function Evidence({
   };
 
   const del = async (e: Ev) => {
+    if (e.item_id !== itemId) return;
     const { error: storageError } = await supabase.storage.from("evidence").remove([e.path]);
     if (storageError) {
       toast.error("File could not be deleted");
@@ -241,7 +251,8 @@ export function Evidence({
             <p className="flex-1 truncate font-medium">
               {open.name}{" "}
               <span className="text-xs opacity-60">
-                · {(open.size / 1024).toFixed(0)} KB ·{" "}
+                · {open.connector_source ? open.connector_source + " · " : ""}
+                {open.mime} · {(open.size / 1024).toFixed(0)} KB ·{" "}
                 {new Date(open.created_at).toLocaleDateString()}
               </span>
             </p>
@@ -291,6 +302,7 @@ export function Evidence({
               </button>
             )}
             <button
+              hidden={open.item_id !== itemId}
               aria-label="Delete"
               onClick={() => void del(open)}
               className="rounded-full p-2 hover:bg-midnight-foreground/10"

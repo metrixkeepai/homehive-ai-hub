@@ -30,6 +30,9 @@ export const askSera = createServerFn({ method: "POST" })
       const result = z
         .object({
           total: z.number(),
+          sums: z
+            .array(z.object({ currency: z.string(), amount: z.number(), n: z.number() }))
+            .default([]),
           groups: z.array(z.object({ title: z.string(), n: z.number() })),
           rows: z.array(
             z.object({
@@ -45,13 +48,44 @@ export const askSera = createServerFn({ method: "POST" })
         .parse(found);
       const rows = result.rows,
         refs = rows.map(({ id, title, section }) => ({ id, title, section }));
-      if (!result.total || ["count", "list", "group", "due", "recent"].includes(intent.mode))
+      if (
+        !result.total ||
+        ["count", "list", "group", "due", "recent", "sum", "missing_warranty"].includes(intent.mode)
+      )
         await reserveOperation(context.userId, data.workspaceId ?? null, "sera", 1, 0);
       const subject = intent.section ?? "records";
       if (intent.mode === "count")
         return { reply: `You have ${result.total} matching ${subject}.`, refs };
       if (!result.total)
         return { reply: "I couldn't find that information in your MatrixKeep records yet.", refs };
+      if (intent.mode === "sum")
+        return {
+          reply: result.sums.length
+            ? result.sums
+                .map(
+                  (s) =>
+                    new Intl.NumberFormat("en-GB", {
+                      style: "currency",
+                      currency: s.currency,
+                    }).format(s.amount) +
+                    " across " +
+                    s.n +
+                    " priced records",
+                )
+                .join("; ") +
+              ". " +
+              result.total +
+              " records matched in total."
+            : "I couldn't find an explicit price and currency in those records.",
+          refs,
+        };
+      if (intent.mode === "missing_warranty")
+        return {
+          reply: result.groups
+            .map((g) => g.title + " — " + g.n + " assets without saved warranty details")
+            .join("\n"),
+          refs,
+        };
       if (intent.mode === "group")
         return { reply: result.groups.map((g) => g.title + " — " + g.n).join("\n"), refs };
       if (["list", "due", "recent"].includes(intent.mode))

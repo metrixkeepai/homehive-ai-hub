@@ -69,6 +69,7 @@ const schema = {
 export async function runExtraction(
   data: z.infer<typeof Input>,
   userId: string | null,
+  reviewAttempt?: string,
 ): Promise<{ summary: string; records: Extracted[] } | { error: string }> {
   const { validateCaptureMedia } = await import("./capture-media.server");
   try {
@@ -116,7 +117,7 @@ export async function runExtraction(
       data.workspaceId ?? null,
       data.images?.length ? "video" : "capture",
       data.mode === "Speak" ? "capture-speak-v2" : "capture-v1-luna-sol-schema1",
-      [instructions, schema, data],
+      reviewAttempt ? [instructions, schema, data, reviewAttempt] : [instructions, schema, data],
       async () => {
         const reservation = await reserveOperation(
           userId,

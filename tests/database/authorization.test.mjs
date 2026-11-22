@@ -637,3 +637,17 @@ test("connector worker claims one authorised schedule and disconnect removes fut
   const results = await db.query("select provider from connector_operations()");
   assert.equal(results.rows.length, 4);
 });
+test("Sera totals explicit currencies separately and never infers a currency", async () => {
+  for (const v of ["£65.00", "€12.50", "65"])
+    await db.query(
+      "insert into home_items(user_id,section,title,fields) values($1,'assets','CurrencyProbe',$2)",
+      [a, JSON.stringify([["Price", v]])],
+    );
+  const intent = JSON.stringify({ mode: "sum", section: "assets", words: ["currencyprobe"] });
+  const r = (await asUser(a, "select sera_retrieve(null,null,$1) r", [intent])).rows[0].r;
+  assert.equal(r.total, 3);
+  assert.deepEqual(Object.fromEntries(r.sums.map((s) => [s.currency, s.amount])), {
+    GBP: 65,
+    EUR: 12.5,
+  });
+});

@@ -56,7 +56,9 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
 
 export const startGoogleConnect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ connector: Connector }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ connector: Connector, origin: z.string().url().optional() }).parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { userId } = ctxOf(context);
     const { requireFeature } = await import("./feature-access.server");
@@ -65,8 +67,8 @@ export const startGoogleConnect = createServerFn({ method: "POST" })
     await requireConnectorPlan(userId, data.connector);
     const clientKey = process.env[GOOGLE[data.connector].env];
     if (!clientKey) throw new Error("Google connection isn't set up for this app yet.");
-    const { googleOAuthReturnUrl } = await import("./app-origin.server");
-    const returnUrl = googleOAuthReturnUrl();
+    const { beginConsent } = await import("./google-consent.server");
+    const { state, returnUrl } = await beginConsent(userId, data.connector, data.origin);
     const { getConnectionKeyForUser } = await import("@/server/appUserConnections.server");
     const { authorizeAppUserOAuth } = await import("@/integrations/lovable/appUserConnector");
     const existing = await getConnectionKeyForUser(userId, data.connector);
@@ -79,16 +81,25 @@ export const startGoogleConnect = createServerFn({ method: "POST" })
       connectionAPIKey: existing ?? undefined,
       credentialsConfiguration: { scopes: [...GOOGLE[data.connector].scopes] },
     });
-    return { authorizationUrl };
+    return { authorizationUrl, state };
   });
 
 export const completeGoogleConnect = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ connector: Connector, code: z.string().min(1).max(2000) }).parse(d),
+    z
+      .object({
+        connector: Connector,
+        state: z.string().min(32).max(100),
+        code: z.string().min(1).max(2000),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { userId } = ctxOf(context);
+    await (
+      await import("./google-consent.server")
+    ).consumeConsent(userId, data.connector, data.state);
     const { exchangeAppUserOAuthCode } = await import("@/integrations/lovable/appUserConnector");
     const { saveConnectionKeyForUser } = await import("@/server/appUserConnections.server");
     const { connectionAPIKey, connectorId } = await exchangeAppUserOAuthCode(GATEWAY, data.code);
@@ -440,4 +451,82 @@ export const decideReview = createServerFn({ method: "POST" })
       if (complete.error) throw Error("Records saved. Retry attaching the evidence.");
     }
     return rows;
+  });
+
+export const rereadConnectorItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => reviewScope.extend({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = ctxOf(context);
+    await checkScope(supabase, data.workspaceId);
+    const { scoped, db, requireConnectorPlan, fingerprint } =
+      await import("./connector-review.server");
+    await requireConnectorPlan(userId, data.connector);
+    const scope = { user: userId, ws: data.workspaceId, provider: data.connector };
+    const got = await scoped("connector_reviews", scope)
+      .eq("id", data.id)
+      .eq("state", "pending")
+      .single();
+    if (!got.data) throw Error("This item is no longer awaiting review.");
+    const draft = got.data,
+      stamp = new Date().toISOString(),
+      lock = await db
+        .from("connector_reviews")
+        .update({ reprocessed_at: stamp })
+        .eq("id", data.id)
+        .eq("state", "pending")
+        .or(
+          "reprocessed_at.is.null,reprocessed_at.lt." + new Date(Date.now() - 120000).toISOString(),
+        )
+        .select("id")
+        .maybeSingle();
+    if (!lock.data) throw Error("A re-read was recently requested.");
+    const gs = await import("./google-scan.server"),
+      ms = await import("./ms-connector.server");
+    const source = new Map<string, string>(draft.source || []);
+    let image: string | undefined,
+      text = "";
+    if (draft.attachment) {
+      const f = draft.attachment;
+      const bytes =
+        data.connector === "google_mail" || data.connector === "google_drive"
+          ? await gs.googleAttachment(userId, data.connector, f)
+          : await ms.msBytes(userId, data.connector, f);
+      if (f.hash !== fingerprint(bytes))
+        throw Error("The file has changed. Import its current version.");
+      image = "data:" + f.mime + ";base64," + bytes.toString("base64");
+    } else {
+      const id = source.get("Message ID");
+      if (!id) throw Error("Source message unavailable.");
+      const body =
+        data.connector === "google_mail"
+          ? await gs.googleBody(userId, id)
+          : await ms.outlookBody(userId, id);
+      text = (draft.title + "\n" + body).slice(0, 9000);
+    }
+    const { connectorAttribution } = await import("./ai-meter.server"),
+      { runExtraction } = await import("./capture.server");
+    const result = await connectorAttribution.run(data.connector, () =>
+      runExtraction(
+        {
+          workspaceId: data.workspaceId,
+          mode: image ? "Upload document" : "Import email",
+          text,
+          ...(image ? { image } : {}),
+        },
+        userId,
+        stamp,
+      ),
+    );
+    if ("error" in result || !result.records.length)
+      throw Error("Could not identify records in this source.");
+    const updated = await db
+      .from("connector_reviews")
+      .update({ proposals: result.records })
+      .eq("id", data.id)
+      .eq("reprocessed_at", stamp)
+      .eq("state", "pending")
+      .select("id")
+      .single();
+    if (updated.error) throw Error("Review changed while reading.");
   });

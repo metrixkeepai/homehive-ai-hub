@@ -8,3 +8,6 @@ export interface OperationMeter {
 export const operationMeter = new AsyncLocalStorage<OperationMeter>();
 
 export const connectorAttribution = new AsyncLocalStorage<string>();
+
+export const scanBudget = new AsyncLocalStorage<{ remaining: number; bytes: number }>();
+export class ScanBudgetReached extends Error {}

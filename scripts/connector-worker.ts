@@ -1,3 +1,4 @@
+import { scanBudget, ScanBudgetReached } from "../src/lib/ai-meter.server";
 import { db, requireConnectorPlan } from "../src/lib/connector-review.server";
 import { scanGmail, scanDrive } from "../src/lib/google-scan.server";
 import { scanOutlook, scanOneDrive } from "../src/lib/ms-connector.server";
@@ -8,7 +9,8 @@ if (
 )
   throw Error("Unexpected staging configuration");
 const end = Date.now() + 15 * 60000;
-for (let batch = 0; batch < 40 && Date.now() < end; batch++) {
+const budget = { remaining: 8, bytes: 24 * 1024 * 1024 };
+for (let batch = 0; batch < 8 && budget.remaining > 0 && Date.now() < end; batch++) {
   const r = await db.rpc("claim_connector_check");
   if (r.error) throw Error("Worker could not claim a check.");
   const k = r.data?.[0];
@@ -28,18 +30,22 @@ for (let batch = 0; batch < 40 && Date.now() < end; batch++) {
       if (!scope.data) throw Error("Workspace unavailable.");
     }
     const s = { user: k.user_id, ws: k.workspace_id, provider: k.provider };
-    const result =
+    const result = await scanBudget.run(budget, async () =>
       k.provider === "google_mail"
-        ? await scanGmail(s.user, s.ws)
+        ? scanGmail(s.user, s.ws)
         : k.provider === "google_drive"
-          ? await scanDrive(s.user, s.ws)
+          ? scanDrive(s.user, s.ws)
           : k.provider === "outlook"
-            ? await scanOutlook(s)
-            : await scanOneDrive(s);
+            ? scanOutlook(s)
+            : scanOneDrive(s),
+    );
     more = result.more;
     created = result.created;
-  } catch {
-    problem = "The check could not finish. Verify your connection and plan, then retry.";
+  } catch (e) {
+    if (e instanceof ScanBudgetReached) {
+      more = true;
+      budget.remaining = 0;
+    } else problem = "The check could not finish. Verify your connection and plan, then retry.";
   }
   const saved = await db
     .from("connector_checks")

@@ -77,3 +77,41 @@ export const setCheck = createServerFn({ method: "POST" })
       if (!run.ok) throw Error("Request queued. The scheduled worker will retry.");
     }
   });
+export const connectorInbox = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.string().uuid().nullable().parse(d))
+  .handler(async ({ context, data }) => {
+    const client: import("@supabase/supabase-js").SupabaseClient = context.supabase;
+    const providers = [
+      ["google_mail", "gmail", "Gmail"],
+      ["google_drive", "drive", "Google Drive"],
+      ["outlook", "outlook", "Outlook"],
+      ["onedrive", "onedrive", "OneDrive"],
+    ] as const;
+    return (
+      await Promise.all(
+        providers.map(async ([provider, id, name]) => {
+          let q = client
+            .from("connector_reviews")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", context.userId)
+            .eq("state", "pending")
+            .eq("provider", provider);
+          q = data ? q.eq("workspace_id", data) : q.is("workspace_id", null);
+          const r = await q;
+          if (r.error) throw Error("Review queue unavailable.");
+          return { id, name, count: r.count ?? 0 };
+        }),
+      )
+    ).filter((p) => p.count);
+  });
+export const connectionCount = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(
+    async ({ context }) =>
+      (
+        await (
+          await import("@/server/appUserConnections.server")
+        ).listConnectionsForUser(context.userId)
+      ).filter((c) => !c.reconnect_required).length,
+  );

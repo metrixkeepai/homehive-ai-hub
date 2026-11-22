@@ -1,7 +1,7 @@
 import { ConnectorChecks } from "./ConnectorChecks";
 import { useState } from "react";
 import { AddAnything } from "./AddAnything";
-import { pendingReviews, decideReview } from "@/lib/google.functions";
+import { pendingReviews, decideReview, rereadConnectorItem } from "@/lib/google.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useStore, toneClass } from "./store";
@@ -34,7 +34,7 @@ const access: Record<GoogleConnector, string> = {
   google_drive: "Read-only. Only the files you choose are imported.",
 };
 
-function waitForOAuth(popup: Window, connector: string) {
+function waitForOAuth(popup: Window, connector: string, state: string) {
   return new Promise<string | null>((resolve, reject) => {
     const cleanup = () => {
       window.removeEventListener("message", onMsg);
@@ -45,6 +45,7 @@ function waitForOAuth(popup: Window, connector: string) {
       if (
         e.origin !== window.location.origin ||
         e.source !== popup ||
+        e.data?.state !== state ||
         e.data?.connectorId !== connector ||
         (t !== "appUserConnectorOAuthComplete" && t !== "appUserConnectorOAuthFailed")
       )
@@ -110,11 +111,13 @@ export function GoogleIntegration({ id }: { id: string }) {
     }
     setBusy("connect");
     try {
-      const { authorizationUrl } = await startGoogleConnect({ data: { connector } });
-      const done = waitForOAuth(popup, connector);
+      const { authorizationUrl, state } = await startGoogleConnect({
+        data: { connector, origin: location.origin },
+      });
+      const done = waitForOAuth(popup, connector, state);
       popup.location.href = authorizationUrl;
       const code = await done;
-      if (code) await completeGoogleConnect({ data: { connector, code } });
+      if (code) await completeGoogleConnect({ data: { connector, code, state } });
       await refresh();
       toast.success(
         reconnect ? `Reconnected to ${names[connector]}` : `${names[connector]} connected`,
@@ -419,6 +422,23 @@ export function ConnectorReviews({
                     className="rounded-full bg-primary px-3 py-1.5 text-primary-foreground"
                   >
                     Review
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await rereadConnectorItem({
+                          data: { workspaceId: current.id, connector: provider, id: d.id },
+                        });
+                        await refresh();
+                        toast.success("New extraction is ready to review.");
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error ? e.message : "Could not re-read this source.",
+                        );
+                      }
+                    }}
+                  >
+                    Re-read source
                   </button>
                   <button
                     onClick={async () => {

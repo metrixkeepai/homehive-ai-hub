@@ -24,18 +24,25 @@ let sample = 0,
   failures = 0;
 const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
 async function check(name, run) {
-  let passed = true;
+  let passed = true,
+    reason = null;
   try {
     await run();
   } catch (e) {
+    reason = String(e?.message)
+      .split("\n")[0]
+      .replaceAll(email, "fixture")
+      .replaceAll(password, "[redacted]")
+      .slice(0, 200);
     console.error("QA:", name, String(e?.message).split("\n").slice(0, 2).join(" ").slice(0, 240));
     passed = false;
     failures++;
   }
   const r = await db
     .from("ai_benchmark_results")
-    .insert({ sha, execution, sample: ++sample, observation: { name, passed } });
+    .insert({ sha, execution, sample: ++sample, observation: { name, passed, reason } });
   if (r.error) throw Error("Evidence unavailable");
+  return passed;
 }
 try {
   await db
@@ -48,6 +55,7 @@ try {
     .eq("id", user.id);
   const due = new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10);
   const rows = [
+    ["my-home", "QA property", []],
     ["assets", "Bosch dishwasher", []],
     ["assets", "Godrej fridge", []],
     ["assets", "Kitchen kettle", []],
@@ -66,6 +74,16 @@ try {
     .select("id,title");
   if (seed.error) throw Error("Seed failed");
   const id = (t) => seed.data.find((x) => x.title === t).id;
+  const property = id("QA property");
+  const rm = await db
+    .from("home_items")
+    .insert({ user_id: user.id, property_id: property, section: "rooms", title: "Utility room" });
+  if (rm.error) throw Error("Room seed failed");
+  const assign = await db
+    .from("home_items")
+    .update({ property_id: property })
+    .eq("id", id("Bosch dishwasher"));
+  if (assign.error) throw Error("Property seed failed");
   const l = await db.from("record_links").insert({
     user_id: user.id,
     source_item_id: id("Bosch dishwasher"),
@@ -75,11 +93,52 @@ try {
   if (l.error) throw Error("Link failed");
   const page = await browser.newPage();
   page.setDefaultTimeout(15000);
-  await page.goto(base + "/auth");
-  await page.locator("input[type=email]").fill(email);
-  await page.locator("input[type=password]").fill(password);
-  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.waitForURL(/\/app(?:\/|$)/);
+  const browserErrors = [];
+  page.on("pageerror", (e) =>
+    browserErrors.push(
+      e.name +
+        ":" +
+        String(e.message)
+          .replace(/https?:\/\/\S+/g, "[url]")
+          .slice(0, 100),
+    ),
+  );
+  const didLogin = await check("browser fixture sign-in", async () => {
+    await page.goto(base + "/auth");
+    // Wait for client hydration before using the server-rendered form.
+    const toggle = page.getByRole("button", { name: "Show password", exact: true });
+    await toggle.click();
+    await page.getByRole("button", { name: "Hide password", exact: true }).click();
+    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
+    try {
+      await page.waitForURL(/\/app(?:\/|$)/, { timeout: 20000 });
+    } catch {
+      throw Error(
+        "Login stayed at " +
+          new URL(page.url()).pathname +
+          "; " +
+          browserErrors.slice(0, 2).join(" ") +
+          " " +
+          (await page.locator("[data-sonner-toast]").allTextContents()).join(" ").slice(0, 80),
+      );
+    }
+  });
+  if (!didLogin) {
+    const client = createClient(SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: false },
+    });
+    const auth = await client.auth.signInWithPassword({ email, password });
+    if (auth.error || !auth.data.session) throw Error("Fixture password sign-in failed");
+    await page.addInitScript(
+      ({ origin, session }) => {
+        if (location.origin === origin)
+          localStorage.setItem("sb-cdfpupivjjamhvmfcvry-auth-token", JSON.stringify(session));
+      },
+      { origin: base, session: auth.data.session },
+    );
+  }
   for (const [name, q, expected] of [
     ["count", "How many records are in assets?", "3 matching assets"],
     ["list", "List my assets.", "Kitchen kettle"],
@@ -88,10 +147,11 @@ try {
     ["source", "What records came from Gmail?", "Currys receipt"],
     ["receipt", "Where is the receipt for my Bosch dishwasher?", "Currys receipt"],
     ["relationship", "Tell me everything about my Bosch dishwasher.", "Currys receipt"],
+    ["property scope", "How many assets do I have?", "1 matching assets"],
     ["no result", "Where is my nonexistent ZirconWidget?", "couldn't find"],
   ]) {
     await check(name, async () => {
-      await page.goto(base + "/app");
+      await page.goto(base + (name === "property scope" ? "/app/my-home/" + property : "/app"));
       await page.getByRole("button", { name: "Ask Sera", exact: true }).click();
       await page.getByPlaceholder("Where's the receipt for the TV?").fill(q);
       await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -131,6 +191,8 @@ try {
         throw Error("Overflow");
     });
   await check("approve and persist", async () => {
+    await page.getByLabel("Property", { exact: true }).selectOption(property);
+    await page.getByLabel("Room", { exact: true }).selectOption({ label: "Utility room" });
     await page.getByRole("button", { name: /Save 1 record/ }).click();
     await page
       .getByText(/Saved to /)
@@ -138,11 +200,30 @@ try {
       .waitFor();
     let r = await db
       .from("home_items")
-      .select("id,fields")
+      .select("id,fields,property_id")
       .eq("user_id", user.id)
       .eq("title", "Reviewed kettle");
-    if (r.data?.length !== 1 || !JSON.stringify(r.data[0].fields).includes("Gmail"))
+    if (
+      r.data?.length !== 1 ||
+      r.data[0].property_id !== property ||
+      !JSON.stringify(r.data[0].fields).includes("Utility room") ||
+      !JSON.stringify(r.data[0].fields).includes("Gmail")
+    )
       throw Error("Missing saved record");
+  });
+  await check("approved record activity and insight", async () => {
+    const r = await db
+      .from("home_items")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("title", "Reviewed kettle")
+      .single();
+    if (!r.data) throw Error("Approved record unavailable");
+    await page.goto(base + "/app/assets/" + r.data.id);
+    await page.getByRole("button", { name: "Activity", exact: true }).click();
+    await page.getByText(/You reviewed.*Reviewed kettle/).waitFor();
+    await page.getByRole("button", { name: /^AI insight$/i }).click();
+    await page.getByText(/Adding the serial number/).waitFor();
   });
 } finally {
   await browser.close();

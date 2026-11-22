@@ -26,6 +26,7 @@ export function Sera() {
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const call = useLiveVoice({
+    propertyId,
     workspaceId: current.id,
     getToken: async () => (await supabase.auth.getSession()).data.session?.access_token,
   });

@@ -1,3 +1,4 @@
+import { RecordInsight } from "./RecordInsight";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -522,12 +523,7 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
         {tab === "AI insight" && (
           <div className="flex gap-3 rounded-2xl bg-secondary p-5">
             <Sparkles className="h-5 w-5 shrink-0 text-violet" />
-            <p className="text-sm">
-              {item.insight ??
-                (date
-                  ? `MatrixKeep is watching this ${section === "warranties" ? "warranty" : "renewal"} and calculates its status from the saved date.`
-                  : "Add a date so MatrixKeep can track this record.")}
-            </p>
+            <RecordInsight item={item} section={section} links={links} />
           </div>
         )}
         {tab === "Activity" && (

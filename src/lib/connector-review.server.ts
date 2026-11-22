@@ -1,4 +1,4 @@
-import { connectorAttribution } from "./ai-meter.server";
+import { connectorAttribution, scanBudget, ScanBudgetReached } from "./ai-meter.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createHash } from "node:crypto";
@@ -46,6 +46,13 @@ export async function queue(
   const duplicate = await prior.limit(1);
   if (duplicate.error) throw Error("Duplicate check unavailable");
   if (duplicate.data?.length) return 0;
+  const budget = scanBudget.getStore();
+  if (budget) {
+    const size = bytes?.length ?? Buffer.byteLength(text);
+    if (budget.remaining < 1 || size > budget.bytes) throw new ScanBudgetReached();
+    budget.remaining--;
+    budget.bytes -= size;
+  }
   const result = await connectorAttribution.run(s.provider, () =>
     runExtraction(
       {

@@ -26,7 +26,11 @@ const csrfMiddleware = createCsrfMiddleware({
   // Cloud Run terminates HTTPS before the Node listener. Validate the public
   // origin for clients that send Origin or Referer without Fetch Metadata.
   origin: (origin, ctx) =>
-    origin === (process.env["APP_ORIGIN"] || new URL(ctx.request.url).origin),
+    origin === (process.env["APP_ORIGIN"] || new URL(ctx.request.url).origin) ||
+    (process.env["APP_ADDITIONAL_RETURN_ORIGINS"] ?? "")
+      .split(",")
+      .filter(Boolean)
+      .includes(origin),
 });
 
 export const startInstance = createStart(() => ({

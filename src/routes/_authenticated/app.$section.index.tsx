@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { connectionCount } from "@/lib/connector-checks.functions";
+import { ConnectorNotifications } from "@/components/hv/ConnectorNotifications";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, ChevronRight, Trash2 } from "lucide-react";
@@ -55,7 +58,14 @@ function SectionPage() {
   const [docType, setDocType] = useState("All");
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useViewMode(section);
+  const connected = useQuery({
+    queryKey: ["connected-count"],
+    queryFn: () => connectionCount(),
+    enabled: section === "integrations",
+    staleTime: 0,
+  });
   if (!s) return <Missing />;
+  if (section === "notifications") return <ConnectorNotifications />;
   if (section === "billing") return <BillingPage />;
   if (section === "my-home" || section === "locations") return <PropertiesPage slug={section} />;
   if (section === "warranties" || section === "renewals")
@@ -88,7 +98,7 @@ function SectionPage() {
     s.slug === "integrations"
       ? [
           ["Connectors", String(source.length)],
-          ["Connected", String(own.length)],
+          ["Connected", connected.data === undefined ? "—" : String(connected.data)],
         ]
       : [
           ["Records", String(own.length)],

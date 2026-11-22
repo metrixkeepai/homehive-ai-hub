@@ -1,3 +1,4 @@
+import { RecordInsight } from "@/components/hv/RecordInsight";
 import { MicrosoftIntegration } from "@/components/hv/MicrosoftIntegration";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -588,24 +589,7 @@ function Detail() {
         {tab === "AI insight" && (
           <div className="flex gap-3 rounded-2xl bg-secondary p-5">
             <Sparkles className="h-5 w-5 shrink-0 text-violet" />
-            <p className="text-sm">
-              {section === "assets" && saved
-                ? [
-                    saved.some((l) => l.section === "documents")
-                      ? "A linked document is available in Related if you need proof of ownership."
-                      : "No purchase document is linked to this asset.",
-                    saved.some((l) => l.section === "warranties")
-                      ? "Your linked warranty is available in Related."
-                      : "No warranty is linked to this asset.",
-                    !item.fields.some(([label, value]) => /serial/i.test(label) && value.trim())
-                      ? "Adding a serial number could help with a repair or warranty claim."
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                : (item.insight ??
-                  "There is not enough saved evidence for an insight yet. Add a receipt, warranty or other document.")}
-            </p>
+            <RecordInsight item={item} section={section} links={saved} />
           </div>
         )}
       </section>
