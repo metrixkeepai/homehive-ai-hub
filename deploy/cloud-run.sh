@@ -143,6 +143,10 @@ config=$(curl --proto '=https' -fsS "$origin/matrixkeep-config.js")
 grep -Fq "\"VITE_APP_ORIGIN\":\"$origin\"" <<< "$config"
 grep -Fq "https://$EXPECTED_SUPABASE_REF.supabase.co" <<< "$config"
 if [[ $APP_ENV == staging ]]; then env_flags=${env_flags/APP_ADDITIONAL_RETURN_ORIGINS=,/APP_ADDITIONAL_RETURN_ORIGINS=$candidate,}; fi
+if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[connector-preview]"* ]]; then
+  preview_origin="https://connector-preview---${candidate#*---}"
+  env_flags+=",CONNECTOR_PREVIEW_ORIGIN=$preview_origin"
+fi
 deploy_revision true
 check "$candidate"
 curl -fsS -D "$RUNNER_TEMP/candidate.headers" "$candidate/health/live" -o /dev/null
@@ -162,6 +166,17 @@ if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[connector-qa]"* ]];
   if ((qa_status)); then exit "$qa_status"; fi
 fi
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; then
+  if [[ -n ${preview_origin:-} ]]; then
+    gcloud run services update-traffic "$service" "${common[@]}" --update-tags="connector-preview=$revision"
+    state=$(gcloud run services describe "$service" "${common[@]}" --format=json)
+    jq -e --arg rev "$revision" --arg url "$preview_origin" '.status.traffic | any(.tag=="connector-preview" and .revisionName==$rev and .url==$url)' <<< "$state" >/dev/null
+    check "$preview_origin"
+    for path in privacy terms api/oauth/google/return api/oauth/microsoft/return; do
+      status=$(curl --proto '=https' -fsS --max-time 20 -o /dev/null -w '%{http_code}' "$preview_origin/$path")
+      [[ $status == 200 ]]
+    done
+    echo "Verified public pages and OAuth callbacks on $preview_origin"
+  fi
   jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg migrator "$MIGRATOR_IMAGE" \
     --arg project "$GCP_PROJECT_ID" --arg region "$REGION" --arg service "$service" --arg origin "$origin" \
     --arg revision "$revision" --arg url "$candidate" \

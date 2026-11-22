@@ -27,6 +27,7 @@ const csrfMiddleware = createCsrfMiddleware({
   // origin for clients that send Origin or Referer without Fetch Metadata.
   origin: (origin, ctx) =>
     origin === (process.env["APP_ORIGIN"] || new URL(ctx.request.url).origin) ||
+    (process.env["APP_ENV"] === "staging" && origin === process.env["CONNECTOR_PREVIEW_ORIGIN"]) ||
     (process.env["APP_ADDITIONAL_RETURN_ORIGINS"] ?? "")
       .split(",")
       .filter(Boolean)

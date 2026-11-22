@@ -36,6 +36,8 @@ export function trustedReturnUrl(
 ): string {
   const canonical = getAppOrigin(env);
   const allowed = new Set([canonical]);
+  if (env["APP_ENV"] === "staging" && env["CONNECTOR_PREVIEW_ORIGIN"])
+    allowed.add(parseOrigin(env["CONNECTOR_PREVIEW_ORIGIN"], env));
   const additional = env["APP_ADDITIONAL_RETURN_ORIGINS"];
   if (additional)
     for (const entry of additional.split(",")) allowed.add(parseOrigin(entry.trim(), env));
