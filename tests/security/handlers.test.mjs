@@ -51,9 +51,12 @@ const mocks = {
   "@/integrations/supabase/auth-middleware": "export const requireSupabaseAuth={};",
   "@/lib/stripe.server":
     'export function createStripeClient(){globalThis.__matrixkeepSecurityMocks.calls.push(["stripe-client"]);return globalThis.__matrixkeepSecurityMocks.stripe} export const getStripeErrorMessage=e=>e.message;',
-  "@/server/appUserConnections.server": "export const getConnectionKeyForUser=async()=>null;",
+  "@/server/appUserConnections.server":
+    "export const getConnectionKeyForUser=async()=>null;export const markConnection=async()=>{};export const saveConnectionKeyForUser=async()=>{};export const deleteConnectionForUser=async()=>{};",
   "@/integrations/lovable/appUserConnector":
     'export const authorizeAppUserOAuth=async value=>{globalThis.__matrixkeepSecurityMocks.calls.push(["oauth",value]);return {authorizationUrl:"https://accounts.google.test/authorize"}};',
+  "@/server/connectionKeyCrypto":
+    "export const encryptConnectionKey=s=>s;export const decryptConnectionKey=s=>s;",
   "./ai-cache.server": "export const cachedOperation=async(u,w,f,v,i,perform)=>perform();",
   "./operation.server": "export const reserveOperation=async()=>{};",
   "./ai-usage.server": "export const logAiUsage=async()=>{};",
@@ -111,7 +114,8 @@ beforeEach(() => {
   delete process.env.APP_ADDITIONAL_RETURN_ORIGINS;
   process.env.NODE_ENV = "production";
   process.env.OPENAI_API_KEY = "test_only";
-  process.env.GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY = "test_only";
+  process.env.GOOGLE_CONNECTOR_CLIENT_ID = "test_only";
+  process.env.GOOGLE_CONNECTOR_CLIENT_SECRET = "test_only";
   globalThis.fetch = async () => {
     calls.push(["fetch"]);
     return new Response("", { status: 429 });
@@ -198,10 +202,17 @@ test("portal always receives a configured fallback return", async () => {
   );
 });
 test("forged forwarded-host cannot determine the Google callback", async () => {
-  await startGoogleConnect({ data: { connector: "google_mail" }, context });
-  const url = new URL(calls.find((c) => c[0] === "oauth")[1].returnUrl);
-  assert.equal(url.origin + url.pathname, "https://matrixkeep.com/api/oauth/google/return");
-  assert.ok(url.searchParams.get("mkstate")?.length >= 32);
+  const result = await startGoogleConnect({ data: { connector: "google_mail" }, context });
+  const url = new URL(result.authorizationUrl);
+  assert.equal(url.origin, "https://accounts.google.com");
+  assert.equal(
+    url.searchParams.get("redirect_uri"),
+    "https://matrixkeep.com/api/oauth/google/return",
+  );
+  assert.equal(url.searchParams.get("scope"), "https://www.googleapis.com/auth/gmail.readonly");
+  assert.equal(url.searchParams.get("code_challenge_method"), "S256");
+  assert.equal(url.searchParams.get("state"), result.state);
+  assert.ok(result.state.length >= 32);
 });
 test("OAuth fails closed without server origin configuration", async () => {
   delete process.env.APP_ORIGIN;

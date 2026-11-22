@@ -20,9 +20,11 @@ import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as IndividualRouteImport } from './routes/individual'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
 import { Route as IndustriesIndexRouteImport } from './routes/industries.index'
 import { Route as IndustriesSlugRouteImport } from './routes/industries.$slug'
@@ -116,6 +118,11 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -129,6 +136,11 @@ const SecurityRoute = SecurityRouteImport.update({
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
   path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppRoute = AuthenticatedAppRouteImport.update({
@@ -340,9 +352,11 @@ export interface FileRoutesByFullPath {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/terms': typeof TermsRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -393,8 +407,10 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
+  '/terms': typeof TermsRoute
   '/industries/$slug': typeof IndustriesSlugRoute
   '/p/$token': typeof PTokenRoute
   '/super-admin/ai': typeof SuperAdminAiRoute
@@ -445,9 +461,11 @@ export interface FileRoutesById {
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/terms': typeof TermsRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
   '/industries/$slug': typeof IndustriesSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -500,9 +518,11 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/privacy'
     | '/reset-password'
     | '/security'
     | '/super-admin'
+    | '/terms'
     | '/app'
     | '/industries/$slug'
     | '/p/$token'
@@ -553,8 +573,10 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/privacy'
     | '/reset-password'
     | '/security'
+    | '/terms'
     | '/industries/$slug'
     | '/p/$token'
     | '/super-admin/ai'
@@ -604,9 +626,11 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/individual'
     | '/pricing'
+    | '/privacy'
     | '/reset-password'
     | '/security'
     | '/super-admin'
+    | '/terms'
     | '/_authenticated/app'
     | '/industries/$slug'
     | '/p/$token'
@@ -659,9 +683,11 @@ export interface RootRouteChildren {
   HowItWorksRoute: typeof HowItWorksRoute
   IndividualRoute: typeof IndividualRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SecurityRoute: typeof SecurityRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  TermsRoute: typeof TermsRoute
   IndustriesSlugRoute: typeof IndustriesSlugRoute
   PTokenRoute: typeof PTokenRoute
   SuperAdminLoginRoute: typeof SuperAdminLoginRoute
@@ -753,6 +779,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -772,6 +805,13 @@ declare module '@tanstack/react-router' {
       path: '/super-admin'
       fullPath: '/super-admin'
       preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
@@ -1148,9 +1188,11 @@ const rootRouteChildren: RootRouteChildren = {
   HowItWorksRoute: HowItWorksRoute,
   IndividualRoute: IndividualRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SecurityRoute: SecurityRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  TermsRoute: TermsRoute,
   IndustriesSlugRoute: IndustriesSlugRoute,
   PTokenRoute: PTokenRoute,
   SuperAdminLoginRoute: SuperAdminLoginRoute,

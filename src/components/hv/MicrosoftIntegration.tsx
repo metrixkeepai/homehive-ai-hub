@@ -82,6 +82,10 @@ export function MicrosoftIntegration({ provider }: { provider: Provider }) {
   return (
     <div className="mt-5 space-y-4">
       <div className="flex flex-wrap gap-2">
+        <p className="text-sm text-muted-foreground">
+          Connecting gives MatrixKeep read access to this service. Relevant content can be sent to
+          OpenAI for extraction. You review proposed records before saving.
+        </p>
         <Button
           disabled={busy || !status.data?.configured || !status.data.eligible[provider]}
           onClick={connect}

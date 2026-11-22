@@ -51,8 +51,7 @@ for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do b
 bind VITE_SUPABASE_URL SUPABASE_URL
 bind VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_PUBLISHABLE_KEY
 for key in OPENAI_API_KEY SUPER_ADMIN_EMAIL SUPER_ADMIN_PASSWORD SUPER_ADMIN_RESET_PASSWORD \
-  LOVABLE_API_KEY GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY GOOGLE_CALENDAR_APP_USER_CONNECTOR_CLIENT_API_KEY \
-  GOOGLE_DRIVE_APP_USER_CONNECTOR_CLIENT_API_KEY APP_USER_CONNECTION_KEY_SECRET; do
+  APP_USER_CONNECTION_KEY_SECRET; do
   if [[ $APP_ENV == staging && ( $key == OPENAI_API_KEY || $key == SUPER_ADMIN_* ) ]] || has_secret "$key"; then bind "$key"; fi
 done
 payments=false
@@ -64,7 +63,14 @@ if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
   fi
 fi
 if [[ $APP_ENV == staging ]]; then
-  for key in MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET; do if has_secret "$key"; then bind "$key"; fi; done
+  for key in GOOGLE_CONNECTOR_CLIENT_ID GOOGLE_CONNECTOR_CLIENT_SECRET MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET; do if has_secret "$key"; then bind "$key"; fi; done
+fi
+if [[ $APP_ENV == staging ]]; then
+  for key in GOOGLE_CONNECTOR_CLIENT_ID GOOGLE_CONNECTOR_CLIENT_SECRET MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET APP_USER_CONNECTION_KEY_SECRET; do
+    found=false
+    for binding_ref in "${secrets[@]}"; do if [[ ${binding_ref%%=*} == "$key" ]]; then found=true; fi; done
+    echo "Connector binding $key configured=$found"
+  done
 fi
 secret_flags=$(IFS=,; echo "${secrets[*]}")
 env_flags="APP_ENV=$APP_ENV,APP_ORIGIN=$origin,VITE_APP_ORIGIN=$origin,APP_ADDITIONAL_RETURN_ORIGINS=,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF,STRIPE_ENVIRONMENT=$stripe,PAYMENTS_ENABLED=$payments"

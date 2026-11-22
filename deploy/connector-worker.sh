@@ -7,7 +7,7 @@ docker build --target connector-worker -t "$image" .
 docker push "$image"
 worker_secrets=()
 for binding in "${secrets[@]}"; do
- case "${binding%%=*}" in LOVABLE_API_KEY|SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|APP_USER_CONNECTION_KEY_SECRET|*APP_USER_CONNECTOR_CLIENT_API_KEY|MICROSOFT_CONNECTOR_CLIENT_*) worker_secrets+=("$binding");; esac
+ case "${binding%%=*}" in SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY|OPENAI_API_KEY|APP_USER_CONNECTION_KEY_SECRET|GOOGLE_CONNECTOR_CLIENT_*|MICROSOFT_CONNECTOR_CLIENT_*) worker_secrets+=("$binding");; esac
 done
 gcloud run jobs deploy "$job" "${common[@]}" --service-account="$runtime" --image="$image" --tasks=1 --max-retries=0 --task-timeout=20m --cpu=1 --memory=1Gi --set-env-vars="APP_ENV=staging" --set-secrets="$(IFS=,; echo "${worker_secrets[*]}")"
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" --member="serviceAccount:$runtime" --role=roles/run.invoker

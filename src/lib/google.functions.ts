@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-import { GOOGLE, GATEWAY, type GoogleConnector } from "./google-config";
+import { GOOGLE, type GoogleConnector } from "./google-config";
 export { GOOGLE, type GoogleConnector } from "./google-config";
 const Connector = z.enum(["google_mail", "google_calendar", "google_drive"]);
 const Ws = z.string().uuid().nullable();
@@ -47,9 +47,9 @@ export const getGoogleStatus = createServerFn({ method: "GET" })
       const cur = latest.find((x) => x.connector_id === c);
       out[c] = {
         configured: !!(
-          process.env[GOOGLE[c].env] &&
+          process.env["GOOGLE_CONNECTOR_CLIENT_ID"] &&
           process.env["APP_USER_CONNECTION_KEY_SECRET"] &&
-          process.env["LOVABLE_API_KEY"]
+          process.env["GOOGLE_CONNECTOR_CLIENT_SECRET"]
         ),
         entitled: connectorAllowed(ent.data, c),
         connected: !!cur,
@@ -75,23 +75,11 @@ export const startGoogleConnect = createServerFn({ method: "POST" })
     await requireFeature(userId, "google_integrations");
     const { requireConnectorPlan } = await import("./connector-review.server");
     await requireConnectorPlan(userId, data.connector);
-    const clientKey = process.env[GOOGLE[data.connector].env];
-    if (!clientKey) throw new Error("Google connection isn't set up for this app yet.");
-    const { beginConsent } = await import("./google-consent.server");
-    const { state, returnUrl } = await beginConsent(userId, data.connector, data.origin);
-    const { getConnectionKeyForUser } = await import("@/server/appUserConnections.server");
-    const { authorizeAppUserOAuth } = await import("@/integrations/lovable/appUserConnector");
-    const existing = await getConnectionKeyForUser(userId, data.connector);
-    const { authorizationUrl } = await authorizeAppUserOAuth({
-      gatewayBaseUrl: GATEWAY,
-      connectorId: data.connector,
-      appUserId: userId,
-      clientAPIKey: clientKey,
-      returnUrl,
-      connectionAPIKey: existing ?? undefined,
-      credentialsConfiguration: { scopes: [...GOOGLE[data.connector].scopes] },
-    });
-    return { authorizationUrl, state };
+    return (await import("./google-consent.server")).beginConsent(
+      userId,
+      data.connector,
+      data.origin,
+    );
   });
 
 export const completeGoogleConnect = createServerFn({ method: "POST" })
@@ -107,15 +95,10 @@ export const completeGoogleConnect = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { userId } = ctxOf(context);
+    await (await import("./connector-review.server")).requireConnectorPlan(userId, data.connector);
     await (
       await import("./google-consent.server")
-    ).consumeConsent(userId, data.connector, data.state);
-    const { exchangeAppUserOAuthCode } = await import("@/integrations/lovable/appUserConnector");
-    const { saveConnectionKeyForUser } = await import("@/server/appUserConnections.server");
-    const { connectionAPIKey, connectorId } = await exchangeAppUserOAuthCode(GATEWAY, data.code);
-    if (connectorId !== data.connector)
-      throw new Error("Google returned a different service than expected.");
-    await saveConnectionKeyForUser(userId, connectorId, connectionAPIKey);
+    ).finishGoogle(userId, data.connector, data.state, data.code);
     return { ok: true };
   });
 
@@ -124,23 +107,7 @@ export const disconnectGoogle = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ connector: Connector }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = ctxOf(context);
-    const { getConnectionKeyForUser, deleteConnectionForUser } =
-      await import("@/server/appUserConnections.server");
-    const { disconnectAppUser } = await import("@/integrations/lovable/appUserConnector");
-    const key = await getConnectionKeyForUser(userId, data.connector);
-    if (key) {
-      try {
-        await disconnectAppUser({
-          gatewayBaseUrl: GATEWAY,
-          connectionAPIKey: key,
-          connectorId: data.connector,
-        });
-      } catch (e) {
-        console.error("Google disconnect", e);
-      }
-    }
-    await deleteConnectionForUser(userId, data.connector);
-    return { ok: true };
+    return (await import("./google-consent.server")).disconnect(userId, data.connector);
   });
 
 /* ---------------- shared helpers ---------------- */

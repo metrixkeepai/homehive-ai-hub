@@ -102,7 +102,7 @@ function AuthPage() {
   const [sent, setSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [checkingSession, setCheckingSession] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -124,6 +124,7 @@ function AuthPage() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
       if (code) {
+        setCheckingSession(true);
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!active) return;
         if (!error || (await supabase.auth.getSession()).data.session) {
@@ -137,10 +138,18 @@ function AuthPage() {
         navigate({ to: "/app", replace: true });
         return;
       }
-      setCheckingSession(false);
-    })();
+    })()
+      .catch(() => {
+        if (active) toast.error("Could not check your previous session. Please sign in again.");
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
     const { data } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) navigate({ to: "/app", replace: true });
+      if (s)
+        setTimeout(() => {
+          if (active) void navigate({ to: "/app", replace: true });
+        }, 0);
     });
     return () => {
       active = false;

@@ -336,6 +336,8 @@ export function SiteFooter() {
       [
         ["/about", "About"],
         ["/contact", "Contact"],
+        ["/privacy", "Privacy"],
+        ["/terms", "Terms"],
         ["/auth", "Sign in"],
       ],
     ],

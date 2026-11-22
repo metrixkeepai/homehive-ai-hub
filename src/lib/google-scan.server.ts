@@ -1,4 +1,4 @@
-import { GOOGLE, GATEWAY, type GoogleConnector } from "./google-config";
+import { type GoogleConnector } from "./google-config";
 /** Call Google as the signed-in user; marks the connection for reconnect when the grant is no longer valid. */
 export async function google(
   userId: string,
@@ -10,23 +10,23 @@ export async function google(
   await requireConnectorPlan(userId, connector);
   const { requireFeature } = await import("./feature-access.server");
   await requireFeature(userId, "google_integrations");
-  const { getConnectionKeyForUser, markConnection } =
-    await import("@/server/appUserConnections.server");
-  const { callAsAppUser, appUserReconnectRequired } =
-    await import("@/integrations/lovable/appUserConnector");
-  const key = await getConnectionKeyForUser(userId, connector);
-  if (!key) throw new Error("NOT_CONNECTED");
-  const res = await callAsAppUser({
-    gatewayBaseUrl: GATEWAY,
-    connectionAPIKey: key,
-    connectorId: connector,
-    path,
-    init,
-    requiredScopes: [...GOOGLE[connector].scopes],
+  const { googleAccess } = await import("./google-consent.server");
+  const url = new URL(path, "https://www.googleapis.com");
+  if (url.origin !== "https://www.googleapis.com" || url.username || url.password)
+    throw Error("Invalid Google resource");
+  const headers = new Headers(init?.headers);
+  headers.set("authorization", "Bearer " + (await googleAccess(userId, connector)));
+  const res = await fetch(url, {
+    ...init,
+    headers,
+    redirect: "error",
+    signal: AbortSignal.timeout(30000),
   });
-  if (await appUserReconnectRequired(res)) {
-    await markConnection(userId, connector, { reconnect_required: true });
-    throw new Error("RECONNECT");
+  if (res.status === 401) {
+    await (
+      await import("@/server/appUserConnections.server")
+    ).markConnection(userId, connector, { reconnect_required: true });
+    throw Error("RECONNECT");
   }
   if (!res.ok) {
     await res.body?.cancel();
@@ -51,10 +51,10 @@ export async function accountEmail(userId: string, c: GoogleConnector): Promise<
     if (c === "google_calendar")
       return (
         (
-          (await (await google(userId, c, "/calendar/v3/calendars/primary")).json()) as {
-            id?: string;
+          (await (await google(userId, c, "/oauth2/v2/userinfo")).json()) as {
+            email?: string;
           }
-        ).id ?? null
+        ).email ?? null
       );
     return (
       (

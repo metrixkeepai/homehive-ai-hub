@@ -53,7 +53,8 @@ function Integrations() {
               Background checks: {p.successes} successful · {p.failures} failed
             </p>
             <p>
-              {p.discovered} discovered · {p.approved} approved · {p.rejected} dismissed
+              {p.discovered} discovered · {p.approved} approved · {p.rejected} dismissed ·{" "}
+              {p.duplicates} duplicates skipped
             </p>
             <p>
               {p.ai_calls} AI calls · ${Number(p.estimated_usd).toFixed(5)} estimated provider cost

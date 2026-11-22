@@ -121,10 +121,47 @@ try {
           .slice(0, 100),
     ),
   );
+  for (const [path, title] of [
+    ["privacy", "Privacy Policy"],
+    ["terms", "Terms of Service"],
+  ]) {
+    await check("public " + path + " page and footer", async () => {
+      for (const width of [320, 1024]) {
+        await page.setViewportSize({ width, height: 800 });
+        const response = await navigate(base + "/" + path);
+        if (response?.status() !== 200 || new URL(page.url()).pathname !== "/" + path)
+          throw Error("Anonymous page unavailable");
+        await page.getByRole("heading", { level: 1, name: title, exact: true }).waitFor();
+        if (
+          !(await page.title()).includes(title) ||
+          !(await page.locator('meta[name="description"]').first().getAttribute("content"))
+        )
+          throw Error("Missing metadata");
+        for (const slug of ["privacy", "terms"]) {
+          const link = page.locator('footer a[href="/' + slug + '"]');
+          await link.waitFor();
+          if ((await link.count()) !== 1) throw Error("Footer link mismatch");
+        }
+        if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1))
+          throw Error("Horizontal overflow");
+      }
+    });
+  }
+  await check("public OAuth callback routes", async () => {
+    for (const provider of ["google", "microsoft"]) {
+      const r = await page.request.get(base + "/api/oauth/" + provider + "/return");
+      if (r.status() !== 200 || r.headers()["cache-control"] !== "no-store")
+        throw Error("Callback route unavailable");
+    }
+  });
   const didLogin = await check("browser fixture sign-in", async () => {
-    await navigate(base + "/auth");
+    const start = Date.now();
+    const response = await navigate(base + "/auth");
+    if (response?.status() !== 200) throw Error("Sign-in document returned " + response?.status());
+    const docMs = Date.now() - start;
     // Wait for client hydration before using the server-rendered form.
     await page.locator('form[data-interactive="true"]').waitFor({ timeout: 45000 });
+    const hydratedMs = Date.now() - start;
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
@@ -140,6 +177,7 @@ try {
           (await page.locator("[data-sonner-toast]").allTextContents()).join(" ").slice(0, 80),
       );
     }
+    return { document_ms: docMs, interactive_ms: hydratedMs, signed_in_ms: Date.now() - start };
   });
   if (!didLogin) {
     const client = createClient(SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {

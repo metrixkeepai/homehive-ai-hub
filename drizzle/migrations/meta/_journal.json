@@ -302,6 +302,13 @@
       "when": 1795305600003,
       "tag": "0042_connector_disconnect",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795305600004,
+      "tag": "0043_connector_retention",
+      "breakpoints": true
     }
   ]
 }

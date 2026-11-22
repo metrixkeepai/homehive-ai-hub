@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, expect, it, vi } from "vitest";
 const fx = vi.hoisted(() => ({
   requests: [] as string[],
   queued: new Map<string, { name: string; bytes: string }>(),
@@ -42,12 +42,19 @@ vi.mock("./connector-review.server", () => ({
     return 1;
   },
 }));
-vi.mock("@/integrations/lovable/appUserConnector", () => ({
-  appUserReconnectRequired: async () => false,
-  callAsAppUser: async ({ path, requiredScopes }: { path: string; requiredScopes: string[] }) => {
+vi.mock("./google-consent.server", () => ({
+  googleAccess: async () => {
+    if (fx.disconnected) throw Error("NOT_CONNECTED");
+    return "fake-token";
+  },
+}));
+beforeEach(() =>
+  vi.stubGlobal("fetch", async (u: URL, init: RequestInit) => {
+    expect(u.origin).toBe("https://www.googleapis.com");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer fake-token");
+    const path = u.pathname + u.search;
     fx.requests.push(path);
     if (path.startsWith("/drive/v3/")) {
-      expect(requiredScopes).toContain("https://www.googleapis.com/auth/drive.readonly");
       const f = {
         id: "fixture-invoice",
         name: "invoice.pdf",
@@ -62,7 +69,7 @@ vi.mock("@/integrations/lovable/appUserConnector", () => ({
       if (!path.includes(f.id)) throw Error("Irrelevant file fetched");
       return path.endsWith("?alt=media") ? new Response("%PDF-fixture") : Response.json(f);
     }
-    expect(requiredScopes).toContain("https://www.googleapis.com/auth/gmail.readonly");
+
     const url = new URL(path, "https://google.test");
     if (path.endsWith("/profile")) return Response.json({ emailAddress: "qa@example.invalid" });
     if (url.pathname.endsWith("/messages")) {
@@ -94,8 +101,9 @@ vi.mock("@/integrations/lovable/appUserConnector", () => ({
         ],
       },
     });
-  },
-}));
+  }),
+);
+afterEach(() => vi.unstubAllGlobals());
 import { scanGmail, scanDrive, importDrive } from "./google-scan.server";
 beforeEach(() => {
   fx.requests.length = 0;

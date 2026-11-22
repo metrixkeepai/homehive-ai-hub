@@ -19,6 +19,7 @@ try {
   await sql.begin(async (tx) => {
     await tx.unsafe("CREATE EXTENSION IF NOT EXISTS pg_cron");
     await tx.unsafe("CREATE EXTENSION IF NOT EXISTS pg_net");
+    await tx`select cron.schedule('matrixkeep-connector-retention','17 2 * * *','select public.purge_expired_connector_data()')`;
     const endpoint = env.CONNECTOR_CANDIDATE + "/api/internal/connector-tick";
     // Endpoint is restricted to the exact staging project hostname above.
     const command = `DO $tick$ DECLARE token text:=gen_random_uuid()::text||gen_random_uuid()::text; BEGIN

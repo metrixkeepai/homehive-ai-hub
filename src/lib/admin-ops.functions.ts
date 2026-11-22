@@ -799,8 +799,8 @@ export const connectorOperations = createServerFn({ method: "GET" })
     const totals = await client.rpc("connector_scan_totals");
     if (totals.error) throw Error("Could not load scan totals.");
     const names: Record<string, string> = {
-      google_mail: "GOOGLE_MAIL_APP_USER_CONNECTOR_CLIENT_API_KEY",
-      google_drive: "GOOGLE_DRIVE_APP_USER_CONNECTOR_CLIENT_API_KEY",
+      google_mail: "GOOGLE_CONNECTOR_CLIENT_ID",
+      google_drive: "GOOGLE_CONNECTOR_CLIENT_ID",
     };
     const summary = r.data as {
       provider: string;
@@ -820,6 +820,7 @@ export const connectorOperations = createServerFn({ method: "GET" })
       const t = (
         totals.data as {
           provider: string;
+          duplicates: number | null;
           successes: number;
           failures: number;
           last_success: string | null;
@@ -830,10 +831,11 @@ export const connectorOperations = createServerFn({ method: "GET" })
         configured: !!(
           process.env["APP_USER_CONNECTION_KEY_SECRET"] &&
           (g
-            ? process.env[g] && process.env["LOVABLE_API_KEY"]
+            ? process.env[g] && process.env["GOOGLE_CONNECTOR_CLIENT_SECRET"]
             : process.env["MICROSOFT_CONNECTOR_CLIENT_ID"] &&
               process.env["MICROSOFT_CONNECTOR_CLIENT_SECRET"])
         ),
+        duplicates: t?.duplicates ?? 0,
         successes: t?.successes ?? 0,
         failures: t?.failures ?? 0,
         last_success: t?.last_success ?? p.last_sync,

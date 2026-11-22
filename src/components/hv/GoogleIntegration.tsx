@@ -28,12 +28,13 @@ const names: Record<GoogleConnector, string> = {
 };
 const access: Record<GoogleConnector, string> = {
   google_mail:
-    "Read-only. MatrixKeep only imports receipts, invoices, order confirmations, warranties and renewals.",
+    "Read-only. Checks use relevant messages and attachments for receipts, warranties and other records. Selected content is sent to OpenAI for extraction and presented for review.",
   google_calendar: "Creates and updates MatrixKeep reminder events in your main calendar.",
-  google_drive: "Read-only. Only the files you choose are imported.",
+  google_drive:
+    "Read-only. Choose files or opt in to checks for new documents. Relevant file content is sent to OpenAI for extraction and presented for review.",
 };
 
-function waitForOAuth(popup: Window, connector: string, state: string) {
+function waitForOAuth(popup: Window, state: string) {
   return new Promise<string | null>((resolve, reject) => {
     const cleanup = () => {
       window.removeEventListener("message", onMsg);
@@ -45,7 +46,6 @@ function waitForOAuth(popup: Window, connector: string, state: string) {
         e.origin !== window.location.origin ||
         e.source !== popup ||
         e.data?.state !== state ||
-        e.data?.connectorId !== connector ||
         (t !== "appUserConnectorOAuthComplete" && t !== "appUserConnectorOAuthFailed")
       )
         return;
@@ -113,7 +113,7 @@ export function GoogleIntegration({ id }: { id: string }) {
       const { authorizationUrl, state } = await startGoogleConnect({
         data: { connector, origin: location.origin },
       });
-      const done = waitForOAuth(popup, connector, state);
+      const done = waitForOAuth(popup, state);
       popup.location.href = authorizationUrl;
       const code = await done;
       if (code) await completeGoogleConnect({ data: { connector, code, state } });
@@ -133,9 +133,13 @@ export function GoogleIntegration({ id }: { id: string }) {
       return;
     setBusy("disconnect");
     try {
-      await disconnectGoogle({ data: { connector } });
+      const result = await disconnectGoogle({ data: { connector } });
       await refresh();
-      toast.success(`${names[connector]} disconnected`);
+      if (result.revoked) toast.success(`${names[connector]} disconnected`);
+      else
+        toast.info(
+          "Disconnected from MatrixKeep. Remove MatrixKeep access in your Google Account to finish revocation.",
+        );
     } catch {
       toast.error("Couldn't disconnect. Try again.");
     } finally {
