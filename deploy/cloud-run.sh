@@ -156,7 +156,10 @@ if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[connector-qa]"* ]];
   if ((qa_status)); then exit "$qa_status"; fi
 fi
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; then
-  jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg revision "$revision" --arg url "$candidate" '{sha:$sha,image:$image,revision:$revision,candidate_url:$url,public_traffic_switched:false}' > release.json
+  jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg migrator "$MIGRATOR_IMAGE" \
+    --arg project "$GCP_PROJECT_ID" --arg region "$REGION" --arg service "$service" --arg origin "$origin" \
+    --arg revision "$revision" --arg url "$candidate" \
+    '{sha:$sha,image:$image,migrator:$migrator,project:$project,region:$region,service:$service,origin:$origin,revision:$revision,candidate_url:$url,public_traffic_switched:false}' > release.json
   echo "Tagged staging revision $revision verified. Public traffic retained."
   exit 0
 fi
