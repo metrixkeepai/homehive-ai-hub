@@ -1,14 +1,25 @@
 import { useState, useRef, useEffect } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Sparkles, Send, X, Mic, PhoneOff } from "lucide-react";
 import { useLiveVoice } from "@/hooks/use-live-voice";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "./store";
 import { askSera } from "@/lib/sera.functions";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  refs?: { id: string; section: string; title: string }[];
+};
 
 export function Sera() {
   const { current } = useStore();
+  const route = useLocation();
+  const propertyId =
+    route.pathname.match(/^\/app\/(?:my-home|locations)\/([0-9a-f-]{36})(?:\/|$)/i)?.[1] ?? null;
+  const scopeKey = current.id + ":" + propertyId;
+  const activeScope = useRef(scopeKey);
+  activeScope.current = scopeKey;
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
@@ -28,7 +39,7 @@ export function Sera() {
     setMsgs([]);
     setQ("");
     call.stop();
-  }, [current.id]);
+  }, [current.id, propertyId]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,12 +50,20 @@ export function Sera() {
     setQ("");
     setBusy(true);
     try {
-      const r = await askSera({ data: { workspaceId: current.id, messages: next.slice(-12) } });
+      const r = await askSera({
+        data: { workspaceId: current.id, propertyId, messages: next.slice(-12) },
+      });
+      if (activeScope.current !== scopeKey) return;
       setMsgs([
         ...next,
-        { role: "assistant", content: ("reply" in r ? r.reply : r.error) || "No answer." },
+        {
+          role: "assistant",
+          refs: "refs" in r ? r.refs : [],
+          content: ("reply" in r ? r.reply : r.error) || "No answer.",
+        },
       ]);
     } catch {
+      if (activeScope.current !== scopeKey) return;
       setMsgs([...next, { role: "assistant", content: "Sera couldn't answer just now." }]);
     } finally {
       setBusy(false);
@@ -141,6 +160,16 @@ export function Sera() {
                 className={`whitespace-pre-wrap rounded-2xl p-3 ${m.role === "user" ? "ml-8 bg-primary text-primary-foreground" : "mr-8 bg-secondary"}`}
               >
                 {m.content}
+                {m.refs?.map((ref) => (
+                  <Link
+                    className="block text-xs text-primary underline"
+                    key={ref.id}
+                    to="/app/$section/$id"
+                    params={{ section: ref.section, id: ref.id }}
+                  >
+                    {ref.title}
+                  </Link>
+                ))}
               </p>
             ))}
             {busy && (

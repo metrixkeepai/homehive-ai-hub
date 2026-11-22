@@ -145,6 +145,9 @@ rollback_traffic() {
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[ai-benchmark]"* ]]; then
   bash deploy/staging-ai-benchmark.sh "$candidate"
 fi
+if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[connector-qa]"* ]]; then
+  bash deploy/staging-connector-qa.sh "$candidate"
+fi
 if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; then
   jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg revision "$revision" --arg url "$candidate" '{sha:$sha,image:$image,revision:$revision,candidate_url:$url,public_traffic_switched:false}' > release.json
   echo "Tagged staging revision $revision verified. Public traffic retained."

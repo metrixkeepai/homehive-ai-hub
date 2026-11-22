@@ -138,6 +138,23 @@ type Row = {
   created_at: string;
 };
 const ROW_SELECT = "id,workspace_id,property_id,section,title,subtitle,fields,created_at";
+function recordJourney(r: Row): [string, string][] {
+  const fields = new Map((r.fields ?? []) as [string, string][]);
+  const source = fields.get("Source");
+  const when = new Date(r.created_at).toLocaleString();
+  if (!source || !fields.has("Reviewed on")) return [[when, "Added by you"]];
+  const origin = fields.get("Email subject") ?? fields.get("File name");
+  return [
+    [
+      fields.get("Found on") ?? when,
+      origin ? `Found “${origin}” in your ${source}.` : `Found in your ${source}.`,
+    ],
+    [
+      when,
+      `You reviewed “${r.title}” and saved it${fields.get("Location") ? " to " + fields.get("Location") : ""}${fields.get("Room") ? " · " + fields.get("Room") : ""}.`,
+    ],
+  ];
+}
 const toItem = (r: Row): Item => ({
   id: r.id,
   title: r.title,
@@ -146,7 +163,7 @@ const toItem = (r: Row): Item => ({
   fields: (r.fields as [string, string][]) ?? [],
   propertyId: r.property_id ?? null,
   actions: ["Delete"],
-  timeline: [[new Date(r.created_at).toLocaleDateString(), "Added by you"]],
+  timeline: recordJourney(r),
 });
 
 export function StoreProvider({ children }: { children: ReactNode }) {

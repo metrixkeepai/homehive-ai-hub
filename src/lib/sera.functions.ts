@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { seraIntent } from "./sera-intent";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -19,36 +20,47 @@ export const askSera = createServerFn({ method: "POST" })
     const { responseText, AIProviderError } = await import("./openai.server");
     try {
       const question = data.messages.filter((m) => m.role === "user").at(-1)?.content ?? "";
-      const words =
-        question
-          .toLowerCase()
-          .match(/[\p{L}\p{N}]{3,30}/gu)
-          ?.filter(
-            (w) =>
-              ![
-                "the",
-                "where",
-                "what",
-                "when",
-                "have",
-                "does",
-                "about",
-                "with",
-                "that",
-                "this",
-                "saved",
-                "records",
-                "please",
-                "find",
-              ].includes(w),
-          )
-          .slice(0, 5) ?? [];
-      const { data: rows, error } = await context.supabase.rpc("sera_search", {
+      const intent = seraIntent(question);
+      const { data: found, error } = await context.supabase.rpc("sera_retrieve", {
         _workspace: data.workspaceId ?? null,
         _property: data.propertyId ?? null,
-        _words: words,
+        _intent: intent,
       });
       if (error) throw new Error("Retrieval failed");
+      const result = z
+        .object({
+          total: z.number(),
+          groups: z.array(z.object({ title: z.string(), n: z.number() })),
+          rows: z.array(
+            z.object({
+              id: z.string().uuid(),
+              title: z.string(),
+              section: z.string(),
+              subtitle: z.string(),
+              fields: z.array(z.unknown()),
+              due: z.string().nullable(),
+            }),
+          ),
+        })
+        .parse(found);
+      const rows = result.rows,
+        refs = rows.map(({ id, title, section }) => ({ id, title, section }));
+      if (!result.total || ["count", "list", "group", "due", "recent"].includes(intent.mode))
+        await reserveOperation(context.userId, data.workspaceId ?? null, "sera", 1, 0);
+      const subject = intent.section ?? "records";
+      if (intent.mode === "count")
+        return { reply: `You have ${result.total} matching ${subject}.`, refs };
+      if (!result.total)
+        return { reply: "I couldn't find that information in your MatrixKeep records yet.", refs };
+      if (intent.mode === "group")
+        return { reply: result.groups.map((g) => g.title + " — " + g.n).join("\n"), refs };
+      if (["list", "due", "recent"].includes(intent.mode))
+        return {
+          reply:
+            `Showing ${rows.length} of ${result.total} matching ${subject}.\n` +
+            rows.map((r) => r.title + (r.due ? " — " + r.due : "")).join("\n"),
+          refs,
+        };
       // Never split a JSON string mid-field. Preserve the best-ranked evidence first.
       const evidence = [];
       let size = 2;
@@ -66,12 +78,12 @@ export const askSera = createServerFn({ method: "POST" })
       const records = JSON.stringify(evidence);
       const { cachedOperation } = await import("./ai-cache.server");
       const today = new Date().toISOString().slice(0, 10);
-      return await cachedOperation(
+      const answer = await cachedOperation(
         context.userId,
         data.workspaceId ?? null,
         "sera",
         "sera-v1-luna",
-        [today, records, data.messages.slice(-8)],
+        [data.propertyId, today, records, data.messages.slice(-8)],
         async () => {
           await reserveOperation(context.userId, data.workspaceId ?? null, "sera", 1, 0.002);
           const reply = await responseText({
@@ -88,6 +100,7 @@ export const askSera = createServerFn({ method: "POST" })
           return { reply };
         },
       );
+      return { ...answer, refs };
     } catch (error) {
       return {
         error:

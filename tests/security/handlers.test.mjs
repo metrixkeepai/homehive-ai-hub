@@ -37,6 +37,7 @@ globalThis.__matrixkeepSecurityMocks = {
   },
 };
 const mocks = {
+  "./connector-review.server": "export const requireConnectorPlan=async()=>{};",
   "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":

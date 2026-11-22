@@ -274,6 +274,13 @@
       "when": 1795219200007,
       "tag": "0038_speech_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1795305600000,
+      "tag": "0039_sera_connector_review",
+      "breakpoints": true
     }
   ]
 }

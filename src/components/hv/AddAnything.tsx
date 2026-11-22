@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { decideReview } from "@/lib/google.functions";
 import { extractRecords, type Extracted } from "@/lib/capture.functions";
 import { transcribeToEnglish } from "@/lib/speech.functions";
 import { getSection, sections } from "./data";
@@ -91,6 +92,8 @@ const sectionOptions = [
   "maintenance",
   "tasks",
   "insurance",
+  "renewals",
+  "services",
 ];
 
 type Rec = Extracted & { keep: boolean };
@@ -155,17 +158,32 @@ async function videoFrames(f: File, count = 6): Promise<string[]> {
   }
 }
 
-export function AddAnything({ onClose, initial }: { onClose: () => void; initial?: string }) {
-  const { addReturning, added, current, update, properties } = useStore();
+export function AddAnything({
+  onClose,
+  initial,
+  review,
+}: {
+  onClose: () => void;
+  initial?: string;
+  review?: {
+    id: string;
+    title: string;
+    proposals: Extracted[];
+    provider: "google_mail" | "google_drive";
+  };
+}) {
+  const { reload, addReturning, added, current, update, properties } = useStore();
   const gate = usePlanGate();
-  const [step, setStep] = useState<Step>(initial ? "capture" : "pick");
+  const [step, setStep] = useState<Step>(review ? "review" : initial ? "capture" : "pick");
   const [mode, setMode] = useState<Mode | undefined>(modes.find((m) => m.key === initial));
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>();
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
-  const [summary, setSummary] = useState("");
-  const [recs, setRecs] = useState<Rec[]>([]);
+  const [summary, setSummary] = useState(review?.title ?? "");
+  const [recs, setRecs] = useState<Rec[]>(
+    review?.proposals.map((r) => ({ ...r, keep: true })) ?? [],
+  );
   const [location, setLocation] = useState("");
   const [room, setRoom] = useState("");
   const [saved, setSaved] = useState<{ section: string; id: string; title: string }[]>([]);
@@ -376,6 +394,29 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
     const keep = recs.filter((r) => r.keep && r.title.trim());
     if (!keep.length) {
       toast.error("Select at least one record");
+      return;
+    }
+    if (review) {
+      setStep("saving");
+      try {
+        const saved = await decideReview({
+          data: {
+            id: review.id,
+            workspaceId: current.id,
+            connector: review.provider,
+            property: selectedProperty?.id ?? null,
+            room,
+            records: keep,
+            reject: false,
+          },
+        });
+        await reload();
+        setSaved(saved);
+        setStep("done");
+      } catch {
+        toast.error("Couldn't save these records. Check the property and room, then retry.");
+        setStep("review");
+      }
       return;
     }
     const hash = file ? await fileHash(file) : "";
@@ -772,10 +813,36 @@ export function AddAnything({ onClose, initial }: { onClose: () => void; initial
                   )}
                   {r.fields.length > 0 && (
                     <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                      {r.fields.map((f) => (
+                      {r.fields.map((f, fi) => (
                         <div key={f.label} className="flex gap-1">
                           <dt className="text-muted-foreground">{f.label}:</dt>
-                          <dd className="font-medium">{f.value}</dd>
+                          <dd className="min-w-0 font-medium">
+                            {review ? (
+                              <input
+                                aria-label={f.label}
+                                value={f.value}
+                                className="w-full rounded border bg-background px-1"
+                                onChange={(e) =>
+                                  setRecs((list) =>
+                                    list.map((row, j) =>
+                                      j === i
+                                        ? {
+                                            ...row,
+                                            fields: row.fields.map((field, k) =>
+                                              k === fi
+                                                ? { ...field, value: e.target.value }
+                                                : field,
+                                            ),
+                                          }
+                                        : row,
+                                    ),
+                                  )
+                                }
+                              />
+                            ) : (
+                              f.value
+                            )}
+                          </dd>
                         </div>
                       ))}
                     </dl>

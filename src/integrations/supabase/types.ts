@@ -1042,6 +1042,10 @@ export type Database = {
         Args: { _key: string; _lease: string; _result: Json };
         Returns: undefined;
       };
+      sera_retrieve: {
+        Args: { _workspace: string | null; _property: string | null; _intent: Json };
+        Returns: Json;
+      };
       sera_search: {
         Args: { _workspace: string | null; _property: string | null; _words: string[] };
         Returns: { section: string; title: string; subtitle: string | null; fields: Json }[];

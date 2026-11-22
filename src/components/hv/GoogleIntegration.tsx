@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { AddAnything } from "./AddAnything";
+import { pendingReviews, decideReview } from "@/lib/google.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useStore, toneClass } from "./store";
@@ -92,7 +93,12 @@ export function GoogleIntegration({ id }: { id: string }) {
   });
   const st = status.data?.[connector];
   const [busy, setBusy] = useState<string | null>(null);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["google-status"] });
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["google-status"] }),
+      qc.invalidateQueries({ queryKey: ["connector-reviews"] }),
+    ]);
+  };
 
   const connect = async () => {
     const reconnect = !!st?.connected;
@@ -140,7 +146,7 @@ export function GoogleIntegration({ id }: { id: string }) {
         const r = await handle(syncGmail({ data: { workspaceId: current.id } }), refresh);
         if (r)
           toast.success(`Checked ${r.checked} new email(s)`, {
-            description: `${r.created} record(s) added to ${current.name}.${r.checked === 8 ? " Press again to check more." : ""}`,
+            description: `${r.created} item(s) ready for review. ${r.alreadyImported} already checked.${r.more ? " More results are available." : ""}`,
           });
       } else {
         const r = await handle(syncCalendar({ data: { workspaceId: current.id } }), refresh);
@@ -238,13 +244,26 @@ export function GoogleOverviewFields({ id }: { id: string }) {
   });
   const st = status.data?.[connector];
   const qc = useQueryClient();
-  const refresh = () => qc.invalidateQueries({ queryKey: ["google-status"] });
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["google-status"] }),
+      qc.invalidateQueries({ queryKey: ["connector-reviews"] }),
+    ]);
+  };
   const [busy, setBusy] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [files, setFiles] = useState<
     { id: string; name: string; mimeType: string; size: number; modifiedTime: string }[] | null
   >(null);
-  const [lastLinks, setLastLinks] = useState<string | null>(null);
+  const provider = connector === "google_drive" ? "google_drive" : "google_mail";
+  const queue = useQuery({
+    queryKey: ["connector-reviews", provider, current.id],
+    enabled: connector !== "google_calendar",
+    queryFn: () => pendingReviews({ data: { workspaceId: current.id, connector: provider } }),
+  });
+  const [selected, setSelected] = useState<string | null>(null);
+  const draft = queue.data?.find((d) => d.id === selected);
+
   const browse = async () => {
     setBusy("browse");
     try {
@@ -262,8 +281,7 @@ export function GoogleOverviewFields({ id }: { id: string }) {
         refresh,
       );
       if (r) {
-        toast.success(`Imported — ${r.created} record(s) added`);
-        setLastLinks(r.firstId ?? null);
+        toast.success(r.created ? "Ready for your review" : "This version was already checked");
         await refresh();
       }
     } finally {
@@ -277,7 +295,9 @@ export function GoogleOverviewFields({ id }: { id: string }) {
         ["Connected since", when(st.since)],
         ["Last sync", when(st.lastSyncAt)],
         [
-          connector === "google_calendar" ? "Reminders sent last sync" : "Records added last sync",
+          connector === "google_calendar"
+            ? "Reminders sent last sync"
+            : "Items prepared last check",
           String(st.lastSyncCount),
         ],
         ["Imports go to", current.name],
@@ -303,6 +323,82 @@ export function GoogleOverviewFields({ id }: { id: string }) {
           </div>
         ))}
       </dl>
+      {!!queue.data?.length && (
+        <section className="mt-6 space-y-2 border-t pt-4">
+          <h3 className="font-semibold">Ready for review ({queue.data.length})</h3>
+          {queue.data.map((d) => (
+            <div key={d.id} className="flex flex-wrap items-center gap-2">
+              <span className="flex-1">{d.title}</span>
+              {d.state === "pending_evidence" ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      await decideReview({
+                        data: {
+                          id: d.id,
+                          workspaceId: current.id,
+                          connector: provider,
+                          records: [],
+                          property: null,
+                          room: "",
+                          reject: false,
+                        },
+                      });
+                      await refresh();
+                    } catch {
+                      toast.error("Could not attach the evidence.");
+                    }
+                  }}
+                >
+                  Retry attaching evidence
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setSelected(d.id)}
+                    className="rounded-full bg-primary px-3 py-1.5 text-primary-foreground"
+                  >
+                    Review
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await decideReview({
+                          data: {
+                            id: d.id,
+                            connector: provider,
+                            workspaceId: current.id,
+                            property: null,
+                            room: "",
+                            records: [],
+                            reject: true,
+                          },
+                        });
+                        await refresh();
+                      } catch {
+                        toast.error("Couldn't dismiss this item.");
+                      }
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+      {draft && (
+        <AddAnything
+          key={draft.id}
+          initial={provider === "google_drive" ? "document" : "email"}
+          review={{ ...draft, provider }}
+          onClose={() => {
+            setSelected(null);
+            void refresh();
+          }}
+        />
+      )}
       {connector === "google_drive" && usable && (
         <div className="mt-6 space-y-3 border-t pt-6">
           <p className="font-semibold">Import from Google Drive</p>
@@ -344,15 +440,6 @@ export function GoogleOverviewFields({ id }: { id: string }) {
               </button>
             </div>
           ))}
-          {lastLinks && (
-            <Link
-              to="/app/$section/$id"
-              params={{ section: "documents", id: lastLinks }}
-              className="inline-block text-sm font-medium text-primary"
-            >
-              Open the last imported document →
-            </Link>
-          )}
         </div>
       )}
     </div>

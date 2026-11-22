@@ -73,7 +73,6 @@ export async function deleteConnectionForUser(userId: string, connectorId: strin
     .delete()
     .eq("user_id", userId)
     .eq("connector_id", connectorId);
-  await db.from("google_sync_links").delete().eq("user_id", userId).eq("connector_id", connectorId);
 }
 
 export async function getLinks(userId: string, connectorId: string, externalIds: string[]) {

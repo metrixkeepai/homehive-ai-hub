@@ -544,3 +544,67 @@ test("settled provider usage releases only its own reservation and records econo
     /permission denied/,
   );
 });
+
+test("Sera counts the exact scope, follows approved links and filters upcoming records", async () => {
+  const ins = async (user, section, title, fields = [], ws = null) =>
+    (
+      await db.query(
+        "insert into home_items(user_id,section,title,fields,workspace_id) values($1,$2,$3,$4,$5) returning id",
+        [user, section, title, JSON.stringify(fields), ws],
+      )
+    ).rows[0].id;
+  const asset = await ins(a, "assets", "RagProbe Bosch dishwasher");
+  const doc = await ins(a, "documents", "Purchase voucher", [["Source", "Gmail"]]);
+  await ins(b, "assets", "RagProbe Other tenant");
+  await db.query(
+    "insert into record_links(user_id,source_item_id,target_item_id,relationship_type) values($1,$2,$3,'EXTRACTED_FROM')",
+    [a, asset, doc],
+  );
+  const ask = async (intent) =>
+    (await asUser(a, "select sera_retrieve(null,null,$1) r", [JSON.stringify(intent)])).rows[0].r;
+  assert.equal((await ask({ mode: "count", section: "assets", words: ["ragprobe"] })).total, 1);
+  const related = await ask({ mode: "related", words: ["ragprobe"] });
+  assert.deepEqual(new Set(related.rows.map((r) => r.id)), new Set([asset, doc]));
+  assert.equal(
+    (await ask({ mode: "list", section: "documents", source: "Gmail", words: [] })).rows.some(
+      (r) => r.id === doc,
+    ),
+    true,
+  );
+  assert.equal((await ask({ mode: "search", words: ["xyznonexistent"] })).total, 0);
+});
+test("connector proposal stays outside normal records until approval, then retries reuse saved IDs", async () => {
+  const key = "reviewFixture",
+    prep = [
+      { title: "Test kettle", section: "assets", subtitle: "", fields: [], relates_to: "Receipt" },
+      { title: "Receipt", section: "documents", subtitle: "", fields: [], relates_to: "" },
+    ];
+  const id = (
+    await db.query(
+      "insert into connector_reviews(user_id,provider,external_key,title,source,proposals) values($1,'google_mail',$2,'Test receipt',$3,$4) returning id",
+      [a, key, JSON.stringify([["Source", "Gmail"]]), JSON.stringify(prep)],
+    )
+  ).rows[0].id;
+  assert.equal(
+    (await asUser(b, "select id from connector_reviews where id=$1", [id])).rows.length,
+    0,
+  );
+  const sql = "select confirm_connector_review($1,$2,null,null,'',$3,null) r";
+  await assert.rejects(asUser(b, sql, [id, a, JSON.stringify(prep)]));
+  assert.equal(
+    (await db.query("select count(*) from home_items where title='Test kettle'")).rows[0].count,
+    0,
+  );
+  const commit = async () => (await db.query(sql, [id, a, JSON.stringify(prep)])).rows[0].r;
+  const saved = await commit();
+  assert.deepEqual(await commit(), saved);
+  assert.equal(saved.length, 2);
+  assert.ok(
+    (
+      await db.query("select 1 from record_links where source_item_id=$1 and target_item_id=$2", [
+        saved[0].id,
+        saved[1].id,
+      ])
+    ).rows.length,
+  );
+});
