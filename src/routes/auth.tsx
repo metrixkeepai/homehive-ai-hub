@@ -296,6 +296,9 @@ function AuthPage() {
                   </>
                 )}
                 <form
+                  ref={(form) => {
+                    if (form) form.dataset["interactive"] = "true";
+                  }}
                   onSubmit={submit}
                   className={`space-y-3 ${mode === "up" || !googleEnabled ? "mt-6" : ""}`}
                 >

@@ -124,9 +124,7 @@ try {
   const didLogin = await check("browser fixture sign-in", async () => {
     await navigate(base + "/auth");
     // Wait for client hydration before using the server-rendered form.
-    const toggle = page.getByRole("button", { name: "Show password", exact: true });
-    await toggle.click();
-    await page.getByRole("button", { name: "Hide password", exact: true }).click();
+    await page.locator('form[data-interactive="true"]').waitFor({ timeout: 45000 });
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
@@ -271,15 +269,24 @@ try {
   await check("Super Admin connector monitoring", async () => {
     const admin = await browser.newPage();
     admin.setDefaultTimeout(35000);
+    let phase = "open sign-in";
     try {
       await admin.goto(base + "/super-admin/login", { waitUntil: "domcontentloaded" });
-      await admin.getByLabel("Email", { exact: true }).fill(process.env.SUPER_ADMIN_EMAIL);
+      phase = "wait for sign-in form";
+      await admin.locator('form[data-interactive="true"]').waitFor({ timeout: 45000 });
+      phase = "authenticate";
+      await admin.getByLabel("Email", { exact: true }).fill(process.env.SUPER_ADMIN_EMAIL.trim());
       await admin.getByLabel("Password", { exact: true }).fill(process.env.SUPER_ADMIN_PASSWORD);
       await admin.locator("form button[type=submit]").click();
-      await admin.waitForURL((url) => /^\/super-admin\/?$/.test(url.pathname));
+      await admin.waitForURL((url) => /^\/super-admin\/?$/.test(url.pathname), {
+        waitUntil: "domcontentloaded",
+        timeout: 45000,
+      });
+      phase = "load integration monitoring";
       await admin.goto(base + "/super-admin/integrations", { waitUntil: "domcontentloaded" });
       const configured = {};
       for (const provider of ["Gmail", "Google Drive", "Outlook", "OneDrive"]) {
+        phase = "verify " + provider + " metrics";
         const card = admin
           .locator("article")
           .filter({ has: admin.getByRole("heading", { name: provider, exact: true }) });
@@ -289,7 +296,7 @@ try {
       }
       return { configured };
     } catch {
-      throw Error("Staging administrator login or metrics verification failed");
+      throw Error("Could not " + phase + " at " + new URL(admin.url()).pathname);
     } finally {
       await admin.close();
     }

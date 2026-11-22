@@ -75,6 +75,9 @@ function AdminLogin() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-midnight px-4">
       <form
+        ref={(form) => {
+          if (form) form.dataset["interactive"] = "true";
+        }}
         onSubmit={submit}
         className="w-full max-w-sm rounded-2xl border border-midnight-foreground/10 bg-card p-8 shadow-xl"
       >
