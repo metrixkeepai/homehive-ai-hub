@@ -1,4 +1,10 @@
 import { type GoogleConnector } from "./google-config";
+export class GoogleHttpError extends Error {
+  constructor(readonly status: number) {
+    super(`Google request failed (${status})`);
+  }
+}
+
 /** Call Google as the signed-in user; marks the connection for reconnect when the grant is no longer valid. */
 export async function google(
   userId: string,
@@ -33,7 +39,7 @@ export async function google(
     console.error(
       JSON.stringify({ event: "google_request_failed", connector, status: res.status }),
     );
-    throw new Error(`Google request failed (${res.status})`);
+    throw new GoogleHttpError(res.status);
   }
   return res;
 }

@@ -198,38 +198,43 @@ export const syncCalendar = createServerFn({ method: "POST" })
           },
           extendedProperties: { private: { matrixkeepItem: d.id } },
         };
+        const { google, GoogleHttpError } = await import("./google-scan.server");
+        const collection = "/calendar/v3/calendars/primary/events";
+        const write = async (method: "POST" | "PUT", id: string) => {
+          const path = method === "PUT" ? collection + "/" + encodeURIComponent(id) : collection;
+          const response = await google(userId, c, path, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(method === "POST" ? { ...ev, id } : ev),
+          });
+          const event = await response.json();
+          if (typeof event.id !== "string" || event.id !== id)
+            throw Error("Unexpected calendar event");
+          return id;
+        };
         const existing = links.get(d.id)?.google_id;
         let eventId: string | null = null;
         if (existing) {
           try {
-            const r = await (
-              await import("./google-scan.server")
-            ).google(
-              userId,
-              c,
-              `/calendar/v3/calendars/primary/events/${encodeURIComponent(existing)}`,
-              {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(ev),
-              },
-            );
-            eventId = ((await r.json()) as { id: string }).id;
+            eventId = await write("PUT", existing);
             updated++;
           } catch (e) {
-            if (e instanceof Error && e.message === "RECONNECT") throw e;
+            if (!(e instanceof GoogleHttpError && [404, 410].includes(e.status))) throw e;
           }
         }
         if (!eventId) {
-          const r = await (
-            await import("./google-scan.server")
-          ).google(userId, c, "/calendar/v3/calendars/primary/events", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(ev),
-          });
-          eventId = ((await r.json()) as { id: string }).id;
-          created++;
+          const { createHash } = await import("node:crypto");
+          const id = createHash("sha256")
+            .update([userId, d.id, existing ?? ""].join("/"))
+            .digest("hex");
+          try {
+            eventId = await write("POST", id);
+            created++;
+          } catch (e) {
+            if (!(e instanceof GoogleHttpError && e.status === 409)) throw e;
+            eventId = await write("PUT", id);
+            updated++;
+          }
         }
         await saveLink(userId, c, d.id, d.id, eventId);
       }
