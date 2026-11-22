@@ -169,6 +169,26 @@ try {
     ["no result", "Where is my nonexistent ZirconWidget?", "couldn't find"],
   ]) {
     await check(name, async () => {
+      // Respect the staging rate limit for this single, deliberately busy QA identity.
+      const limit = await db
+        .from("runtime_limits")
+        .select("requests_per_minute")
+        .eq("singleton", true)
+        .single();
+      const recent = await db
+        .from("operation_reservations")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .gte("created_at", new Date(Date.now() - 60000).toISOString())
+        .order("created_at");
+      if (limit.error || recent.error) throw Error("QA pacing unavailable");
+      if (recent.data.length >= limit.data.requests_per_minute)
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            Math.max(0, Date.parse(recent.data[0].created_at) + 61500 - Date.now()),
+          ),
+        );
       await navigate(base + (name === "property scope" ? "/app/my-home/" + property : "/app"));
       await page.getByRole("button", { name: "Ask Sera", exact: true }).click();
       await page.getByPlaceholder("Where's the receipt for the TV?").fill(q);
@@ -247,6 +267,32 @@ try {
     await page.getByText(/You reviewed.*Reviewed kettle/).waitFor();
     await page.getByRole("button", { name: /^AI insight$/i }).click();
     await page.getByText(/Adding the serial number/).waitFor();
+  });
+  await check("Super Admin connector monitoring", async () => {
+    const admin = await browser.newPage();
+    admin.setDefaultTimeout(35000);
+    try {
+      await admin.goto(base + "/super-admin/login", { waitUntil: "domcontentloaded" });
+      await admin.getByLabel("Email", { exact: true }).fill(process.env.SUPER_ADMIN_EMAIL);
+      await admin.getByLabel("Password", { exact: true }).fill(process.env.SUPER_ADMIN_PASSWORD);
+      await admin.locator("form button[type=submit]").click();
+      await admin.waitForURL((url) => /^\/super-admin\/?$/.test(url.pathname));
+      await admin.goto(base + "/super-admin/integrations", { waitUntil: "domcontentloaded" });
+      const configured = {};
+      for (const provider of ["Gmail", "Google Drive", "Outlook", "OneDrive"]) {
+        const card = admin
+          .locator("article")
+          .filter({ has: admin.getByRole("heading", { name: provider, exact: true }) });
+        await card.getByText(/AI calls.*estimated provider cost/).waitFor();
+        await card.getByText(/Background checks:.*successful/).waitFor();
+        configured[provider] = (await card.getByText(/^Configured ·/).count()) > 0;
+      }
+      return { configured };
+    } catch {
+      throw Error("Staging administrator login or metrics verification failed");
+    } finally {
+      await admin.close();
+    }
   });
 } finally {
   await browser.close();

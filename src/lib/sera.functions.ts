@@ -39,7 +39,7 @@ export const askSera = createServerFn({ method: "POST" })
               id: z.string().uuid(),
               title: z.string(),
               section: z.string(),
-              subtitle: z.string(),
+              subtitle: z.string().nullable(),
               fields: z.array(z.unknown()),
               due: z.string().nullable(),
             }),

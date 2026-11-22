@@ -46,6 +46,22 @@ vi.mock("@/integrations/lovable/appUserConnector", () => ({
   appUserReconnectRequired: async () => false,
   callAsAppUser: async ({ path, requiredScopes }: { path: string; requiredScopes: string[] }) => {
     fx.requests.push(path);
+    if (path.startsWith("/drive/v3/")) {
+      expect(requiredScopes).toContain("https://www.googleapis.com/auth/drive.readonly");
+      const f = {
+        id: "fixture-invoice",
+        name: "invoice.pdf",
+        mimeType: "application/pdf",
+        size: "12",
+        modifiedTime: "2026-11-20T00:00:00Z",
+      };
+      if (path.includes("/about?"))
+        return Response.json({ user: { emailAddress: "drive@example.invalid" } });
+      if (path.includes("/files?"))
+        return Response.json({ files: [f, { ...f, id: "ignore", name: "holiday.jpg" }] });
+      if (!path.includes(f.id)) throw Error("Irrelevant file fetched");
+      return path.endsWith("?alt=media") ? new Response("%PDF-fixture") : Response.json(f);
+    }
     expect(requiredScopes).toContain("https://www.googleapis.com/auth/gmail.readonly");
     const url = new URL(path, "https://google.test");
     if (path.endsWith("/profile")) return Response.json({ emailAddress: "qa@example.invalid" });
@@ -80,7 +96,7 @@ vi.mock("@/integrations/lovable/appUserConnector", () => ({
     });
   },
 }));
-import { scanGmail } from "./google-scan.server";
+import { scanGmail, scanDrive, importDrive } from "./google-scan.server";
 beforeEach(() => {
   fx.requests.length = 0;
   fx.queued.clear();
@@ -100,4 +116,13 @@ it("stops before requesting messages when the connector grant was deleted", asyn
   fx.disconnected = true;
   await expect(scanGmail("fixture-user", null)).rejects.toThrow();
   expect(fx.requests).toHaveLength(0);
+});
+
+it("discovers a Drive invoice and coalesces repeated explicit file imports", async () => {
+  expect(await scanDrive("fixture-user", null)).toMatchObject({ created: 1, candidates: 1 });
+  expect(await importDrive("fixture-user", null, "fixture-invoice")).toEqual({ created: 0 });
+  expect(fx.requests.filter((x) => x.endsWith("?alt=media"))).toHaveLength(1);
+  expect(fx.watermark).toBeGreaterThan(0);
+  fx.disconnected = true;
+  await expect(importDrive("fixture-user", null, "fixture-invoice")).rejects.toThrow();
 });

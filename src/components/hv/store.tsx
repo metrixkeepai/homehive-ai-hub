@@ -144,16 +144,33 @@ function recordJourney(r: Row): [string, string][] {
   const when = new Date(r.created_at).toLocaleString();
   if (!source || !fields.has("Reviewed on")) return [[when, "Added by you"]];
   const origin = fields.get("Email subject") ?? fields.get("File name");
-  return [
-    [
-      fields.get("Found on") ?? when,
-      origin ? `Found “${origin}” in your ${source}.` : `Found in your ${source}.`,
-    ],
-    [
-      when,
-      `You reviewed “${r.title}” and saved it${fields.get("Location") ? " to " + fields.get("Location") : ""}${fields.get("Room") ? " · " + fields.get("Room") : ""}.`,
-    ],
+  const foundAt = fields.get("Found on");
+  const parsed = foundAt ? Date.parse(foundAt) : NaN;
+  const found = Number.isFinite(parsed) ? new Date(parsed).toLocaleString() : when;
+  const journey: [string, string][] = [
+    [found, origin ? `Found “${origin}” in your ${source}.` : `Found in your ${source}.`],
   ];
+  const details = [
+    "Retailer",
+    "Purchase date",
+    "Price",
+    "Warranty duration",
+    "Renewal date",
+    "Provider",
+  ].filter((k) => fields.get(k));
+  if (foundAt) journey.push([found, `Prepared “${r.title}” for your review.`]);
+  if (details.length)
+    journey.push([
+      when,
+      "Details you confirmed include " +
+        details.map((k) => k.toLowerCase() + " (" + fields.get(k) + ")").join(", ") +
+        ".",
+    ]);
+  journey.push([
+    when,
+    `You reviewed “${r.title}” and saved it${fields.get("Location") ? " to " + fields.get("Location") : ""}${fields.get("Room") ? " · " + fields.get("Room") : ""}.`,
+  ]);
+  return journey;
 }
 const toItem = (r: Row): Item => ({
   id: r.id,

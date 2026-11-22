@@ -727,6 +727,7 @@ export function AddAnything({
                 <label className="text-xs font-medium text-muted-foreground">
                   {biz ? "Location" : "Property"}
                   <select
+                    aria-label={biz ? "Location" : "Property"}
                     value={location}
                     onChange={(e) => {
                       setLocation(e.target.value);
@@ -749,6 +750,7 @@ export function AddAnything({
                 <label className="text-xs font-medium text-muted-foreground">
                   Room
                   <select
+                    aria-label="Room"
                     value={room}
                     onChange={(e) => setRoom(e.target.value)}
                     className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm text-foreground"

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { readFileSync, readdirSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import { toJSONAsync, fromCrossJSON } from "seroval";
@@ -63,8 +64,7 @@ export async function fixtureQA({ db, auth, base, session, user, property, check
       .gte("created_at", start);
     if (paid.error || !paid.count) throw Error("Initial extraction usage missing");
     const second = await post("extractRecords", input);
-    if (JSON.stringify(first.records) !== JSON.stringify(second.records))
-      throw Error("Repeat extraction changed");
+    if (!isDeepStrictEqual(first.records, second.records)) throw Error("Repeat extraction changed");
     const usage = await db
       .from("ai_usage_log")
       .select("cost_usd,ok")

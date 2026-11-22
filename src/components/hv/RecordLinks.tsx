@@ -8,6 +8,7 @@ type L = {
   id: string;
   section: string;
   title: string;
+  fields: [string, string][];
   label: string;
   via: string | null;
   at: string;
@@ -31,6 +32,7 @@ export function useRecordLinks(itemId: string) {
       const { data } = await supabase
         .from("record_links")
         .select("source_item_id,target_item_id,relationship_type,source_capture_type,created_at")
+        .eq("confirmed", true)
         .or(`source_item_id.eq.${itemId},target_item_id.eq.${itemId}`);
       const rows = data ?? [];
       const ids = [
@@ -39,7 +41,7 @@ export function useRecordLinks(itemId: string) {
         ),
       ];
       const { data: items } = ids.length
-        ? await supabase.from("home_items").select("id,section,title").in("id", ids)
+        ? await supabase.from("home_items").select("id,section,title,fields").in("id", ids)
         : { data: [] };
       const byId = new Map((items ?? []).map((i) => [i.id, i]));
       const out = rows.flatMap((r) => {
@@ -52,6 +54,12 @@ export function useRecordLinks(itemId: string) {
             id: other.id,
             section: other.section,
             title: other.title,
+            fields: Array.isArray(other.fields)
+              ? other.fields.filter(
+                  (v): v is [string, string] =>
+                    Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === "string"),
+                )
+              : [],
             label: outgoing ? lbl[1] : lbl[0],
             via: r.source_capture_type,
             at: r.created_at,
