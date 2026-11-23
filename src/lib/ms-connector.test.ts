@@ -173,6 +173,7 @@ it("browses OneDrive, queues its file once and preserves the file version", asyn
     name: "Invoice.pdf",
     file: { mimeType: "application/pdf" },
     size: 12,
+    lastModifiedDateTime: "2026-11-21T09:00:00Z",
     eTag: "v1",
     parentReference: { driveId: "drive" },
   };
@@ -182,7 +183,15 @@ it("browses OneDrive, queues its file once and preserves the file version", asyn
       : Response.json(u.pathname.endsWith("/children") ? { value: [f] } : f),
   );
   vi.stubGlobal("fetch", graph);
-  expect(await browse("alice", "")).toEqual([{ id: "a", name: "Invoice.pdf" }]);
+  expect(await browse("alice", "")).toEqual([
+    {
+      id: "a",
+      name: "Invoice.pdf",
+      size: 12,
+      mimeType: "application/pdf",
+      modifiedTime: f.lastModifiedDateTime,
+    },
+  ]);
   expect(await importMsFile(scope, "a")).toBe(1);
   expect(await importMsFile(scope, "a")).toBe(0);
   expect(graph.mock.calls.filter(([u]) => u.pathname.endsWith("/content"))).toHaveLength(1);

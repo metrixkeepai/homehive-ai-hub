@@ -1,3 +1,10 @@
+import {
+  ConnectorBadge,
+  ConnectorFields,
+  DriveBrowser,
+  connectorButton as btn,
+  when,
+} from "./ConnectorPresentation";
 import { Locked } from "./Feature";
 import { ConnectorChecks } from "./ConnectorChecks";
 import { useState } from "react";
@@ -5,7 +12,7 @@ import { AddAnything } from "./AddAnything";
 import { pendingReviews, decideReview, rereadConnectorItem } from "@/lib/google.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useStore, toneClass } from "./store";
+import { useStore } from "./store";
 import {
   getGoogleStatus,
   startGoogleConnect,
@@ -80,9 +87,6 @@ async function handle<R extends object>(
   }
   return r as Exclude<R, { error: string }>;
 }
-
-const when = (s: string | null) =>
-  s ? new Date(s).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "Never";
 
 export function GoogleIntegration({ id }: { id: string }) {
   const connector = googleConnectorFor[id] as GoogleConnector;
@@ -176,15 +180,9 @@ export function GoogleIntegration({ id }: { id: string }) {
         : st?.connected
           ? ["Connected", "success"]
           : ["Not connected", "muted"];
-  const btn = "rounded-full px-4 py-2 text-sm font-semibold transition disabled:opacity-50";
-
   return (
     <>
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass(badge[1])}`}>
-          {badge[0]}
-        </span>
-      </div>
+      <ConnectorBadge label={badge[0]} tone={badge[1]} />
       <div className="mt-6 flex flex-wrap gap-2">
         {(!st?.connected || st.reconnectRequired) && (
           <button
@@ -317,57 +315,18 @@ export function GoogleOverviewFields({ id }: { id: string }) {
   const usable = !!st?.connected && !st.reconnectRequired;
   return (
     <div>
-      <dl className="grid gap-4 sm:grid-cols-2">
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt>
-            <dd className="mt-1 font-medium">{v}</dd>
-          </div>
-        ))}
-      </dl>
+      <ConnectorFields rows={rows} />
       {connector !== "google_calendar" && <ConnectorReviews provider={provider} />}
       {connector === "google_drive" && usable && (
-        <div className="mt-6 space-y-3 border-t pt-6">
-          <p className="font-semibold">Import from Google Drive</p>
-          <div className="flex gap-2">
-            <input
-              aria-label="Search Drive files"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search file names (PDFs and photos)"
-              className="min-w-0 flex-1 rounded-md border bg-card px-3 py-2 text-sm"
-            />
-            <button
-              onClick={browse}
-              disabled={!!busy}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {busy === "browse" ? "Loading…" : files ? "Search" : "Choose files"}
-            </button>
-          </div>
-          {files && files.length === 0 && (
-            <p className="text-sm text-muted-foreground">No PDFs or photos found.</p>
-          )}
-          {files?.map((f) => (
-            <div key={f.id} className="flex items-center gap-3 rounded-2xl border p-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{f.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {f.mimeType === "application/pdf" ? "PDF" : "Photo"} ·{" "}
-                  {(f.size / 1024 / 1024).toFixed(1)} MB ·{" "}
-                  {new Date(f.modifiedTime).toLocaleDateString("en-GB")}
-                </p>
-              </div>
-              <button
-                disabled={!!busy}
-                onClick={() => importFile(f.id)}
-                className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                {busy === f.id ? "Importing…" : "Import"}
-              </button>
-            </div>
-          ))}
-        </div>
+        <DriveBrowser
+          name="Google Drive"
+          search={search}
+          onSearch={setSearch}
+          onBrowse={browse}
+          onImport={importFile}
+          files={files}
+          busy={busy}
+        />
       )}
     </div>
   );
@@ -398,7 +357,7 @@ export function ConnectorReviews({
           <h3 className="font-semibold">Ready for review ({queue.data.length})</h3>
           {queue.data.map((d) => (
             <div key={d.id} className="flex flex-wrap items-center gap-2">
-              <span className="flex-1">{d.title}</span>
+              <span className="min-w-0 basis-full break-words sm:flex-1">{d.title}</span>
               {d.state === "pending_evidence" ? (
                 <button
                   onClick={async () => {

@@ -1,5 +1,8 @@
 import { RecordInsight } from "@/components/hv/RecordInsight";
-import { MicrosoftIntegration } from "@/components/hv/MicrosoftIntegration";
+import {
+  MicrosoftIntegration,
+  MicrosoftOverviewFields,
+} from "@/components/hv/MicrosoftIntegration";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
@@ -108,6 +111,8 @@ function Detail() {
     );
   }
 
+  const microsoft =
+    section === "integrations" && (id === "outlook" || id === "onedrive") ? id : null;
   const isGoogle = section === "integrations" && !!googleConnectorFor[id];
   const shownTabs = tabs.filter((t) => t !== "Items" || section === "rooms" || isProperty);
   if (
@@ -167,8 +172,8 @@ function Detail() {
         <p className="text-sm text-midnight-foreground/60">{s.title}</p>
         <h1 className="mt-1 font-display text-4xl">{item.title}</h1>
         <p className="mt-2 text-midnight-foreground/70">{item.subtitle}</p>
-        {section === "integrations" && (id === "outlook" || id === "onedrive") ? (
-          <MicrosoftIntegration provider={id} />
+        {microsoft ? (
+          <MicrosoftIntegration provider={microsoft} />
         ) : isGoogle ? (
           <GoogleIntegration id={id} />
         ) : (
@@ -337,9 +342,13 @@ function Detail() {
       </div>
 
       <section className="rounded-3xl border bg-card p-6 shadow-soft">
+        {tab === "Overview" && microsoft && (
+          <MicrosoftOverviewFields key={microsoft} provider={microsoft} />
+        )}
         {tab === "Overview" && isGoogle && <GoogleOverviewFields id={id} />}
         {tab === "Overview" &&
           !isGoogle &&
+          !microsoft &&
           (item.fields.length ? (
             <dl className="grid gap-4 sm:grid-cols-2">
               {item.fields.map(([k, v]) => (
@@ -356,6 +365,7 @@ function Detail() {
           ))}
         {tab === "Overview" &&
           !isGoogle &&
+          !microsoft &&
           own &&
           section !== "documents" &&
           (() => {

@@ -240,6 +240,79 @@ try {
         });
     });
   }
+  await check("Microsoft disconnected, connected and reconnect layouts", async () => {
+    const visit = async (provider) => {
+      await navigate(base + "/app/integrations/" + provider);
+      await page
+        .getByRole("heading", {
+          name: provider === "outlook" ? "Outlook" : "OneDrive",
+          exact: true,
+        })
+        .waitFor();
+    };
+    await visit("outlook");
+    await page.getByRole("button", { name: "Connect", exact: true }).waitFor();
+    for (const provider of ["outlook", "onedrive"]) {
+      const row = {
+        user_id: user.id,
+        connector_id: provider,
+        connection_key_ciphertext: "ui-fixture-only",
+      };
+      const install = await db.from("app_user_connections").insert(row);
+      if (install.error) throw Error("Could not prepare layout fixture");
+      const draft = await db
+        .from("connector_reviews")
+        .insert({
+          user_id: user.id,
+          provider,
+          external_key: randomUUID(),
+          title: "Long receipt title " + "A".repeat(100),
+          source: [],
+          proposals: [],
+        });
+      if (draft.error) throw Error("Could not prepare review layout fixture");
+      for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await visit(provider);
+        const hero = page
+          .locator("section")
+          .filter({ has: page.getByRole("heading", { level: 1 }) });
+        await hero.getByText("Connected", { exact: true }).waitFor();
+        await hero.getByRole("button", { name: "Disconnect", exact: true }).waitFor();
+        await hero.getByRole("button", { name: "Sync now", exact: true }).waitFor();
+        const review = page.getByRole("button", { name: "Review", exact: true });
+        await review.waitFor();
+        if (await hero.getByRole("button", { name: "Review", exact: true }).count())
+          throw Error("Review inside hero");
+        await page.getByText("Connected since", { exact: true }).waitFor();
+        if (provider === "onedrive")
+          await page.getByRole("textbox", { name: "Search OneDrive files" }).waitFor();
+        const clipped = await page.evaluate(
+          () =>
+            document.documentElement.scrollWidth > innerWidth + 1 ||
+            Array.from(document.querySelectorAll("section button")).some(
+              (el) => el.getBoundingClientRect().width > 0 && el.scrollWidth > el.clientWidth + 2,
+            ),
+        );
+        if (clipped) throw Error("Clipped connector at " + width);
+      }
+      await page.getByRole("button", { name: "Activity", exact: true }).click();
+      if (await page.getByRole("button", { name: "Review", exact: true }).count())
+        throw Error("Review escaped Overview");
+      if (provider === "outlook") {
+        const r = await db
+          .from("app_user_connections")
+          .update({ reconnect_required: true })
+          .eq("connector_id", provider)
+          .eq("user_id", user.id);
+        if (r.error) throw Error("Reconnect fixture unavailable");
+        await visit(provider);
+        await page.getByRole("button", { name: "Reconnect", exact: true }).waitFor();
+        if (await page.getByRole("button", { name: "Sync now", exact: true }).count())
+          throw Error("Reconnect offered sync");
+      }
+    }
+  });
   const draft = await db.from("connector_reviews").insert({
     user_id: user.id,
     provider: "google_mail",

@@ -5,7 +5,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { msStatus, msStart, msFinish, msDisconnect, msBrowse, msImport } from "@/lib/ms.functions";
 import { useStore } from "./store";
 import { ConnectorReviews } from "./GoogleIntegration";
-import { Button } from "@/components/ui/button";
+import {
+  ConnectorBadge,
+  ConnectorFields,
+  DriveBrowser,
+  connectorButton as btn,
+  when,
+  type DriveFile,
+} from "./ConnectorPresentation";
 import { toast } from "sonner";
 type Provider = "outlook" | "onedrive";
 function consent(popup: Window, url: string) {
@@ -38,11 +45,8 @@ function consent(popup: Window, url: string) {
 }
 export function MicrosoftIntegration({ provider }: { provider: Provider }) {
   const qc = useQueryClient(),
-    { current } = useStore(),
     status = useQuery({ queryKey: ["ms-status"], queryFn: () => msStatus() });
-  const [busy, setBusy] = useState(false),
-    [search, setSearch] = useState(""),
-    [files, setFiles] = useState<{ id: string; name: string }[]>([]);
+  const [busy, setBusy] = useState(false);
   const grant = status.data?.connections.find((c) => c.connector_id === provider);
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -74,77 +78,125 @@ export function MicrosoftIntegration({ provider }: { provider: Provider }) {
       }
     });
   }
-  function sync(fileId?: string) {
-    void run(async () => {
-      const n = await msImport({ data: { provider, workspaceId: current.id, fileId } });
-      toast.success(n ? n + " ready for review" : "No new items in this batch.");
-    });
-  }
   if (!status.data) return <p>{status.isError ? "Status unavailable" : "Checking…"}</p>;
   if (!grant && !status.data.eligible[provider])
     return <Locked name={provider === "onedrive" ? "OneDrive" : "Outlook"} />;
   return (
-    <div className="mt-5 space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <p className="text-sm text-muted-foreground">
-          Connecting gives MatrixKeep read access to this service. Relevant content can be sent to
-          OpenAI for extraction. You review proposed records before saving.
-        </p>
-        <Button
-          disabled={busy || !status.data?.configured || !status.data.eligible[provider]}
-          onClick={connect}
-        >
-          {status.data && !status.data.configured
-            ? "Setup required"
-            : status.data && !status.data.eligible[provider]
-              ? "Plan upgrade required"
-              : grant
-                ? "Reconnect"
-                : "Connect"}
-        </Button>
+    <>
+      <ConnectorBadge
+        label={
+          grant?.reconnect_required ? "Reconnect needed" : grant ? "Connected" : "Not connected"
+        }
+        tone={grant?.reconnect_required ? "warning" : grant ? "success" : "muted"}
+      />
+      <div className="mt-6 flex flex-wrap gap-2">
+        {(!grant || grant.reconnect_required) && (
+          <button
+            className={`${btn} bg-aurora text-primary-foreground`}
+            disabled={busy || !status.data.configured || !status.data.eligible[provider]}
+            onClick={connect}
+          >
+            {!status.data.configured
+              ? "Setup required"
+              : !status.data.eligible[provider]
+                ? "Plan upgrade required"
+                : grant
+                  ? "Reconnect"
+                  : "Connect"}
+          </button>
+        )}
         {grant && (
-          <>
-            <Button
-              disabled={busy}
-              onClick={() => {
-                if (confirm("Disconnect this account? Saved records stay in MatrixKeep."))
-                  void run(async () => {
-                    await msDisconnect({ data: provider });
-                    setFiles([]);
-                  });
-              }}
-            >
-              Disconnect
-            </Button>
-            {!grant.reconnect_required && <ConnectorChecks provider={provider} />}
-          </>
+          <button
+            className={`${btn} border border-midnight-foreground/20`}
+            disabled={busy}
+            onClick={() => {
+              if (confirm("Disconnect this account? Saved records stay in MatrixKeep."))
+                void run(async () => {
+                  await msDisconnect({ data: provider });
+                });
+            }}
+          >
+            Disconnect
+          </button>
         )}
       </div>
-      {grant && provider === "onedrive" && (
-        <div className="space-y-2">
-          <input
-            className="rounded border bg-card p-2 text-foreground"
-            aria-label="Search OneDrive files"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Button
-            disabled={busy}
-            onClick={() => void run(async () => setFiles(await msBrowse({ data: search })))}
-          >
-            Browse
-          </Button>
-          {files.map((f) => (
-            <div key={f.id}>
-              {f.name}{" "}
-              <Button disabled={busy} onClick={() => sync(f.id)}>
-                Import for review
-              </Button>
-            </div>
-          ))}
-        </div>
+      {grant && !grant.reconnect_required && <ConnectorChecks provider={provider} />}
+      {grant?.reconnect_required && (
+        <p className="mt-3 text-sm text-midnight-foreground/70">
+          Your Microsoft access needs to be renewed.
+        </p>
       )}
-      <ConnectorReviews provider={provider} />
-    </div>
+    </>
+  );
+}
+export function MicrosoftOverviewFields({ provider }: { provider: Provider }) {
+  const status = useQuery({ queryKey: ["ms-status"], queryFn: () => msStatus() });
+  const { current } = useStore();
+  const grant = status.data?.connections.find((c) => c.connector_id === provider);
+  const access =
+    provider === "outlook"
+      ? "Read-only. MatrixKeep checks relevant Outlook messages and attachments for receipts, invoices, warranties, renewals and other records. Selected content may be sent to OpenAI for extraction and is presented for review before saving."
+      : "Read-only. Choose files or opt in to checks for new documents. Selected files may be sent to OpenAI for extraction and are presented for review before saving.";
+  const rows: [string, string][] = grant
+    ? [
+        ["Account", "Connected Microsoft account"],
+        ["Connected since", when(grant.created_at)],
+        ["Last sync", when(grant.last_sync_at)],
+        ["Items prepared last check", String(grant.last_sync_count)],
+        ["Imports go to", current.name],
+        ["Access", access],
+      ]
+    : [
+        [
+          "Status",
+          status.isLoading ? "Checking…" : status.isError ? "Status unavailable" : "Not connected",
+        ],
+        ["Access when connected", access],
+        [
+          "Your account",
+          "Each person connects their own Microsoft account. Nobody else in MatrixKeep can use it.",
+        ],
+      ];
+  if (grant?.last_error) rows.push(["Last problem", grant.last_error]);
+  return (
+    <>
+      <ConnectorFields rows={rows} />
+      {(grant || status.data?.eligible[provider]) && <ConnectorReviews provider={provider} />}
+      {provider === "onedrive" && grant && <OneDriveBrowser key={grant.created_at} />}
+    </>
+  );
+}
+function OneDriveBrowser() {
+  const { current } = useStore();
+  const qc = useQueryClient();
+  const [files, setFiles] = useState<DriveFile[] | null>(null),
+    [search, setSearch] = useState(""),
+    [busy, setBusy] = useState<string | null>(null);
+  async function perform(fileId?: string) {
+    setBusy(fileId ?? "browse");
+    try {
+      if (fileId) {
+        const n = await msImport({
+          data: { provider: "onedrive", workspaceId: current.id, fileId },
+        });
+        toast.success(n ? n + " ready for review" : "No new items in this batch.");
+        await qc.invalidateQueries({ queryKey: ["connector-reviews"] });
+      } else setFiles(await msBrowse({ data: search }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Microsoft connector unavailable.");
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <DriveBrowser
+      name="OneDrive"
+      files={files}
+      search={search}
+      onSearch={setSearch}
+      onBrowse={() => void perform()}
+      onImport={(id) => void perform(id)}
+      busy={busy}
+    />
   );
 }

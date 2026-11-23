@@ -233,9 +233,23 @@ export async function browse(user: string, query: string) {
       "me/drive/" + segment + "?$top=30&$select=id,name,size,file,lastModifiedDateTime",
     )
   ).json();
-  return (r.value as { id: string; name: string; size: number; file?: { mimeType: string } }[])
+  return (
+    r.value as {
+      id: string;
+      name: string;
+      size: number;
+      lastModifiedDateTime: string;
+      file?: { mimeType: string };
+    }[]
+  )
     .filter((f) => eligible({ name: f.name, mime: f.file?.mimeType ?? "", size: f.size }))
-    .map((f) => ({ id: f.id, name: f.name }));
+    .map((f) => ({
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      mimeType: f.file!.mimeType,
+      modifiedTime: f.lastModifiedDateTime,
+    }));
 }
 export async function importMsFile(s: Scope, id: string) {
   const f = await (
