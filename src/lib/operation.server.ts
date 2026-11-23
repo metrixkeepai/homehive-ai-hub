@@ -1,4 +1,4 @@
-import { operationMeter } from "./ai-meter.server";
+import { operationMeter, scanBudget } from "./ai-meter.server";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
 
 export async function reserveOperation(
@@ -8,16 +8,20 @@ export async function reserveOperation(
   units = 1,
   estimate?: number,
 ) {
-  const { data, error } = await supabaseAdmin.rpc(
-    estimate === undefined ? "reserve_operation" : "reserve_ai_operation",
-    {
+  const reserve = () =>
+    supabaseAdmin.rpc(estimate === undefined ? "reserve_operation" : "reserve_ai_operation", {
       _user: userId,
       _workspace: workspaceId as string,
       _feature: feature,
       _units: units,
       ...(estimate === undefined ? {} : { _estimate: estimate }),
-    },
-  );
+    });
+  let { data, error } = await reserve();
+  if (scanBudget.getStore() && error?.message === "Rate limit reached") {
+    // Background scans share the user’s rolling minute allowance with interactive captures.
+    await new Promise((resolve) => setTimeout(resolve, 61000));
+    ({ data, error } = await reserve());
+  }
   if (error || !data)
     throw new Error("This operation is unavailable or its quota has been reached.");
   const meter = operationMeter.getStore();

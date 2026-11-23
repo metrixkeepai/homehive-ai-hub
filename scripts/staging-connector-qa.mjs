@@ -260,16 +260,15 @@ try {
       };
       const install = await db.from("app_user_connections").insert(row);
       if (install.error) throw Error("Could not prepare layout fixture");
-      const draft = await db
-        .from("connector_reviews")
-        .insert({
-          user_id: user.id,
-          provider,
-          external_key: randomUUID(),
-          title: "Long receipt title " + "A".repeat(100),
-          source: [],
-          proposals: [],
-        });
+      const reviewFixture = {
+        user_id: user.id,
+        provider,
+        external_key: randomUUID(),
+        title: "Long receipt title " + "A".repeat(100),
+        source: [],
+        proposals: [],
+      };
+      const draft = await db.from("connector_reviews").insert(reviewFixture);
       if (draft.error) throw Error("Could not prepare review layout fixture");
       for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 900 });

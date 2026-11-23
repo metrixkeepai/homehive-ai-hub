@@ -51,7 +51,24 @@ for (let batch = 0; batch < 8 && budget.remaining > 0 && Date.now() < end; batch
     if (e instanceof ScanBudgetReached) {
       more = true;
       budget.remaining = 0;
-    } else problem = "The check could not finish. Verify your connection and plan, then retry.";
+    } else {
+      const message = e instanceof Error ? e.message : "";
+      const safeProblems = [
+        "Extraction unavailable. Retry the scan.",
+        "File changed.",
+        "Unsupported or incomplete attachment",
+        "Could not save checkpoint.",
+        "Review unavailable",
+        "RECONNECT",
+      ];
+      const safeProviderStatus = /^(Microsoft|Google) request failed \([45]\d{2}\)\.?$/.test(
+        message,
+      );
+      problem =
+        safeProblems.includes(message) || safeProviderStatus
+          ? message
+          : "The check could not finish. Verify your connection and plan, then retry.";
+    }
   }
   const saved = await db
     .from("connector_checks")
