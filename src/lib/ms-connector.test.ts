@@ -10,7 +10,8 @@ const fx = vi.hoisted(() => ({
 }));
 vi.mock("./connector-review.server", () => ({
   requireConnectorPlan: async () => {},
-  eligible: (f: { mime: string; size: number }) => f.mime === "application/pdf" && f.size === 12,
+  eligible: (f: { mime: string; size: number }) =>
+    f.mime === "application/pdf" && f.size > 0 && f.size <= 4800000,
   scoped: (table: string) => ({
     eq: (_k: string, v: string) => ({
       maybeSingle: async () => ({
@@ -29,9 +30,10 @@ vi.mock("./connector-review.server", () => ({
     _title: string,
     _source: unknown,
     _text: string,
-    _file: unknown,
+    file: { size: number },
     bytes: Buffer,
   ) => {
+    expect(file.size).toBe(bytes.length);
     expect(bytes.toString()).toBe("%PDF-fixture");
     fx.queued.add(k);
     return 1;
@@ -152,7 +154,7 @@ it("reads the Outlook invoice attachment, excludes newsletters and skips a dupli
       });
     if (u.pathname.endsWith("/a/attachments"))
       return Response.json({
-        value: [{ id: "pdf", name: "invoice.pdf", size: 12, contentType: "application/pdf" }],
+        value: [{ id: "pdf", name: "invoice.pdf", size: 120, contentType: "application/pdf" }],
       });
     if (u.pathname.endsWith("/pdf/$value")) return new Response("%PDF-fixture");
     throw Error("Unexpected Graph request");

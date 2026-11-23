@@ -205,6 +205,8 @@ export async function msBytes(user: string, p: MS, file: Attachment) {
       ? "me/drive/items/" + enc(file.fileId!) + "/content"
       : "me/messages/" + enc(file.message!) + "/attachments/" + enc(file.attachmentId!) + "/$value";
   const r = await graph(user, p, path);
+  const firstOutlookRead = p === "outlook" && !file.hash;
+  const limit = firstOutlookRead ? 4800000 : file.size;
   const reader = r.body?.getReader();
   if (!reader) throw Error("Empty file");
   const parts: Uint8Array[] = [];
@@ -213,13 +215,13 @@ export async function msBytes(user: string, p: MS, file: Attachment) {
     const chunk = await reader.read();
     if (chunk.done) break;
     size += chunk.value.length;
-    if (size > file.size) {
+    if (size > limit) {
       await reader.cancel();
       throw Error("File changed.");
     }
     parts.push(chunk.value);
   }
-  if (size !== file.size) throw Error("File changed.");
+  if (!size || (!firstOutlookRead && size !== file.size)) throw Error("File changed.");
   return Buffer.concat(parts);
 }
 export async function browse(user: string, query: string) {
@@ -360,17 +362,18 @@ export async function scanOutlook(s: Scope) {
         skipped++;
         continue;
       }
-      if (a)
+      if (a) {
+        const bytes = await msBytes(s.user, "outlook", a);
         count += await queue(
           s,
           key,
           m.subject,
           [...source, ["Attachment", a.name]],
           "",
-          a,
-          await msBytes(s.user, "outlook", a),
+          { ...a, size: bytes.length },
+          bytes,
         );
-      else {
+      } else {
         const msg = await (await graph(s.user, "outlook", path + "?$select=body")).json();
         count += await queue(
           s,
