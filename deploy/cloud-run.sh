@@ -46,6 +46,19 @@ has_secret() {
 }
 binding() { local v; v=$(version "$2") || return 1; echo "$1=$2:$v"; }
 bind() { local line; line=$(binding "$1" "${2:-$1}"); secrets+=("$line"); }
+subject=$(git log -1 --format=%s)
+if [[ $APP_ENV == staging && $subject =~ \[inspect-ms:(matrixkeep-staging-web-[0-9]{5}-[a-z0-9]+)\] ]]; then
+  inspected_revision=${BASH_REMATCH[1]}
+  [[ $GCP_PROJECT_ID == matrixkeep-staging && $subject == *"[tag-only]"* ]]
+  key=MICROSOFT_CONNECTOR_CLIENT_SECRET
+  pinned=$(gcloud run revisions describe "$inspected_revision" "${common[@]}" --format=json |
+    jq -er --arg key "$key" '.spec.containers[0].env[] | select(.name==$key and .valueFrom.secretKeyRef.name==$key) | .valueFrom.secretKeyRef.key')
+  latest=$(version "$key")
+  [[ $pinned =~ ^[1-9][0-9]*$ && $latest =~ ^[1-9][0-9]*$ ]]
+  echo "Microsoft secret version pinned=$pinned newest_enabled=$latest"
+  python3 deploy/staging-ms-diagnostic.py "$inspected_revision" || echo "Outlook diagnostic unavailable"
+  ((latest > pinned)) || { echo "No newer enabled version to deploy"; exit 1; }
+fi
 secrets=()
 for key in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do bind "$key"; done
 bind VITE_SUPABASE_URL SUPABASE_URL
@@ -170,6 +183,8 @@ if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; the
     gcloud run services update-traffic "$service" "${common[@]}" --update-tags="connector-preview=$revision"
     state=$(gcloud run services describe "$service" "${common[@]}" --format=json)
     jq -e --arg rev "$revision" --arg url "$preview_origin" '.status.traffic | any(.tag=="connector-preview" and .revisionName==$rev and .url==$url)' <<< "$state" >/dev/null
+    gcloud run revisions describe "$revision" "${common[@]}" --format=json |
+      jq -r '.spec.containers[0].env[] | select(.name | test("^(GOOGLE_CONNECTOR_CLIENT_(ID|SECRET)|MICROSOFT_CONNECTOR_CLIENT_(ID|SECRET)|APP_USER_CONNECTION_KEY_SECRET)$")) | select(.valueFrom.secretKeyRef.key | test("^[1-9][0-9]*$")) | "Connector binding \(.name)=\(.valueFrom.secretKeyRef.key)"'
     check "$preview_origin"
     for path in privacy terms api/oauth/google/return api/oauth/microsoft/return; do
       status=$(curl --proto '=https' -fsS --max-time 20 -o /dev/null -w '%{http_code}' "$preview_origin/$path")
