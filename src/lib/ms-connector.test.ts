@@ -187,3 +187,40 @@ it("browses OneDrive, queues its file once and preserves the file version", asyn
   expect(await importMsFile(scope, "a")).toBe(0);
   expect(graph.mock.calls.filter(([u]) => u.pathname.endsWith("/content"))).toHaveLength(1);
 });
+
+it("records Microsoft's safe error code without exposing the provider response", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const state = new URL(
+      await start("alice", "outlook", "https://fixture.example"),
+    ).searchParams.get("state")!;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          {
+            error: "invalid_client",
+            error_codes: [7000215],
+            error_description: "sensitive-provider-detail",
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+    await expect(finish("alice", "outlook", state, "fixture-code")).rejects.toThrow(
+      "rejected the connector configuration",
+    );
+    expect(log).toHaveBeenCalledWith({
+      event: "microsoft_token_failure",
+      provider: "outlook",
+      grantType: "authorization_code",
+      status: 401,
+      oauth: "invalid_client",
+      codes: [7000215],
+      classification: "invalid_client_secret",
+    });
+    expect(fx.stored.size).toBe(0);
+  } finally {
+    log.mockRestore();
+  }
+});

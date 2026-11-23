@@ -56,19 +56,77 @@ export async function start(user: string, p: MS, origin: string) {
   );
 }
 type Grant = { access_token: string; refresh_token: string; expires_at: number };
+class MicrosoftConsentRequired extends Error {}
 async function exchange(p: MS, fields: Record<string, string>) {
-  const r = await fetch(base + "token", {
-    method: "POST",
-    body: new URLSearchParams({ ...config(), scope: scopes(p), ...fields }),
-    signal: AbortSignal.timeout(20000),
-  });
+  const body = new URLSearchParams({ ...config(), scope: scopes(p), ...fields });
+  const grantType = fields["grant_type"];
+  let r: Response;
+  try {
+    r = await fetch(base + "token", {
+      method: "POST",
+      body,
+      redirect: "error",
+      signal: AbortSignal.timeout(20000),
+    });
+  } catch {
+    console.error({
+      event: "microsoft_token_failure",
+      provider: p,
+      grantType,
+      status: null,
+      classification: "network",
+    });
+    throw Error("Could not reach Microsoft. Try again.");
+  }
   if (!r.ok) {
-    await r.body?.cancel();
-    throw Error(
-      r.status === 400
-        ? "Microsoft consent needs reconnecting."
-        : "Microsoft token service is unavailable.",
-    );
+    const detail = await r.json().catch(() => null);
+    const known = [
+      "invalid_client",
+      "invalid_grant",
+      "invalid_scope",
+      "unauthorized_client",
+      "invalid_request",
+      "interaction_required",
+      "temporarily_unavailable",
+      "server_error",
+    ];
+    const oauth = known.includes(detail?.error) ? String(detail.error) : "unknown";
+    const codes: number[] = Array.isArray(detail?.error_codes)
+      ? detail.error_codes
+          .filter(
+            (n: unknown) =>
+              typeof n === "number" && Number.isSafeInteger(n) && n > 0 && n < 100000000,
+          )
+          .slice(0, 4)
+      : [];
+    const classifications: Record<number, string> = {
+      7000215: "invalid_client_secret",
+      7000222: "expired_client_secret",
+      700016: "application_not_found",
+      50011: "redirect_mismatch",
+      501481: "pkce_mismatch",
+      70000: "invalid_grant",
+      70008: "expired_grant",
+      54005: "code_redeemed",
+    };
+    console.error({
+      event: "microsoft_token_failure",
+      provider: p,
+      grantType,
+      status: r.status,
+      oauth,
+      codes,
+      classification: codes.map((n) => classifications[n]).find(Boolean) ?? oauth,
+    });
+    if (oauth === "invalid_grant" || oauth === "interaction_required")
+      throw new MicrosoftConsentRequired(
+        "Microsoft consent expired or was revoked. Reconnect to continue.",
+      );
+    if (oauth === "invalid_client" || oauth === "invalid_scope" || oauth === "unauthorized_client")
+      throw Error(
+        "Microsoft rejected the connector configuration. Contact your MatrixKeep administrator.",
+      );
+    throw Error("Microsoft could not complete the connection. Try again.");
   }
   const t = await r.json();
   const refresh_token = t.refresh_token ?? fields["refresh_token"];
@@ -110,7 +168,8 @@ async function graph(user: string, p: MS, path: string) {
       grant_type: "refresh_token",
       refresh_token: grant.refresh_token,
     }).catch(async (e) => {
-      await markConnection(user, p, { reconnect_required: true });
+      if (e instanceof MicrosoftConsentRequired)
+        await markConnection(user, p, { reconnect_required: true });
       throw e;
     });
     const r = await db
