@@ -31,6 +31,8 @@ jobs:
       REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
       EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED || 'false' }}
+      GOOGLE_CONNECTOR_VERIFIED: ${{ vars.GOOGLE_CONNECTOR_VERIFIED || 'false' }}
+      MICROSOFT_CONNECTOR_VERIFIED: ${{ vars.MICROSOFT_CONNECTOR_VERIFIED || 'false' }}
       MIN_INSTANCES: ${{ vars.MIN_INSTANCES || '0' }}
       MAX_INSTANCES: ${{ vars.MAX_INSTANCES || '3' }}
       CONCURRENCY: ${{ vars.RUN_CONCURRENCY || '8' }}

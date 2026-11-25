@@ -75,9 +75,16 @@ if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
     if [[ $APP_ENV == production ]]; then stripe=live; fi
   fi
 fi
-if [[ $APP_ENV == staging ]]; then
-  for key in GOOGLE_CONNECTOR_CLIENT_ID GOOGLE_CONNECTOR_CLIENT_SECRET MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET; do bind "$key"; done
-fi
+for provider in GOOGLE MICROSOFT; do
+  if [[ $APP_ENV == production ]]; then
+    # Production readiness is set per provider in the protected GitHub environment.
+    verified_key=${provider}_CONNECTOR_VERIFIED
+    [[ ${!verified_key:-false} == true ]] || continue
+    version APP_USER_CONNECTION_KEY_SECRET >/dev/null
+  fi
+  bind "${provider}_CONNECTOR_CLIENT_ID"
+  bind "${provider}_CONNECTOR_CLIENT_SECRET"
+done
 if [[ $APP_ENV == staging ]]; then
   for key in GOOGLE_CONNECTOR_CLIENT_ID GOOGLE_CONNECTOR_CLIENT_SECRET MICROSOFT_CONNECTOR_CLIENT_ID MICROSOFT_CONNECTOR_CLIENT_SECRET APP_USER_CONNECTION_KEY_SECRET; do
     found=false
