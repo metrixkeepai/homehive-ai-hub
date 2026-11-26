@@ -4,6 +4,8 @@ set -euo pipefail
 [[ $APP_ENV == staging && $GCP_PROJECT_ID == matrixkeep-staging && $REGION == europe-west2 ]]
 [[ $GITHUB_SHA =~ ^[0-9a-f]{40}$ && $(git rev-parse HEAD) == "$GITHUB_SHA" ]]
 
+# Restrict staging dispatch to the explicit QA mailbox.
+[[ ${MATRIXKEEP_MAIL_QA_RECIPIENT:?Set the staging QA mailbox} =~ ^[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]+$ ]]
 job=matrixkeep-staging-mail-worker
 mail_secrets=()
 missing=()
@@ -29,7 +31,7 @@ digest=$(gcloud artifacts docker images describe "$tag" --project="$GCP_PROJECT_
 mail_identity="matrixkeep-mail@$GCP_PROJECT_ID.iam.gserviceaccount.com"
 gcloud run jobs deploy "$job" "${common[@]}" --image="$repo@$digest" \
   --service-account="$mail_identity" --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=15m \
-  --set-env-vars=APP_ENV=staging --set-secrets="$(IFS=,; echo "${mail_secrets[*]}")"
+  --set-env-vars="APP_ENV=staging,MATRIXKEEP_MAIL_QA_RECIPIENT=$MATRIXKEEP_MAIL_QA_RECIPIENT" --set-secrets="$(IFS=,; echo "${mail_secrets[*]}")"
 gcloud run jobs execute "$job" "${common[@]}" --wait
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker

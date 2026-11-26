@@ -17,3 +17,5 @@ The protected staging verification deploys the mail job when the staging environ
 Payment received, payment failed, activation, upgrade, downgrade, renewal, cancellation and trial-ending mail are all suppressed in the MatrixKeep sender by default. This leaves equivalent customer notifications with Stripe wherever enabled in that environment. Do not claim that Stripe sends an individual event until its notification settings and actual delivery have been verified.
 
 Hosted Auth templates are configured separately in each project. Verify delivered MIME parts and action links with a staging test account before applying production configuration. Run the focused transport tests with `python -m unittest discover -s server/email -p test_smtp.py` and `node --test server/email/email.test.mjs`.
+
+Staging dispatch is restricted to the one mailbox in the protected `MATRIXKEEP_MAIL_QA_RECIPIENT` variable. A protected staging deployment reports only mail secret names and enabled-version availability. The worker runs when `MATRIXKEEP_MAIL_WORKER_ENABLED=true`. Record-specific email reminders require explicit user opt-in and the `record_email_reminders` feature flag.

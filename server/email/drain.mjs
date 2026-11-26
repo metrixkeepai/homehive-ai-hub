@@ -38,10 +38,18 @@ function send(message) {
     child.stdin.end(JSON.stringify(message));
   });
 }
+const qaRecipient =
+  config.APP_ENV === "staging" ? config.MATRIXKEEP_MAIL_QA_RECIPIENT?.trim().toLowerCase() : null;
+if (
+  config.APP_ENV === "staging" &&
+  (!qaRecipient || !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(qaRecipient))
+)
+  throw Error("Staging mail requires one QA recipient");
 const sql = postgres(config.MAIL_DATABASE_URL, { ssl: "verify-full", max: 1 });
 try {
   await sql`SET ROLE matrixkeep_mail_sender`;
-  const messages = await sql`SELECT * FROM matrixkeep_mail.messages ORDER BY source_id`;
+  const messages =
+    await sql`SELECT * FROM matrixkeep_mail.messages WHERE (${qaRecipient}::text IS NULL OR lower(email)=${qaRecipient}::text) ORDER BY source_id`;
   let attempted = 0;
   for (const m of messages) {
     const key = createHash("sha256")
@@ -67,12 +75,12 @@ try {
   }
   if (attempted < 100) {
     const reminders =
-      await sql`SELECT kind, source_id, due FROM matrixkeep_mail.due_reminders ORDER BY due,source_id`;
+      await sql`SELECT kind, source_id, due FROM matrixkeep_mail.due_reminders WHERE (${qaRecipient}::text IS NULL OR lower(email)=${qaRecipient}::text) ORDER BY due,source_id`;
     for (const r of reminders) {
       if (attempted >= 100) break;
       // Re-read the opt-in, owner access, due date and active record at dispatch time.
       const [m] = await sql`SELECT * FROM matrixkeep_mail.due_reminders
-        WHERE source_id=${r.source_id} AND due=${r.due} AND kind=${r.kind}`;
+        WHERE source_id=${r.source_id} AND due=${r.due} AND kind=${r.kind} AND (${qaRecipient}::text IS NULL OR lower(email)=${qaRecipient}::text)`;
       if (!m) continue;
       const stamp = new Date(m.due + "T00:00:00Z");
       const date = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" }).format(
