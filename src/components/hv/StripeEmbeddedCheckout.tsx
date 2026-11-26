@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { getStripe, getStripeEnvironment } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createCheckoutSession } from "@/lib/payments.functions";
 
 interface StripeEmbeddedCheckoutProps {
-  priceId: string;
-  returnUrl?: string;
+  plan: string;
+  interval: "monthly" | "yearly";
 }
 
-export function StripeEmbeddedCheckout({ priceId, returnUrl }: StripeEmbeddedCheckoutProps) {
+export function StripeEmbeddedCheckout({ plan, interval }: StripeEmbeddedCheckoutProps) {
   const [result, setResult] = useState<Awaited<ReturnType<typeof createCheckoutSession>> | null>(
     null,
   );
@@ -19,11 +19,7 @@ export function StripeEmbeddedCheckout({ priceId, returnUrl }: StripeEmbeddedChe
     async function start() {
       try {
         const response = await createCheckoutSession({
-          data: {
-            priceId,
-            returnUrl: returnUrl || window.location.href,
-            environment: getStripeEnvironment(),
-          },
+          data: { plan, interval },
         });
         if (active) setResult(response);
       } catch {
@@ -35,7 +31,7 @@ export function StripeEmbeddedCheckout({ priceId, returnUrl }: StripeEmbeddedChe
     return () => {
       active = false;
     };
-  }, [priceId, returnUrl]);
+  }, [plan, interval]);
 
   if (!result) return <p role="status">Preparing checkout…</p>;
   if ("error" in result) return <p role="alert">{result.error}</p>;

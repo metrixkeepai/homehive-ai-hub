@@ -266,10 +266,7 @@ function Plans() {
             </DialogTitle>
           </DialogHeader>
           {checkout && (
-            <StripeEmbeddedCheckout
-              priceId={`${checkout.key}_${yearly ? "yearly" : "monthly"}`}
-              returnUrl={`${window.location.origin}/app/plans`}
-            />
+            <StripeEmbeddedCheckout plan={checkout.key} interval={yearly ? "yearly" : "monthly"} />
           )}
         </DialogContent>
       </Dialog>

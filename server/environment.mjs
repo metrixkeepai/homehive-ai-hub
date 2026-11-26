@@ -10,7 +10,8 @@ export function validateEnvironment(env) {
   const disabled =
     env.PAYMENTS_ENABLED === "false" ||
     (env.APP_ENV === "production" && env.STRIPE_ENVIRONMENT === "disabled");
-  if (!disabled) required.push("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET");
+  if (!disabled)
+    required.push("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "VITE_PAYMENTS_CLIENT_TOKEN");
   const missing = required.filter((key) => !env[key]);
   if (missing.length) throw new Error(`Missing configuration: ${missing.join(", ")}`);
   if (!["staging", "production", "test"].includes(env.APP_ENV)) throw new Error("Invalid APP_ENV");
@@ -49,4 +50,17 @@ export function validateEnvironment(env) {
   for (const key of Object.keys(env))
     if (key.startsWith("VITE_") && /SECRET|SERVICE_ROLE|OPENAI_API|PRIVATE/.test(key))
       throw new Error(`Unsafe public variable: ${key}`);
+}
+
+export async function verifyLiveStripeAccount(env, request = fetch) {
+  if (env.APP_ENV !== "production" || env.STRIPE_ENVIRONMENT !== "live") return;
+  if (!/^acct_[a-zA-Z0-9]+$/.test(env.STRIPE_ACCOUNT_ID || ""))
+    throw new Error("Missing or invalid production STRIPE_ACCOUNT_ID");
+  const response = await request("https://api.stripe.com/v1/account", {
+    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+    redirect: "error",
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok || (await response.json()).id !== env.STRIPE_ACCOUNT_ID)
+    throw new Error("Production Stripe account verification failed");
 }

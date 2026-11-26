@@ -234,6 +234,9 @@ test("billing updates are bound, atomic, idempotent and isolated by environment"
     customer: "cus_owner",
     product: "prod_home",
     price: "price_home",
+    interval: "month",
+    trial_start: "2026-01-01T00:00:00Z",
+    trial_end: "2026-01-15T00:00:00Z",
     status: "active",
     period_start: new Date().toISOString(),
     period_end: new Date(Date.now() + 86400000).toISOString(),
@@ -254,6 +257,22 @@ test("billing updates are bound, atomic, idempotent and isolated by environment"
     /Unknown billing customer/,
   );
   assert.equal((await apply("evt_paid", 10)).rows[0].changed, true);
+  const persisted = (
+    await db.query(
+      "SELECT plan_key,billing_interval,trial_start,trial_end FROM public.subscriptions WHERE stripe_subscription_id=$1",
+      [subscription.id],
+    )
+  ).rows[0];
+  assert.equal(persisted.plan_key, "home");
+  assert.equal(persisted.billing_interval, "month");
+  assert.equal(
+    new Date(persisted.trial_start).toISOString(),
+    new Date(subscription.trial_start).toISOString(),
+  );
+  assert.equal(
+    new Date(persisted.trial_end).toISOString(),
+    new Date(subscription.trial_end).toISOString(),
+  );
   assert.equal((await apply("evt_paid", 10)).rows[0].changed, false);
   assert.equal(
     (await db.query("SELECT plan FROM public.profiles WHERE id=$1", [a])).rows[0].plan,
