@@ -96,8 +96,12 @@ test("the public runtime script accepts only browser credentials for the same en
 });
 
 test("only a key for the pinned dedicated production merchant can start live billing", async () => {
-  const env = { APP_ENV: "production", STRIPE_ENVIRONMENT: "live",
-    STRIPE_ACCOUNT_ID: "acct_Expected", STRIPE_SECRET_KEY: "sk_live_fixture" };
+  const env = {
+    APP_ENV: "production",
+    STRIPE_ENVIRONMENT: "live",
+    STRIPE_ACCOUNT_ID: "acct_Expected",
+    STRIPE_SECRET_KEY: "sk_live_fixture",
+  };
   let requests = 0;
   const request = async (url, options) => {
     requests++;
@@ -108,9 +112,18 @@ test("only a key for the pinned dedicated production merchant can start live bil
   };
   await verifyLiveStripeAccount({ APP_ENV: "staging", STRIPE_ENVIRONMENT: "sandbox" }, request);
   await verifyLiveStripeAccount({ APP_ENV: "production", STRIPE_ENVIRONMENT: "disabled" }, request);
-  await assert.rejects(verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "" }, request), /STRIPE_ACCOUNT_ID/);
+  await assert.rejects(
+    verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "" }, request),
+    /STRIPE_ACCOUNT_ID/,
+  );
   assert.equal(requests, 0);
   await verifyLiveStripeAccount(env, request);
-  await assert.rejects(verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "acct_Other" }, request), /verification failed/);
-  await assert.rejects(verifyLiveStripeAccount(env, async () => new Response(null, { status: 401 })), /verification failed/);
+  await assert.rejects(
+    verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "acct_Other" }, request),
+    /verification failed/,
+  );
+  await assert.rejects(
+    verifyLiveStripeAccount(env, async () => new Response(null, { status: 401 })),
+    /verification failed/,
+  );
 });
