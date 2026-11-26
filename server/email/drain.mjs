@@ -65,6 +65,42 @@ try {
     }
     await sql`DELETE FROM matrixkeep_mail.pending WHERE kind=${m.kind} AND source_id=${m.source_id}`;
   }
+  if (attempted < 100) {
+    const reminders =
+      await sql`SELECT kind, source_id, due FROM matrixkeep_mail.due_reminders ORDER BY due,source_id`;
+    for (const r of reminders) {
+      if (attempted >= 100) break;
+      // Re-read the opt-in, owner access, due date and active record at dispatch time.
+      const [m] = await sql`SELECT * FROM matrixkeep_mail.due_reminders
+        WHERE source_id=${r.source_id} AND due=${r.due} AND kind=${r.kind}`;
+      if (!m) continue;
+      const stamp = new Date(m.due + "T00:00:00Z");
+      const date = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "UTC" }).format(
+        stamp,
+      );
+      const fields = {
+        ...m,
+        relative_date: "on " + date,
+        expiry_date: date,
+        renewal_date: date,
+        due_date: date,
+        policy_name: m.title,
+        document_name: m.title,
+        maintenance_type: m.title,
+      };
+      const result = await deliverEmail({
+        sql,
+        send,
+        kind: m.kind,
+        environment: config.APP_ENV,
+        occurrence: m.source_id + ":" + m.due,
+        recipientKey: m.source_id,
+        to: m.email,
+        fields,
+      });
+      if (result === "sent") attempted++;
+    }
+  }
 } finally {
   await sql.end();
 }

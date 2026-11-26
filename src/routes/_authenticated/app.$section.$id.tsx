@@ -1,3 +1,4 @@
+import { RecordEmailReminder } from "@/components/hv/RecordEmailReminder";
 import { RecordInsight } from "@/components/hv/RecordInsight";
 import {
   MicrosoftIntegration,
@@ -191,6 +192,9 @@ function Detail() {
             {(workingActions.length > 0 || own) && (
               <div className="mt-6 flex flex-wrap gap-2">
                 {isProperty && own && <PropertyEditButton item={item} />}
+                {own && ["insurance", "documents", "maintenance"].includes(section) && (
+                  <RecordEmailReminder item={item} section={section} />
+                )}
                 {workingActions.map((a, idx) => (
                   <button
                     key={a}

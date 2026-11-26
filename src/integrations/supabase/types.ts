@@ -966,6 +966,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      record_email_reminder: {
+        Args: { _record: string; _enabled?: boolean };
+        Returns: boolean | null;
+      };
       claim_billing_action: { Args: { _key: string }; Returns: string };
       release_billing_action: { Args: { _key: string; _token: string }; Returns: undefined };
       approve_catalogue_version: { Args: { _id: string; _admin: string }; Returns: undefined };

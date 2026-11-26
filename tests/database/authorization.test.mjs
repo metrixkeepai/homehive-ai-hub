@@ -30,7 +30,7 @@ before(async () => {
     CREATE SCHEMA auth; CREATE SCHEMA storage;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
-    CREATE TABLE auth.users(id uuid PRIMARY KEY, email text, raw_user_meta_data jsonb DEFAULT '{}');
+    CREATE TABLE auth.users(id uuid PRIMARY KEY, email text, email_confirmed_at timestamptz, raw_user_meta_data jsonb DEFAULT '{}');
     CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(), bucket_id text, name text, metadata jsonb);
     ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
     CREATE FUNCTION storage.foldername(text) RETURNS text[] LANGUAGE sql AS $$ SELECT string_to_array($1, '/') $$;
@@ -685,4 +685,51 @@ test("connector evidence is tied to the approved document, with idempotent attac
   assert.deepEqual((await asUser(a, find, [id])).rows, [
     { name: "receipt.pdf", mime: "application/pdf", size: 12, connector_source: "Gmail" },
   ]);
+});
+
+test("record email reminders require an enabled rollout, owner consent and a current due date", async () => {
+  const row = "99999999-2222-4123-8123-123456789abc";
+  await db.query(
+    "UPDATE public.profiles SET account_type='individual', plan='family', plan_source='admin' WHERE id=$1",
+    [a],
+  );
+  await db.query(`UPDATE auth.users SET email_confirmed_at=now() WHERE id=$1`, [a]);
+  await db.query(
+    `INSERT INTO public.home_items(id,user_id,section,title,fields) VALUES($1,$2,'maintenance','Annual service',
+    jsonb_build_array(jsonb_build_array('Due date',to_char(current_date + 5,'YYYY-MM-DD'))))`,
+    [row, a],
+  );
+  const opt = (owner, enabled) =>
+    asUser(owner, "SELECT public.record_email_reminder($1,$2) AS enabled", [row, enabled]);
+  const due = () =>
+    db.query("SELECT kind FROM matrixkeep_mail.due_reminders WHERE source_id=$1", [row]);
+  assert.equal((await opt(a, null)).rows[0].enabled, null);
+  assert.equal((await due()).rows.length, 0);
+  await assert.rejects(opt(b, true), { code: "42501" });
+  await db.exec("UPDATE public.feature_flags SET enabled=true WHERE key='record_email_reminders'");
+  assert.equal((await opt(a, null)).rows[0].enabled, false);
+  for (const [kind, section, label] of [
+    ["maintenance", "maintenance", "Due date"],
+    ["warranty", "warranties", "Expiry date"],
+    ["document", "documents", "Expiry date"],
+    ["insurance", "insurance", "Renewal date"],
+  ]) {
+    await db.query("DELETE FROM public.home_items WHERE id=$1", [row]);
+    await db.query(
+      `INSERT INTO public.home_items(id,user_id,section,title,fields) VALUES($1,$2,$3,'QA reminder',jsonb_build_array(jsonb_build_array($4::text,to_char(current_date + 5,'YYYY-MM-DD'))))`,
+      [row, a, section, label],
+    );
+    assert.equal((await opt(a, true)).rows[0].enabled, true);
+    assert.deepEqual((await due()).rows, [{ kind }]);
+    assert.equal((await opt(a, false)).rows[0].enabled, false);
+    assert.equal((await due()).rows.length, 0);
+  }
+  await opt(a, true);
+  await db.query(
+    'UPDATE public.home_items SET fields=\'[["Renewal date","2026-02-31"]]\' WHERE id=$1',
+    [row],
+  );
+  assert.equal((await due()).rows.length, 0);
+  await db.query("DELETE FROM public.home_items WHERE id=$1", [row]);
+  await db.exec("UPDATE public.feature_flags SET enabled=false WHERE key='record_email_reminders'");
 });
