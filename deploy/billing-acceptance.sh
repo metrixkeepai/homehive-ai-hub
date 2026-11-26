@@ -13,11 +13,29 @@ read_run_resource() {
 }
 service=matrixkeep-production-web
 state=$(read_run_resource "services/$service/revisions/$revision")
-if ! jq -e --arg image "$IMAGE" '.containers[0].image == $image' <<<"$state" >/dev/null; then
-  echo "Serving container image differs from the accepted image" >&2
-  jq -r '.containers[0].image' <<<"$state" >&2
-  exit 1
-fi
+verify_image() {
+  local accepted=$1 serving=$2 repository digest host path manifest actual
+  repository=${accepted%@*}
+  digest=${accepted##*@}
+  [[ $repository == "$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep/web" || $repository == "$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep/migrator" ]] || return 1
+  [[ $digest =~ ^sha256:[0-9a-f]{64}$ && ${serving%@*} == "$repository" && ${serving##*@} =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  if [[ $accepted == "$serving" ]]; then return 0; fi
+  # Cloud Run can report the platform manifest selected from a signed-off OCI index.
+  # Verify the exact bytes of that index and match its single linux/amd64 child.
+  host=${repository%%/*}; path=${repository#*/}
+  manifest=$(mktemp)
+  curl --proto '=https' --max-time 20 -fsS -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
+    "https://$host/v2/$path/manifests/$digest" > "$manifest" || { rm -f "$manifest"; return 1; }
+  actual="sha256:$(sha256sum "$manifest" | cut -d' ' -f1)"
+  if [[ $actual != "$digest" ]]; then rm -f "$manifest"; return 1; fi
+  local child
+  child=$(jq -er '[.manifests[] | select(.platform.os=="linux" and .platform.architecture=="amd64") | .digest] | select(length==1) | first' "$manifest") || { rm -f "$manifest"; return 1; }
+  rm -f "$manifest"
+  [[ $serving == "$repository@$child" ]] || return 1
+  echo "Verified $repository platform manifest $child in accepted index $digest"
+}
+verify_image "$IMAGE" "$(jq -er '.containers[0].image' <<<"$state")" || { echo "Serving web manifest is outside the accepted image" >&2; exit 1; }
 jq -e '.containers[0].env | any(.[]; .name=="STRIPE_ENVIRONMENT" and .value=="disabled") and any(.[]; .name=="PAYMENTS_ENABLED" and .value=="false")' <<<"$state" >/dev/null || { echo "Serving billing switches are inconsistent" >&2; exit 1; }
 secret_version() {
   jq -er --arg key "$1" '.[] | select(.name==$key) | .valueSource.secretKeyRef |
@@ -29,7 +47,7 @@ for name in VITE_PAYMENTS_CLIENT_TOKEN STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET; 
   if [[ $name == STRIPE_SECRET_KEY ]]; then server_version=$version; fi
 done
 job=$(read_run_resource "jobs/matrixkeep-production-migrate")
-jq -e --arg image "$MIGRATOR_IMAGE" '.template.template.containers[0].image==$image' <<<"$job" >/dev/null || { echo "Migrator image differs from accepted image" >&2; exit 1; }
+verify_image "$MIGRATOR_IMAGE" "$(jq -er '.template.template.containers[0].image' <<<"$job")" || { echo "Migrator manifest is outside the accepted image" >&2; exit 1; }
 migration_secret=$(jq '.template.template.containers[0].env' <<<"$job" | secret_version DATABASE_MIGRATION_URL)
 gcloud run jobs deploy matrixkeep-production-billing-reconciliation "${common[@]}" \
   --image="$MIGRATOR_IMAGE" --service-account="matrixkeep-migrator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
