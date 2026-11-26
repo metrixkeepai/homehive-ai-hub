@@ -771,6 +771,10 @@ export type Database = {
       };
       subscriptions: {
         Row: {
+          billing_interval: "month" | "year" | null;
+          plan_key: string | null;
+          trial_start: string | null;
+          trial_end: string | null;
           cancel_at_period_end: boolean | null;
           created_at: string | null;
           current_period_end: string | null;
@@ -786,6 +790,10 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          billing_interval?: "month" | "year" | null;
+          plan_key?: string | null;
+          trial_start?: string | null;
+          trial_end?: string | null;
           cancel_at_period_end?: boolean | null;
           created_at?: string | null;
           current_period_end?: string | null;
@@ -801,6 +809,10 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          billing_interval?: "month" | "year" | null;
+          plan_key?: string | null;
+          trial_start?: string | null;
+          trial_end?: string | null;
           cancel_at_period_end?: boolean | null;
           created_at?: string | null;
           current_period_end?: string | null;

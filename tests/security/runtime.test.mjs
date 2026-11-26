@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 import WebSocket from "ws";
 import { attachVoice } from "../../server/voice.mjs";
-import { validateEnvironment } from "../../server/environment.mjs";
+import { validateEnvironment, verifyLiveStripeAccount } from "../../server/environment.mjs";
 
 test("voice rejects unauthenticated and cross-origin upgrades before contacting a provider", async () => {
   const server = createServer();
@@ -93,4 +93,24 @@ test("the public runtime script accepts only browser credentials for the same en
   assert.throws(() => publicConfig({ ...env, SUPABASE_PUBLISHABLE_KEY: "sb_secret_placeholder" }));
   assert.throws(() => publicConfig({ ...env, VITE_SUPABASE_URL: "https://other.example" }));
   assert.throws(() => publicConfig({ ...env, VITE_PAYMENTS_CLIENT_TOKEN: "pk_live_placeholder" }));
+});
+
+test("only a key for the pinned dedicated production merchant can start live billing", async () => {
+  const env = { APP_ENV: "production", STRIPE_ENVIRONMENT: "live",
+    STRIPE_ACCOUNT_ID: "acct_Expected", STRIPE_SECRET_KEY: "sk_live_fixture" };
+  let requests = 0;
+  const request = async (url, options) => {
+    requests++;
+    assert.equal(url, "https://api.stripe.com/v1/account");
+    assert.equal(options.redirect, "error");
+    assert.equal(options.headers.Authorization, "Bearer sk_live_fixture");
+    return Response.json({ id: "acct_Expected" });
+  };
+  await verifyLiveStripeAccount({ APP_ENV: "staging", STRIPE_ENVIRONMENT: "sandbox" }, request);
+  await verifyLiveStripeAccount({ APP_ENV: "production", STRIPE_ENVIRONMENT: "disabled" }, request);
+  await assert.rejects(verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "" }, request), /STRIPE_ACCOUNT_ID/);
+  assert.equal(requests, 0);
+  await verifyLiveStripeAccount(env, request);
+  await assert.rejects(verifyLiveStripeAccount({ ...env, STRIPE_ACCOUNT_ID: "acct_Other" }, request), /verification failed/);
+  await assert.rejects(verifyLiveStripeAccount(env, async () => new Response(null, { status: 401 })), /verification failed/);
 });

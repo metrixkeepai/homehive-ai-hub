@@ -316,6 +316,13 @@
       "when": 1795651200000,
       "tag": "0044_disabled_billing_environment",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1795689600000,
+      "tag": "0045_subscription_details",
+      "breakpoints": true
     }
   ]
 }

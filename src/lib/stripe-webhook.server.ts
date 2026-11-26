@@ -30,6 +30,7 @@ export async function handleStripeWebhook(request: Request) {
     const accepted = new Set([
       "customer.subscription.created",
       "customer.subscription.updated",
+      "customer.subscription.trial_will_end",
       "customer.subscription.deleted",
       "invoice.paid",
       "invoice.payment_failed",
@@ -87,6 +88,13 @@ export async function handleStripeWebhook(request: Request) {
         product: typeof price.product === "string" ? price.product : price.product.id,
         price: price.id,
         status: subscription.status,
+        interval: price.recurring?.interval,
+        trial_start: subscription.trial_start
+          ? new Date(subscription.trial_start * 1000).toISOString()
+          : null,
+        trial_end: subscription.trial_end
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null,
         period_start: new Date(item.current_period_start * 1000).toISOString(),
         period_end: new Date(item.current_period_end * 1000).toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end,

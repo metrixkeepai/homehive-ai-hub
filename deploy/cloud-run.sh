@@ -71,7 +71,10 @@ payments=false
 if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
   for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
   payments=true
-  if [[ $APP_ENV == production ]]; then stripe=live; fi
+  if [[ $APP_ENV == production ]]; then
+    [[ ${STRIPE_ACCOUNT_ID:-} =~ ^acct_[a-zA-Z0-9]+$ ]] || { echo 'Invalid or missing protected production STRIPE_ACCOUNT_ID' >&2; exit 1; }
+    stripe=live
+  fi
 fi
 for provider in GOOGLE MICROSOFT; do
   if [[ $APP_ENV == production ]]; then
@@ -92,6 +95,7 @@ if [[ $APP_ENV == staging ]]; then
 fi
 secret_flags=$(IFS=,; echo "${secrets[*]}")
 env_flags="APP_ENV=$APP_ENV,APP_ORIGIN=$origin,VITE_APP_ORIGIN=$origin,APP_ADDITIONAL_RETURN_ORIGINS=,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF,STRIPE_ENVIRONMENT=$stripe,PAYMENTS_ENABLED=$payments"
+if [[ $stripe == live ]]; then env_flags+=",STRIPE_ACCOUNT_ID=$STRIPE_ACCOUNT_ID"; fi
 db_secret=$(binding DATABASE_MIGRATION_URL DATABASE_MIGRATION_URL)
 gcloud run jobs deploy "matrixkeep-$APP_ENV-migrate" "${common[@]}" --service-account="$migrator" \
   --image="$MIGRATOR_IMAGE" --set-secrets="$db_secret" --set-env-vars="APP_ENV=$APP_ENV,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF" \
