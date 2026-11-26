@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prepare MatrixKeep's GCP frontend. Run in authenticated Google Cloud Shell."""
 import json
+import re
 import subprocess
 import time
 import urllib.error
@@ -19,9 +20,9 @@ WWW = "www.matrixkeep.com"
 PROBE_HOST = "matrixkeep-preflight.invalid"
 
 
-def gc(*args, check=True):
+def gc(*args, check=True, timeout=None):
     return subprocess.run(["gcloud", *args, "--project", PROJECT, "--quiet"],
-                          capture_output=True, text=True, check=check)
+                          capture_output=True, text=True, check=check, timeout=timeout)
 
 
 def inspect(kind, name, scope):
@@ -60,7 +61,27 @@ def insert_url_map(name, config):
             return  # The caller describes and verifies the existing map.
         detail = json.loads(error.read()).get("error", {}).get("message", str(error))
         raise RuntimeError(f"Creating URL map {name}: {detail}") from None
-    gc("compute", "operations", "wait", operation["name"], "--global")
+    wait_for_global_operation(operation["name"])
+
+
+def wait_for_global_operation(name):
+    deadline = time.monotonic() + 300
+    while (remaining := deadline - time.monotonic()) > 0:
+        try:
+            result = gc("compute", "operations", "describe", name, "--global", "--format=json",
+                        timeout=remaining)
+        except subprocess.TimeoutExpired:
+            break
+        operation = json.loads(result.stdout)
+        if operation.get("status") == "DONE":
+            if "error" in operation or operation.get("httpErrorStatusCode"):
+                # Provider messages/details can contain request data. Report only symbolic codes.
+                codes = [entry.get("code", "") for entry in operation.get("error", {}).get("errors", [])]
+                safe_codes = [code for code in codes if re.fullmatch(r"[A-Z][A-Z0-9_]{0,79}", code)]
+                raise RuntimeError("URL-map creation failed: " + (", ".join(safe_codes) or "COMPUTE_ERROR"))
+            return
+        time.sleep(min(3, max(0, deadline - time.monotonic())))
+    raise RuntimeError(f"Timed out waiting for global operation {name} after 300 seconds")
 
 
 def routing_fields(value):
@@ -182,5 +203,7 @@ def probe(url, *extra):
 if __name__ == "__main__":
     try:
         main()
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from None
     except subprocess.CalledProcessError as error:
         raise SystemExit(error.stderr or str(error))
