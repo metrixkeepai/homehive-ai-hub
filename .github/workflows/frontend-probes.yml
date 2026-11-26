@@ -1,0 +1,27 @@
+name: Observe production frontend
+on:
+  push:
+    branches: [ops/frontend-probes]
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe reserved IPv4 and DNS
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          for path in ("/health/live", "/health/ready"):
+              url = "http://matrixkeep-preflight.invalid" + path
+              result = subprocess.run(["curl", "--noproxy", "*", "--resolve", "matrixkeep-preflight.invalid:80:136.82.192.67", "--max-time", "15", "-sS", "-D", "/tmp/headers", "-w", "\\n%{http_code}", url], capture_output=True, text=True)
+              body, _, status = result.stdout.rpartition("\n")
+              print("PROBE", path, status, repr(body[:300]))
+              for line in open("/tmp/headers"):
+                  if line.lower().startswith(("via:", "location:", "x-request-id:", "x-cloud-trace-context:", "server:")):
+                      print("HEADER", line.strip())
+              if result.returncode: print("ERROR",result.stderr[:200])
+          for host, kind in (("matrixkeep.com","A"),("www.matrixkeep.com","CNAME"),("www.matrixkeep.com","A"),("matrixkeep.com","AAAA"),("www.matrixkeep.com","AAAA")):
+              response = subprocess.check_output(["curl", "-fsS", "--max-time","12", "https://dns.google/resolve?name="+host+"&type="+kind])
+              print("DNS",host,kind,[x["data"] for x in json.loads(response).get("Answer",[])])
+          PY
