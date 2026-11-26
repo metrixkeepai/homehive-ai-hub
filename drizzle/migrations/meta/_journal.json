@@ -309,6 +309,13 @@
       "when": 1795305600004,
       "tag": "0043_connector_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795651200000,
+      "tag": "0044_disabled_billing_environment",
+      "breakpoints": true
     }
   ]
 }
