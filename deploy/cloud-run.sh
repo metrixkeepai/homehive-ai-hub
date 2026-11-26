@@ -208,6 +208,9 @@ if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[tag-only]"* ]]; the
   echo "Tagged staging revision $revision verified. Public traffic retained."
   exit 0
 fi
+if [[ $APP_ENV == staging && ${MATRIXKEEP_MAIL_WORKER_ENABLED:-false} == true ]]; then
+  (source deploy/staging-mail-worker.sh)
+fi
 trap rollback_traffic ERR
 gcloud run services update-traffic "$service" "${common[@]}" --to-revisions="$revision=100"
 check "$origin"

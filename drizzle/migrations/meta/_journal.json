@@ -323,6 +323,13 @@
       "when": 1795689600000,
       "tag": "0045_subscription_details",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1795689601000,
+      "tag": "0046_mail_delivery",
+      "breakpoints": true
     }
   ]
 }

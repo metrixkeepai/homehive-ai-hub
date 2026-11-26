@@ -26,6 +26,10 @@ jobs:
       - name: Typecheck
         if: ${{ !cancelled() }}
         run: npm run typecheck
+      - name: Transactional email tests
+        run: |
+          node --test server/email/email.test.mjs
+          python -m unittest discover -s server/email -p test_smtp.py
       - name: Product tests
         if: ${{ !cancelled() }}
         run: npm test
@@ -68,6 +72,8 @@ jobs:
       contents: read
       id-token: write
     env:
+      MATRIXKEEP_MAIL_WORKER_ENABLED: ${{ vars.MATRIXKEEP_MAIL_WORKER_ENABLED }}
+      MATRIXKEEP_MAIL_QA_RECIPIENT: ${{ vars.MATRIXKEEP_MAIL_QA_RECIPIENT }}
       APP_ENV: staging
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
@@ -94,6 +100,25 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
+      - name: Inspect staging mail secret version metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ $GCP_PROJECT_ID == matrixkeep-staging ]]
+          names=(MAIL_DATABASE_URL MATRIXKEEP_SMTP_HOST MATRIXKEEP_SMTP_PORT MATRIXKEEP_SMTP_USER MATRIXKEEP_SMTP_PASSWORD)
+          if ! known=$(gcloud secrets list --project="$GCP_PROJECT_ID" --format='value(name)' 2>/dev/null | sed 's|.*/||'); then
+            printf '%s NO ACCESS\n' "${names[@]}"
+            exit 0
+          fi
+          for name in "${names[@]}"; do
+            if ! grep -Fxq "$name" <<< "$known"; then
+              printf '%s NO ENABLED VERSION\n' "$name"
+            elif versions=$(gcloud secrets versions list "$name" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' --limit=1 --format='value(name)' 2>/dev/null); then
+              if [[ -n $versions ]]; then echo "$name ENABLED"; else echo "$name NO ENABLED VERSION"; fi
+            else
+              printf '%s NO ACCESS\n' "$name"
+            fi
+          done
       - name: Publish immutable release images
         shell: bash
         run: |
