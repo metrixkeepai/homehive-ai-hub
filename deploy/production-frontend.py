@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Prepare MatrixKeep's GCP frontend. Run in authenticated Google Cloud Shell."""
 import json
-import pathlib
 import subprocess
-import tempfile
 import time
+import urllib.error
+import urllib.request
 
 PROJECT = "matrixkeep-production"
 REGION = "europe-west2"
@@ -43,19 +43,47 @@ def ensure(kind, name, scope, flags, expected):
     return obj
 
 
+def insert_url_map(name, config):
+    # Insert-only: even a concurrent creator cannot have its URL map overwritten.
+    token = gc("auth", "print-access-token").stdout.strip()
+    request = urllib.request.Request(
+        f"https://compute.googleapis.com/compute/v1/projects/{PROJECT}/global/urlMaps",
+        data=json.dumps({"name": name, **config}).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            operation = json.load(response)
+    except urllib.error.HTTPError as error:
+        if error.code == 409:
+            return  # The caller describes and verifies the existing map.
+        detail = json.loads(error.read()).get("error", {}).get("message", str(error))
+        raise RuntimeError(f"Creating URL map {name}: {detail}") from None
+    gc("compute", "operations", "wait", operation["name"], "--global")
+
+
+def routing_fields(value):
+    if isinstance(value, list):
+        return [routing_fields(item) for item in value]
+    if isinstance(value, dict):
+        return {key: routing_fields(item) for key, item in value.items()
+                if not (key in {"stripQuery", "httpsRedirect"} and item is False)}
+    return value
+
+
 def url_map(name, config):
     obj = inspect("url-maps", name, "--global")
     if obj is None:
-        with tempfile.TemporaryDirectory() as temp:
-            path = pathlib.Path(temp) / "map.yaml"
-            path.write_text(json.dumps({"name": name, **config}))
-            gc("compute", "url-maps", "validate", "--global", "--load-balancing-scheme=EXTERNAL_MANAGED",
-               "--source", str(path))
-            gc("compute", "url-maps", "import", name, "--global", "--source", str(path))
+        insert_url_map(name, config)
         obj = inspect("url-maps", name, "--global")
-    # The API may return canonicalized representations. Fail closed on route drift.
-    if any(obj.get(key) != val for key, val in config.items()):
-        raise RuntimeError(f"Verify existing URL map {name}: its routes differ from the expected configuration.")
+    if obj is None:
+        raise RuntimeError(f"URL map {name} missing after create")
+    metadata = {"name", "id", "kind", "creationTimestamp", "selfLink", "fingerprint",
+                "description", "tests", "region"}
+    actual = {k: v for k, v in obj.items() if k not in metadata}
+    if routing_fields(actual) != routing_fields(config):
+        raise RuntimeError(f"URL map {name} has different routing; leaving it untouched")
     return obj["selfLink"]
 
 
@@ -104,7 +132,7 @@ def main():
                   {"type": "MANAGED"})
     if set(cert["managed"]["domains"]) != {APEX, WWW}:
         raise RuntimeError("Unexpected domains on managed certificate")
-    for protocol, port, mapping in [("http", "80", http_map), ("https", "443", https_map)]:
+    for protocol, port, mapping in [("https", "443", https_map), ("http", "80", http_map)]:
         proxy = PREFIX + "-" + protocol + "-proxy"
         rule = PREFIX + "-" + protocol
         extra = ["--ssl-certificates=" + CERT] if protocol == "https" else []
@@ -135,7 +163,8 @@ def main():
             if i == 59:
                 raise RuntimeError("Frontend probes did not pass; leave DNS in place")
             time.sleep(10)
-    print("Backend health and HTTP canonical redirects passed through the global IP.")
+    print("Pre-DNS backend probes: /health/live and /health/ready both HTTP 200 through", ip)
+    print("Redirect probes: HTTP apex and www both returned 308 with canonical host, path and query preserved.")
     print("Certificate status:", inspect("ssl-certificates", CERT, "--global")["managed"]["status"])
     print(f"GoDaddy web records: A @ {ip}; A www {ip} (replace the old www CNAME).")
     print("After DNS propagation, require ACTIVE certificate, trusted TLS and matching content on both hosts.")
@@ -143,8 +172,10 @@ def main():
 
 def probe(url, *extra):
     result = subprocess.check_output(["curl", "--noproxy", "*", "--fail", "--silent", "--max-time", "10",
+                                      "--write-out", "\\n%{http_code}",
                                       *extra, url], text=True)
-    if json.loads(result) != {"status": "ok"}:
+    body, _, status = result.rpartition("\n")
+    if status != "200" or json.loads(body) != {"status": "ok"}:
         raise ValueError("Health probe failed")
 
 
