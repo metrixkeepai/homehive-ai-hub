@@ -6,10 +6,7 @@ assert.equal(process.env.APP_ENV, "production");
 assert.equal(process.env.STRIPE_ENVIRONMENT, "disabled");
 assert.equal(process.env.STRIPE_ACCOUNT_ID, "acct_1Ug5NgE3qBBc51tM");
 assert(probe && /^[0-9]+-[0-9]+$/.test(probe));
-assert(
-  /^rk_live_/.test(process.env.STRIPE_SECRET_KEY || ""),
-  "Expected restricted live key",
-);
+assert(/^rk_live_/.test(process.env.STRIPE_SECRET_KEY || ""), "Expected restricted live key");
 const origin = "https://matrixkeep.com";
 
 async function stripe(method, resource, permission, fields = {}) {
@@ -21,8 +18,7 @@ async function stripe(method, resource, permission, fields = {}) {
   };
   if (method === "GET") url.search = params.toString();
   else
-    headers["Idempotency-Key"] =
-      "matrixkeep-accept-" + probe + "-" + resource.replaceAll("/", "-");
+    headers["Idempotency-Key"] = "matrixkeep-accept-" + probe + "-" + resource.replaceAll("/", "-");
   const response = await fetch(url, {
     method,
     headers,
@@ -39,9 +35,7 @@ async function stripe(method, resource, permission, fields = {}) {
         " HTTP " +
         response.status +
         (response.status === 403 ? " required permission: " + permission : "") +
-        (typeof code === "string" && /^[a-z0-9_]+$/.test(code)
-          ? " " + code
-          : ""),
+        (typeof code === "string" && /^[a-z0-9_]+$/.test(code) ? " " + code : ""),
     );
   }
   return response.json();
@@ -81,21 +75,16 @@ await stripe("GET", "checkout/sessions", "Checkout Sessions read", {
   customer: customer.id,
   limit: "1",
 });
-const session = await stripe(
-  "POST",
-  "checkout/sessions",
-  "Checkout Sessions write",
-  {
-    customer: customer.id,
-    mode: "subscription",
-    ui_mode: "embedded_page",
-    "adaptive_pricing[enabled]": "false",
-    "line_items[0][price]": price.id,
-    "line_items[0][quantity]": "1",
-    return_url: origin + "/app/plans",
-    "metadata[matrixkeep_acceptance]": probe,
-  },
-);
+const session = await stripe("POST", "checkout/sessions", "Checkout Sessions write", {
+  customer: customer.id,
+  mode: "subscription",
+  ui_mode: "embedded_page",
+  "adaptive_pricing[enabled]": "false",
+  "line_items[0][price]": price.id,
+  "line_items[0][quantity]": "1",
+  return_url: origin + "/app/plans",
+  "metadata[matrixkeep_acceptance]": probe,
+});
 assert(/^cs_live_[a-zA-Z0-9]+$/.test(session.id));
 try {
   assert(
@@ -108,15 +97,10 @@ try {
       Boolean(session.client_secret),
     "Unpaid live Checkout mismatch",
   );
-  const portal = await stripe(
-    "POST",
-    "billing_portal/sessions",
-    "Customer portal write",
-    {
-      customer: customer.id,
-      return_url: origin + "/app/plans",
-    },
-  );
+  const portal = await stripe("POST", "billing_portal/sessions", "Customer portal write", {
+    customer: customer.id,
+    return_url: origin + "/app/plans",
+  });
   assert(
     portal.livemode &&
       portal.customer === customer.id &&
