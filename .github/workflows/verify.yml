@@ -26,6 +26,10 @@ jobs:
       - name: Typecheck
         if: ${{ !cancelled() }}
         run: npm run typecheck
+      - name: Transactional email tests
+        run: |
+          node --test server/email/email.test.mjs
+          python -m unittest discover -s server/email -p test_smtp.py
       - name: Product tests
         if: ${{ !cancelled() }}
         run: npm test
@@ -68,6 +72,7 @@ jobs:
       contents: read
       id-token: write
     env:
+      MATRIXKEEP_MAIL_WORKER_ENABLED: ${{ vars.MATRIXKEEP_MAIL_WORKER_ENABLED }}
       APP_ENV: staging
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
