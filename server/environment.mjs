@@ -10,7 +10,7 @@ export function validateEnvironment(env) {
   const disabled =
     env.PAYMENTS_ENABLED === "false" ||
     (env.APP_ENV === "production" && env.STRIPE_ENVIRONMENT === "disabled");
-  if (!disabled) required.push("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET");
+  if (!disabled) required.push("STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "VITE_PAYMENTS_CLIENT_TOKEN");
   const missing = required.filter((key) => !env[key]);
   if (missing.length) throw new Error(`Missing configuration: ${missing.join(", ")}`);
   if (!["staging", "production", "test"].includes(env.APP_ENV)) throw new Error("Invalid APP_ENV");

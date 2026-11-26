@@ -69,11 +69,9 @@ for key in OPENAI_API_KEY SUPER_ADMIN_EMAIL SUPER_ADMIN_PASSWORD SUPER_ADMIN_RES
 done
 payments=false
 if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
-  if [[ $APP_ENV == staging ]] || { has_secret STRIPE_SECRET_KEY && has_secret STRIPE_WEBHOOK_SECRET && has_secret VITE_PAYMENTS_CLIENT_TOKEN; }; then
-    for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
-    payments=true
-    if [[ $APP_ENV == production ]]; then stripe=live; fi
-  fi
+  for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
+  payments=true
+  if [[ $APP_ENV == production ]]; then stripe=live; fi
 fi
 for provider in GOOGLE MICROSOFT; do
   if [[ $APP_ENV == production ]]; then

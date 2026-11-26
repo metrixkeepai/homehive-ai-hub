@@ -1,17 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
+import {
+  type StripeEnv,
+  createStripeClient,
+  getStripeErrorMessage,
+  stripeEnvironment,
+} from "@/lib/stripe.server";
 
 export const createCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
     z
-      .object({
-        priceId: z.string().max(80),
-        returnUrl: z.string().max(2048),
-        environment: z.enum(["sandbox", "live"]),
-      })
+      .union([
+        z.object({
+          plan: z.string().regex(/^[a-z0-9_]{2,40}$/),
+          interval: z.enum(["monthly", "yearly"]),
+        }),
+        // Open tabs on the previous release can still use their validated lookup and origin.
+        z.object({
+          priceId: z.string().max(80),
+          returnUrl: z.string().max(2048),
+          environment: z.enum(["sandbox", "live"]),
+        }),
+      ])
       .parse(d),
   )
   .handler(
@@ -21,10 +33,17 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     }): Promise<{ clientSecret: string } | { portalUrl: string } | { error: string }> => {
       try {
         const { trustedReturnUrl } = await import("./app-origin.server");
-        const returnUrl = trustedReturnUrl(data.returnUrl, "/app/plans");
-        const { customerForUser, validatedPrice } = await import("./stripe-billing.server");
-        const stripe = createStripeClient(data.environment);
-        const price = await validatedPrice(stripe, data.priceId);
+        const lookup = "plan" in data ? data.plan + "_" + data.interval : data.priceId;
+        const environment = "environment" in data ? data.environment : stripeEnvironment();
+        const returnUrl = trustedReturnUrl(
+          "returnUrl" in data ? data.returnUrl : undefined,
+          "/app/plans",
+        );
+        const { customerForUser, validatedPrice, requireBillingEnvironment } =
+          await import("./stripe-billing.server");
+        const stripe = createStripeClient(environment);
+        await requireBillingEnvironment(environment);
+        const price = await validatedPrice(stripe, lookup);
         const { data: profile, error: profileError } = await context.supabase
           .from("profiles")
           .select("suspended")
@@ -34,21 +53,16 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         const { data: status, error: statusError } = await context.supabase
           .from("plan_status")
           .select("active")
-          .eq("plan_key", data.priceId.replace(/_(monthly|yearly)$/, ""))
+          .eq("plan_key", lookup.replace(/_(monthly|yearly)$/, ""))
           .maybeSingle();
         if (statusError || status?.active === false) throw new Error("Plan unavailable");
         const {
           data: { user },
         } = await context.supabase.auth.getUser();
-        const customer = await customerForUser(
-          stripe,
-          context.userId,
-          data.environment,
-          user?.email,
-        );
+        const customer = await customerForUser(stripe, context.userId, environment, user?.email);
         const { withBillingLock } = await import("./billing-catalogue.server");
         return await withBillingLock(
-          "checkout:" + data.environment + ":" + context.userId,
+          "checkout:" + environment + ":" + context.userId,
           async (token) => {
             const open = await stripe.checkout.sessions.list({
               customer,
@@ -133,7 +147,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                 subscription_data: { metadata: { userId: context.userId, app: "matrixkeep" } },
               },
               {
-                idempotencyKey: `matrixkeep-checkout-${data.environment}-${context.userId}-${token}`,
+                idempotencyKey: `matrixkeep-checkout-${environment}-${context.userId}-${token}`,
               },
             );
             if (!session.client_secret) throw new Error("Checkout unavailable");
@@ -153,6 +167,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
             reason:
               error instanceof Error &&
               [
+                "Billing database environment mismatch",
                 "Price configuration mismatch",
                 "Unknown plan",
                 "Plan unavailable",

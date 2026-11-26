@@ -51,10 +51,15 @@ test("startup requires complete configuration and refuses mixed payment environm
     SUPABASE_SERVICE_ROLE_KEY: "private-test-placeholder",
     OPENAI_API_KEY: "test-placeholder",
     STRIPE_ENVIRONMENT: "sandbox",
+    VITE_PAYMENTS_CLIENT_TOKEN: "pk_test_placeholder",
     STRIPE_SECRET_KEY: "rk_test_placeholder",
     STRIPE_WEBHOOK_SECRET: "whsec_placeholder",
   };
   assert.doesNotThrow(() => validateEnvironment(env));
+  assert.throws(
+    () => validateEnvironment({ ...env, VITE_PAYMENTS_CLIENT_TOKEN: "" }),
+    /Missing configuration: VITE_PAYMENTS_CLIENT_TOKEN/,
+  );
   assert.throws(
     () => validateEnvironment({ ...env, STRIPE_ENVIRONMENT: "live" }),
     /Staging requires sandbox/,

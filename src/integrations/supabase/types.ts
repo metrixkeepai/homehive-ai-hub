@@ -8,6 +8,12 @@ export type Database = {
   };
   public: {
     Tables: {
+      runtime_limits: {
+        Row: { singleton: boolean; billing_environment: "sandbox" | "live" | "disabled" | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       billing_price_history: {
         Row: {
           environment: string;

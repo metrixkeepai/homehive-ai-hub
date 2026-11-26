@@ -42,7 +42,7 @@ const mocks = {
   "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":
-    'export const existingCustomer=async()=>"cus_test"; export const customerForUser=async()=>"cus_test"; export const validatedPrice=async()=>({id:"price_test"});',
+    'export const requireBillingEnvironment=async(mode)=>{if(mode!==globalThis.__matrixkeepSecurityMocks.dbMode)throw Error("Billing database environment mismatch")}; export const existingCustomer=async()=>"cus_test"; export const customerForUser=async()=>"cus_test"; export const validatedPrice=async()=>({id:"price_test"});',
 
   "@tanstack/react-start":
     "export const createServerFn=()=>{const b={middleware:()=>b,inputValidator:()=>b,handler:fn=>fn};return b};",
@@ -50,7 +50,7 @@ const mocks = {
     'export const getRequest=()=>new Request("http://localhost/",{headers:{"x-forwarded-host":"attacker.example"}});',
   "@/integrations/supabase/auth-middleware": "export const requireSupabaseAuth={};",
   "@/lib/stripe.server":
-    'export function createStripeClient(){globalThis.__matrixkeepSecurityMocks.calls.push(["stripe-client"]);return globalThis.__matrixkeepSecurityMocks.stripe} export const getStripeErrorMessage=e=>e.message;',
+    'export const stripeEnvironment=()=>"sandbox"; export function createStripeClient(){globalThis.__matrixkeepSecurityMocks.calls.push(["stripe-client"]);return globalThis.__matrixkeepSecurityMocks.stripe} export const getStripeErrorMessage=e=>e.message;',
   "@/server/appUserConnections.server":
     "export const getConnectionKeyForUser=async()=>null;export const markConnection=async()=>{};export const saveConnectionKeyForUser=async()=>{};export const deleteConnectionForUser=async()=>{};",
   "@/integrations/lovable/appUserConnector":
@@ -110,6 +110,7 @@ const context = {
 };
 beforeEach(() => {
   calls.length = 0;
+  globalThis.__matrixkeepSecurityMocks.dbMode = "sandbox";
   process.env.APP_ORIGIN = "https://matrixkeep.com";
   delete process.env.APP_ADDITIONAL_RETURN_ORIGINS;
   process.env.NODE_ENV = "production";
@@ -129,6 +130,30 @@ test("checkout rejects a foreign return URL before creating a Stripe client", as
   });
   assert.match(result.error ?? "", /origin is not allowed/);
   assert.deepEqual(calls, []);
+});
+test("a live checkout cannot start against a disabled billing database", async () => {
+  globalThis.__matrixkeepSecurityMocks.dbMode = "disabled";
+  const result = await createCheckoutSession({
+    data: {
+      priceId: "home_monthly",
+      returnUrl: "https://matrixkeep.com/app/plans",
+      environment: "live",
+    },
+    context,
+  });
+  assert.match(result.error ?? "", /Billing database environment mismatch/);
+  assert.deepEqual(calls, [["stripe-client"]]);
+});
+test("new clients submit only plan and interval and use the configured origin", async () => {
+  const result = await createCheckoutSession({
+    data: { plan: "home", interval: "monthly" },
+    context,
+  });
+  assert.equal(result.clientSecret, "test_secret");
+  assert.equal(
+    calls.find(([kind]) => kind === "checkout")[1].return_url,
+    "https://matrixkeep.com/app/plans",
+  );
 });
 test("valid checkout retains its exact allowed return URL", async () => {
   const result = await createCheckoutSession({
