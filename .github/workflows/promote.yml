@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      billing_acceptance:
+        description: Run private unpaid billing checks after deploying with customer billing disabled
+        type: boolean
+        default: false
       staging_run:
         description: Successful main staging workflow run ID
         required: true
@@ -80,6 +84,9 @@ jobs:
           done
       - name: Migrate production, deploy and verify customer HTTPS
         run: bash deploy/cloud-run.sh
+      - name: Verify disabled-mode production billing
+        if: inputs.billing_acceptance
+        run: bash deploy/billing-acceptance.sh
       - name: Configure service monitoring
         env:
           MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}

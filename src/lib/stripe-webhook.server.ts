@@ -4,10 +4,10 @@ import { supabaseAdmin } from "../integrations/supabase/client.server";
 import { validatedPrice } from "./stripe-billing.server";
 
 export async function handleStripeWebhook(request: Request) {
-  if (process.env["STRIPE_ENVIRONMENT"] === "disabled")
-    return new Response("Billing disabled", { status: 503 });
+  const disabled =
+    process.env["APP_ENV"] === "production" && process.env["STRIPE_ENVIRONMENT"] === "disabled";
   let event: Stripe.Event;
-  const environment = stripeEnvironment();
+  const environment = disabled ? "live" : stripeEnvironment();
   const requested = new URL(request.url).searchParams.get("env");
   if (requested && requested !== environment)
     return new Response("Environment mismatch", { status: 400 });
@@ -15,6 +15,30 @@ export async function handleStripeWebhook(request: Request) {
     event = await verifyWebhook(request, environment);
   } catch {
     return new Response("Invalid signature", { status: 400 });
+  }
+  if (disabled) {
+    // Only acknowledge the private job's expired, unpaid sessions. Never reconcile in this branch.
+    if (event.type === "checkout.session.expired") {
+      const session = event.data.object;
+      const probe = session.metadata?.["matrixkeep_acceptance"];
+      if (
+        probe &&
+        /^[0-9]+-[0-9]+$/.test(probe) &&
+        session.status === "expired" &&
+        session.payment_status === "unpaid" &&
+        session.mode === "subscription"
+      ) {
+        console.info(
+          JSON.stringify({
+            event: "billing_acceptance_webhook",
+            probe,
+            session: session.id,
+          }),
+        );
+        return Response.json({ received: true });
+      }
+    }
+    return new Response("Billing disabled", { status: 503 });
   }
   try {
     const object = event.data.object;
@@ -103,7 +127,12 @@ export async function handleStripeWebhook(request: Request) {
     if (error) throw new Error("Billing transaction failed");
     return Response.json({ received: true });
   } catch {
-    console.error(JSON.stringify({ event: "stripe_webhook_failed", stripe_event_id: event.id }));
+    console.error(
+      JSON.stringify({
+        event: "stripe_webhook_failed",
+        stripe_event_id: event.id,
+      }),
+    );
     return new Response("Retry webhook", { status: 503 });
   }
 }

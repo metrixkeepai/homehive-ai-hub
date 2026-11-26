@@ -67,9 +67,12 @@ for key in OPENAI_API_KEY SUPER_ADMIN_EMAIL SUPER_ADMIN_PASSWORD SUPER_ADMIN_RES
   APP_USER_CONNECTION_KEY_SECRET; do
   if [[ $APP_ENV == staging ]] || has_secret "$key"; then bind "$key"; fi
 done
+for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
+if [[ $APP_ENV == production ]]; then
+  [[ ${STRIPE_ACCOUNT_ID:-} == acct_1Ug5NgE3qBBc51tM ]] || { echo "Unexpected production merchant" >&2; exit 1; }
+fi
 payments=false
 if [[ $APP_ENV == staging || ${LIVE_BILLING_VERIFIED:-false} == true ]]; then
-  for key in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET VITE_PAYMENTS_CLIENT_TOKEN; do bind "$key"; done
   payments=true
   if [[ $APP_ENV == production ]]; then
     [[ ${STRIPE_ACCOUNT_ID:-} =~ ^acct_[a-zA-Z0-9]+$ ]] || { echo 'Invalid or missing protected production STRIPE_ACCOUNT_ID' >&2; exit 1; }
@@ -95,7 +98,7 @@ if [[ $APP_ENV == staging ]]; then
 fi
 secret_flags=$(IFS=,; echo "${secrets[*]}")
 env_flags="APP_ENV=$APP_ENV,APP_ORIGIN=$origin,VITE_APP_ORIGIN=$origin,APP_ADDITIONAL_RETURN_ORIGINS=,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF,STRIPE_ENVIRONMENT=$stripe,PAYMENTS_ENABLED=$payments"
-if [[ $stripe == live ]]; then env_flags+=",STRIPE_ACCOUNT_ID=$STRIPE_ACCOUNT_ID"; fi
+if [[ $APP_ENV == production ]]; then env_flags+=",STRIPE_ACCOUNT_ID=$STRIPE_ACCOUNT_ID"; fi
 db_secret=$(binding DATABASE_MIGRATION_URL DATABASE_MIGRATION_URL)
 gcloud run jobs deploy "matrixkeep-$APP_ENV-migrate" "${common[@]}" --service-account="$migrator" \
   --image="$MIGRATOR_IMAGE" --set-secrets="$db_secret" --set-env-vars="APP_ENV=$APP_ENV,EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF" \

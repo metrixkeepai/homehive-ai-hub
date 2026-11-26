@@ -27,6 +27,7 @@ export function publicConfig(env) {
     VITE_APP_ORIGIN: env.APP_ORIGIN,
     VITE_SUPABASE_URL: env.SUPABASE_URL,
     VITE_SUPABASE_PUBLISHABLE_KEY: key,
-    VITE_PAYMENTS_CLIENT_TOKEN: payments,
+    VITE_PAYMENTS_CLIENT_TOKEN:
+      env.STRIPE_ENVIRONMENT === "disabled" || env.PAYMENTS_ENABLED === "false" ? "" : payments,
   };
 }

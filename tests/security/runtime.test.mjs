@@ -127,3 +127,26 @@ test("only a key for the pinned dedicated production merchant can start live bil
     /verification failed/,
   );
 });
+
+test("disabled production binds only matching live credentials and hides the browser payment key", async () => {
+  const { publicConfig } = await import("../../server/public-config.mjs");
+  const env = {
+    APP_ENV: "production",
+    APP_ORIGIN: "https://matrixkeep.com",
+    SUPABASE_URL: "https://example.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture",
+    SUPABASE_SERVICE_ROLE_KEY: "private-fixture",
+    PAYMENTS_ENABLED: "false",
+    STRIPE_ENVIRONMENT: "disabled",
+    STRIPE_SECRET_KEY: "rk_live_fixture",
+    VITE_PAYMENTS_CLIENT_TOKEN: "pk_live_fixture",
+    STRIPE_WEBHOOK_SECRET: "whsec_fixture",
+  };
+  validateEnvironment(env);
+  assert.equal(publicConfig(env).VITE_PAYMENTS_CLIENT_TOKEN, "");
+  assert.throws(
+    () => validateEnvironment({ ...env, STRIPE_SECRET_KEY: "rk_test_fixture" }),
+    /mode mismatch/,
+  );
+  assert.throws(() => validateEnvironment({ ...env, PAYMENTS_ENABLED: "true" }), /switches/);
+});
