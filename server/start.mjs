@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createReadinessClient } from "./readiness-client.mjs";
 import { attachVoice } from "./voice.mjs";
 import { validateEnvironment } from "./environment.mjs";
 import { ensureSuperAdmin } from "./ensure-super-admin.mjs";
@@ -9,10 +9,7 @@ validateEnvironment(process.env);
 const browserScript = `window.__MATRIXKEEP_PUBLIC__=Object.freeze(${JSON.stringify(publicConfig(process.env))});`;
 await ensureSuperAdmin(process.env);
 const { middleware } = await import("../.output/server/index.mjs");
-const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-  global: { fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(3000) }) },
-});
+const db = createReadinessClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const supabaseOrigin = new URL(process.env.SUPABASE_URL).origin;
 const csp = `default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${supabaseOrigin}; font-src 'self' data:; connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace("https:", "wss:")} https://api.stripe.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self' https://checkout.stripe.com`;
 let readyUntil = 0,
