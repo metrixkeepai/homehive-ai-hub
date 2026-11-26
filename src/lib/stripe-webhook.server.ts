@@ -1,13 +1,18 @@
 import type Stripe from "stripe";
-import { createStripeClient, stripeEnvironment, verifyWebhook } from "./stripe.server";
+import {
+  createStripeClient,
+  stripeEnvironment,
+  verifyWebhook,
+} from "./stripe.server";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
 import { validatedPrice } from "./stripe-billing.server";
 
 export async function handleStripeWebhook(request: Request) {
-  if (process.env["STRIPE_ENVIRONMENT"] === "disabled")
-    return new Response("Billing disabled", { status: 503 });
+  const disabled =
+    process.env["APP_ENV"] === "production" &&
+    process.env["STRIPE_ENVIRONMENT"] === "disabled";
   let event: Stripe.Event;
-  const environment = stripeEnvironment();
+  const environment = disabled ? "live" : stripeEnvironment();
   const requested = new URL(request.url).searchParams.get("env");
   if (requested && requested !== environment)
     return new Response("Environment mismatch", { status: 400 });
@@ -16,16 +21,46 @@ export async function handleStripeWebhook(request: Request) {
   } catch {
     return new Response("Invalid signature", { status: 400 });
   }
+  if (disabled) {
+    // Only acknowledge the private job's expired, unpaid sessions. Never reconcile in this branch.
+    if (event.type === "checkout.session.expired") {
+      const session = event.data.object;
+      const probe = session.metadata?.matrixkeep_acceptance;
+      if (
+        probe &&
+        /^[0-9]+-[0-9]+$/.test(probe) &&
+        session.status === "expired" &&
+        session.payment_status === "unpaid" &&
+        session.mode === "subscription"
+      ) {
+        console.info(
+          JSON.stringify({
+            event: "billing_acceptance_webhook",
+            probe,
+            session: session.id,
+          }),
+        );
+        return Response.json({ received: true });
+      }
+    }
+    return new Response("Billing disabled", { status: 503 });
+  }
   try {
     const object = event.data.object;
     let subscriptionId: string | null = null;
     if (object.object === "subscription") subscriptionId = object.id;
     else if (object.object === "invoice") {
       const subscription = object.parent?.subscription_details?.subscription;
-      subscriptionId = typeof subscription === "string" ? subscription : (subscription?.id ?? null);
+      subscriptionId =
+        typeof subscription === "string"
+          ? subscription
+          : (subscription?.id ?? null);
     } else if (object.object === "checkout.session") {
       const subscription = object.subscription;
-      subscriptionId = typeof subscription === "string" ? subscription : (subscription?.id ?? null);
+      subscriptionId =
+        typeof subscription === "string"
+          ? subscription
+          : (subscription?.id ?? null);
     }
     const accepted = new Set([
       "customer.subscription.created",
@@ -37,19 +72,23 @@ export async function handleStripeWebhook(request: Request) {
       "checkout.session.completed",
       "checkout.session.async_payment_succeeded",
     ]);
-    if (!accepted.has(event.type) || !subscriptionId) return Response.json({ received: true });
+    if (!accepted.has(event.type) || !subscriptionId)
+      return Response.json({ received: true });
     // Fetch current state so delayed webhook delivery cannot restore an obsolete subscription.
     const stripe = createStripeClient(environment);
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
       expand: ["latest_invoice"],
     });
     const customer =
-      typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+      typeof subscription.customer === "string"
+        ? subscription.customer
+        : subscription.customer.id;
     const item = subscription.items.data[0];
     if (!item || subscription.items.data.length !== 1)
       throw new Error("Unrecognised subscription price");
     const price = item.price;
-    const product = typeof price.product === "string" ? price.product : price.product.id;
+    const product =
+      typeof price.product === "string" ? price.product : price.product.id;
     const history = await supabaseAdmin
       .from("billing_price_history")
       .select("*")
@@ -70,12 +109,16 @@ export async function handleStripeWebhook(request: Request) {
         throw new Error("Invalid historical price");
       planKey = h.plan_key;
     } else {
-      if (!price.lookup_key || (await validatedPrice(stripe, price.lookup_key)).id !== price.id)
+      if (
+        !price.lookup_key ||
+        (await validatedPrice(stripe, price.lookup_key)).id !== price.id
+      )
         throw new Error("Subscription price mismatch");
       planKey = price.lookup_key.replace(/_(monthly|yearly)$/, "");
     }
     const invoice = subscription.latest_invoice;
-    const paid = !!invoice && typeof invoice !== "string" && invoice.status === "paid";
+    const paid =
+      !!invoice && typeof invoice !== "string" && invoice.status === "paid";
     const { error } = await supabaseAdmin.rpc("apply_billing_event", {
       _event: event.id,
       _created: event.created,
@@ -85,7 +128,8 @@ export async function handleStripeWebhook(request: Request) {
       _subscription: {
         id: subscription.id,
         customer,
-        product: typeof price.product === "string" ? price.product : price.product.id,
+        product:
+          typeof price.product === "string" ? price.product : price.product.id,
         price: price.id,
         status: subscription.status,
         interval: price.recurring?.interval,
@@ -103,7 +147,12 @@ export async function handleStripeWebhook(request: Request) {
     if (error) throw new Error("Billing transaction failed");
     return Response.json({ received: true });
   } catch {
-    console.error(JSON.stringify({ event: "stripe_webhook_failed", stripe_event_id: event.id }));
+    console.error(
+      JSON.stringify({
+        event: "stripe_webhook_failed",
+        stripe_event_id: event.id,
+      }),
+    );
     return new Response("Retry webhook", { status: 503 });
   }
 }

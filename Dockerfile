@@ -11,6 +11,7 @@ FROM node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/scripts/billing-reconciliation-acceptance.mjs ./scripts/billing-reconciliation-acceptance.mjs
 COPY --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
 COPY --from=build /app/scripts/configure-connector-cron.mjs ./scripts/configure-connector-cron.mjs
 COPY --from=build /app/drizzle/migrations ./drizzle/migrations
