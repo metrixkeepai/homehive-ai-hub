@@ -3,6 +3,17 @@ import { supabaseAdmin } from "../integrations/supabase/client.server";
 import { cataloguePlan } from "./billing-catalogue.server";
 import type { StripeEnv } from "./stripe.server";
 
+// Checkout may accept a charge only while the webhook database can apply its entitlement.
+export async function requireBillingEnvironment(environment: StripeEnv) {
+  const { data, error } = await supabaseAdmin
+    .from("runtime_limits")
+    .select("billing_environment")
+    .eq("singleton", true)
+    .single();
+  if (error || data?.billing_environment !== environment)
+    throw new Error("Billing database environment mismatch");
+}
+
 export async function existingCustomer(userId: string, environment: StripeEnv) {
   const { data, error } = await supabaseAdmin
     .from("billing_customers")

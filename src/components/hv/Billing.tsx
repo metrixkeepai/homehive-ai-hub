@@ -2,12 +2,40 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { createPortalSession } from "@/lib/payments.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouteContext } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { publicSetting } from "@/lib/public-config";
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import { useStore } from "./store";
 import { planByKey, nextPlan, trialInfo, gbp } from "@/lib/plans";
 
 export function BillingPage() {
+  const { user } = useRouteContext({ from: "/_authenticated" });
+  const paymentsEnabled = Boolean(publicSetting("VITE_PAYMENTS_CLIENT_TOKEN"));
+  const subscription = useQuery({
+    queryKey: ["my-subscription", user.id],
+    enabled: paymentsEnabled,
+    queryFn: async () => {
+      const query = () =>
+        supabase
+          .from("subscriptions")
+          .select("status,billing_interval,current_period_end,cancel_at_period_end,trial_end")
+          .eq("user_id", user.id)
+          .eq("environment", getStripeEnvironment())
+          .order("updated_at", { ascending: false })
+          .limit(1);
+      const current = await query()
+        .not("status", "in", "(canceled,incomplete_expired)")
+        .maybeSingle();
+      if (current.error) throw new Error("Subscription details unavailable");
+      if (current.data) return current.data;
+      const latest = await query().maybeSingle();
+      if (latest.error) throw new Error("Subscription details unavailable");
+      return latest.data;
+    },
+  });
+  const sub = subscription.data;
   const [busy, setBusy] = useState(false);
   const portal = async () => {
     setBusy(true);
@@ -79,8 +107,30 @@ export function BillingPage() {
               ? "Trial"
               : profile?.plan_source?.startsWith("voucher:")
                 ? `Voucher ${profile.plan_source.slice(8)}`
-                : "Active"}
+                : sub
+                  ? sub.status.replaceAll("_", " ")
+                  : profile?.plan_source === "stripe"
+                    ? "Card billing"
+                    : "Active"}
           </p>
+          {sub?.current_period_end && ["active", "trialing"].includes(sub.status) && (
+            <p className="mt-2 text-sm">
+              {sub.cancel_at_period_end
+                ? "Access ends"
+                : sub.status === "trialing"
+                  ? "Trial ends"
+                  : "Renews"}{" "}
+              {new Date(
+                (sub.status === "trialing" && !sub.cancel_at_period_end && sub.trial_end) ||
+                  sub.current_period_end,
+              ).toLocaleDateString("en-GB")}
+              {sub.billing_interval &&
+                " · Billed " + (sub.billing_interval === "year" ? "yearly" : "monthly")}
+            </p>
+          )}
+          {subscription.isError && (
+            <p className="mt-2 text-sm">Subscription details are temporarily unavailable.</p>
+          )}
           <p className="mt-3 text-sm">{p.outcome}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
@@ -141,15 +191,16 @@ export function BillingPage() {
       <div className="rounded-3xl border bg-card p-6 text-sm text-muted-foreground shadow-soft">
         <h2 className="font-semibold text-foreground">Payment method & invoices</h2>
         <button
-          disabled={busy}
+          disabled={busy || !paymentsEnabled}
           onClick={portal}
           className="mt-3 rounded-full border px-5 py-3 font-semibold"
         >
           {busy ? "Opening billing…" : "Manage subscription, payment method & invoices"}
         </button>
         <p className="mt-2">
-          Card payments aren't connected yet, so there's no card on file and no invoices. Plans
-          change through vouchers, the Business Starter trial or switching to Free.
+          {paymentsEnabled
+            ? "Use the billing portal to manage your card-billed subscription and view invoices."
+            : "Card billing is currently unavailable."}
         </p>
       </div>
     </div>
