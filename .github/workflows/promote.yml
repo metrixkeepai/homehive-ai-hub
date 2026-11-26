@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      acceptance_only:
+        description: Test the serving production revision without deploying or moving traffic
+        type: boolean
+        default: false
       billing_acceptance:
         description: Run private unpaid billing checks after deploying with customer billing disabled
         type: boolean
@@ -21,7 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.acceptance_only != true
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -96,3 +100,52 @@ jobs:
           name: matrixkeep-production-release
           path: release.json
           if-no-files-found: error
+
+  serving-acceptance:
+    if: github.ref == 'refs/heads/main' && inputs.acceptance_only
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      APP_ENV: production
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      STRIPE_ACCOUNT_ID: ${{ vars.STRIPE_ACCOUNT_ID }}
+      LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED || 'false' }}
+      EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Match serving revision to accepted main staging artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.staging_run }}
+        run: |
+          set -euo pipefail
+          [[ $RUN_ID =~ ^[0-9]+$ && $GCP_PROJECT_ID == matrixkeep-production && $REGION == europe-west2 ]]
+          state=$(gcloud run services describe matrixkeep-production-web --project="$GCP_PROJECT_ID" --region="$REGION" --format=json)
+          revision=$(jq -er '[.status.traffic[]|select(.percent==100).revisionName]|select(length==1)|first' <<<"$state")
+          sha=$(gcloud run revisions describe "$revision" --project="$GCP_PROJECT_ID" --region="$REGION" --format='value(metadata.labels.source-commit)')
+          [[ $sha =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" | jq -e --arg sha "$sha" '.head_sha==$sha and .event=="push" and .head_branch=="main" and .path==".github/workflows/verify.yml" and .conclusion=="success"' >/dev/null
+          gh run download "$RUN_ID" -n matrixkeep-staging-release -D "$RUNNER_TEMP/accepted"
+          manifest="$RUNNER_TEMP/accepted/release.json"
+          jq -e --arg sha "$sha" '.sha==$sha and .project=="matrixkeep-staging" and .service=="matrixkeep-staging-web"' "$manifest" >/dev/null
+          for pair in web:image migrator:migrator; do
+            name=${pair%:*}
+            digest=$(jq -er --arg k "${pair#*:}" '.[$k] | split("@") | last | select(test("^sha256:[0-9a-f]{64}$"))' "$manifest")
+            key=IMAGE
+            if [[ $name == migrator ]]; then key=MIGRATOR_IMAGE; fi
+            echo "$key=$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep/$name@$digest" >> "$GITHUB_ENV"
+          done
+          jq -n --arg revision "$revision" '{revision:$revision}' > release.json
+      - name: Private acceptance against existing production artifacts
+        run: bash deploy/billing-acceptance.sh
