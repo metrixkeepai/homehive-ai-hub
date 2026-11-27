@@ -6,6 +6,8 @@ import { SiteShell, Steps, FAQ, CTA, FeedCard, Reveal } from "./Site";
 import type { Story } from "./siteContent";
 import { storyPhoto, photos } from "@/components/marketing/media";
 import { SeraDemo } from "@/components/marketing/Demos";
+import { ScrollStory } from "@/components/marketing/ScrollStory";
+import { storyForSlug, indexStories, industryExtras } from "@/components/marketing/stories";
 export function StoryPage({
   s,
   kind,
@@ -32,7 +34,7 @@ export function StoryPage({
             <p className="mk-eyebrow">
               {kind === "industries" ? "Industry solution" : "A real-world use case"} · MatrixKeep
             </p>
-            <h1>{s.t}</h1>
+            <h1>{(kind === "industries" && industryExtras[s.slug]?.headline) || s.t}</h1>
             <p className="mk-lead">{s.lead}</p>
             <div className="mk-actions">
               <Button asChild>
@@ -49,6 +51,7 @@ export function StoryPage({
         </div>
         <LivingOverlay label={s.feed[0]?.[0] ?? s.t} rows={s.tracks} />
       </section>
+      <ScrollStory data={storyForSlug(s, kind)} />
       <section className="mk-container mk-section mk-split">
         <div>
           <p className="mk-eyebrow">The challenge</p>
@@ -222,6 +225,7 @@ export function StoryIndex({
           </div>
         </div>
       </section>
+      <ScrollStory data={indexStories[kind]} />
       <section className="mk-container mk-section">
         <div className="mk-use-grid">
           {items.map((o) => (

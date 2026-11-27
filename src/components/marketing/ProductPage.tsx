@@ -17,6 +17,8 @@ import {
   Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollStory } from "./ScrollStory";
+import { productStories } from "./stories";
 import { SiteShell, PageHero, FeatureGrid, FAQ, CTA, FeedCard } from "@/components/hv/Site";
 import { photos, scenes } from "./media";
 import { PassportDemo, SeraDemo } from "./Demos";
@@ -34,44 +36,44 @@ export type ProductKind =
 export const productContent = {
   features: {
     eyebrow: "The MatrixKeep platform",
-    title: "Asset intelligence for everything you own and operate.",
-    lead: "Replace fragmented records with connected assets, evidence and dates. MatrixKeep helps you know what you own, find what matters and review what needs attention.",
+    title: "One platform. A clearer picture of everything.",
+    lead: "Discover how MatrixKeep connects your assets, important information and intelligent insights.",
     image: photos.world,
   },
   "ai-agents": {
     eyebrow: "AI Agents · Assisted intelligence",
-    title: "A little intelligence. A lot less searching.",
-    lead: "AI-assisted capture and interpretation connect real-world information to structured records. Review the source, confirm the details and decide your next step.",
+    title: "Intelligence that connects the dots.",
+    lead: "Explore the AI-powered capabilities that help organise, understand and connect your asset information.",
     image: photos.world,
   },
   sera: {
     eyebrow: "Meet Sera AI",
-    title: "The answer is in your records. Sera helps you find it.",
-    lead: "Ask everyday questions about your saved assets, warranties, receipts and renewals. Keep the evidence close and the final decision yours.",
+    title: "Less searching. Just ask Sera.",
+    lead: "Find relevant information about your assets and important records through everyday questions.",
     image: photos.world,
   },
   "digital-passport": {
     eyebrow: "Digital Asset Passports",
-    title: "Every asset has a story. Keep yours connected.",
-    lead: "Identity, purchase information, warranties, documents and recorded maintenance history — one digital memory for an asset, vehicle or property.",
+    title: "Every asset. Its entire story.",
+    lead: "Bring purchase information, warranties, maintenance and supporting evidence together in one intelligent digital record.",
     image: photos.world,
   },
   partners: {
     eyebrow: "Partner opportunities",
-    title: "Build the future of asset intelligence. Together.",
+    title: "Build the future of connected asset intelligence.",
     lead: "We welcome conversations with organisations exploring practical asset intelligence, connected evidence, responsible AI and pilot opportunities.",
     image: photos.world,
   },
   "how-it-works": {
     eyebrow: "How it works",
-    title: "From a receipt in a drawer to a record you can use.",
-    lead: "Capture, understand, organise, review and act. MatrixKeep keeps information connected to the real-world things it belongs to.",
+    title: "Start with a photo. Build a digital memory.",
+    lead: "Discover how everyday assets and information become connected digital records.",
     image: photos.world,
   },
   about: {
     eyebrow: "About MatrixKeep",
-    title: "What matters deserves a better memory.",
-    lead: "We are building the AI-powered Asset Intelligence and Digital Passport Platform for everything people and organisations own and operate.",
+    title: "A smarter way to manage the world around us.",
+    lead: "MatrixKeep brings intelligence to the information people and organisations depend on.",
     image: photos.world,
   },
   security: {
@@ -134,6 +136,7 @@ export function ProductPage({ kind }: { kind: ProductKind }) {
         lead={c.lead}
         cta={kind === "partners" ? "Talk to the Team" : "Start Free"}
       />
+      {productStories[kind] && <ScrollStory data={productStories[kind]} />}
       {kind === "features" && (
         <>
           <Capabilities />

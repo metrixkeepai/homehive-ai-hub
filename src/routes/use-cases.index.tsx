@@ -22,8 +22,8 @@ export const Route = createFileRoute("/use-cases/")({
   component: () => (
     <StoryIndex
       kind="use-cases"
-      title="One memory. Many jobs."
-      lead="From a single TV warranty to hundreds of assets across sites, here's how people use MatrixKeep."
+      title="Built for the moments that matter."
+      lead="Discover practical ways MatrixKeep helps individuals and businesses stay organised and informed."
       items={useCases}
     />
   ),

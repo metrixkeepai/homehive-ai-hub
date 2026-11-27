@@ -584,13 +584,11 @@ export function MarketingPricing({
     <section className="mk-container mk-section" id="plans">
       <p className="mk-eyebrow">Plans for your world</p>
       <Heading>
-        Invest a little.
+        Powerful intelligence.
         <br />
-        Stay in control of much more.
+        <span className="mk-gradient-text">Simple pricing.</span>
       </Heading>
-      <p className="mk-lead">
-        Start with what matters today. Choose more space and capabilities as your needs grow.
-      </p>
+      <p className="mk-lead">Choose the MatrixKeep plan that fits your life or business.</p>
       <div className="mk-pricing-controls">
         <div className="mk-tabs" role="group" aria-label="Pricing audience">
           {(["individual", "business", "enterprise"] as const).map((a) => (
