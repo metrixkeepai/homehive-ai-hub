@@ -24,8 +24,9 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
         run: |
-          if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]] &&
-             [[ $(git diff --name-only "$BEFORE" HEAD) == "$(printf '%s\n' .github/workflows/promote.yml .github/workflows/verify.yml deploy/website-only.sh)" ]]; then
+          # The one-time installation includes the reviewed CI repair. Never deploy
+          # main's application or start its migrator on this installation push.
+          if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/setup-node@v4
