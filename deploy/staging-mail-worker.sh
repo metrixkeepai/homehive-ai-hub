@@ -47,20 +47,14 @@ fi
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
-list_schedules() {
-  gcloud scheduler jobs list "${sched[@]}" --filter="name ~ /jobs/$job$" --format='value(name)'
-}
-if ! existing=$(list_schedules 2>&1); then
-  if [[ $existing != *"Cloud Scheduler API has not been used"* && $existing != *"SERVICE_DISABLED"* ]]; then
-    printf '%s\n' "$existing" >&2
-    exit 1
-  fi
-  gcloud services enable cloudscheduler.googleapis.com --project="$GCP_PROJECT_ID" --quiet
-  existing=$(list_schedules)
-fi
+existing=$(gcloud scheduler jobs list "${sched[@]}" --format='value(name)')
 action=create
-if [[ -n $existing ]]; then action=update; fi
+resource="projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job"
+if grep -Fxq "$resource" <<<"$existing"; then action=update; fi
 gcloud scheduler jobs "$action" http "$job" "${sched[@]}" --schedule='*/5 * * * *' --time-zone=Etc/UTC \
   --uri="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" \
   --http-method=POST --oauth-service-account-email="$mail_identity" --message-body='{}'
+gcloud scheduler jobs describe "$job" "${sched[@]}" --format='json(name,state,schedule,timeZone,httpTarget.uri,httpTarget.oauthToken.serviceAccountEmail)' |
+  jq -e --arg target "https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" --arg identity "$mail_identity" \
+    '.state == "ENABLED" and .schedule == "*/5 * * * *" and .timeZone == "Etc/UTC" and .httpTarget.uri == $target and .httpTarget.oauthToken.serviceAccountEmail == $identity'
 printf 'mail_worker=%s digest=%s sha=%s\n' "$job" "$digest" "$GITHUB_SHA"
