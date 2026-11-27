@@ -100,7 +100,14 @@ for (const role of ["individual", "business"]) {
       ...(role === "individual" ? ["fr", "photo", "room", "type", "email"] : []),
     ]) {
       const speech = ["en", "ml", "fr"].includes(mode);
-      const wav = join(dir, mode + ".wav");
+      // A private 16 kHz mono PCM WAV can be mounted in the protected QA job.
+      const human = mode === "ml" && Boolean(process.env.QA_MALAYALAM_WAV);
+      const wav = human ? process.env.QA_MALAYALAM_WAV : join(dir, mode + ".wav");
+      const today = new Date().toISOString().slice(0, 10);
+      const item = human ? /Dyson\s+V\s*15/i : /kettle/i;
+      const expected = human ? 599 : 65;
+      const terms = /(?:two|2)[- ]years?|24[- ]months?/i;
+
       const browser = await chromium.launch({
         args: speech
           ? [
@@ -132,7 +139,9 @@ for (const role of ["individual", "business"]) {
         await page.getByRole("button", { name: labels[mode] ?? "Speak", exact: true }).click();
         step = "CAPTURE";
         if (speech) {
-          if (mode !== "en") await page.getByLabel("Spoken language").selectOption(mode);
+          if (mode !== "en" && !human) await page.getByLabel("Spoken language").selectOption(mode);
+          if (human && (await page.getByLabel("Spoken language").inputValue()) !== "")
+            throw Error();
           await page.getByRole("button", { name: "Tap and speak" }).click();
           const stop = page.getByRole("button", { name: /Listening.*finish/ });
           await stop.waitFor();
@@ -148,8 +157,11 @@ for (const role of ["individual", "business"]) {
             throw Error();
           step = "ENGLISH";
           const draft = await page.locator("textarea").inputValue();
-          if (!/kettle/i.test(draft) || !hasExactGbp(draft, 65)) throw Error();
-          await page.locator("textarea").fill(draft + " QA reference " + runId + " " + mode);
+          if (!item.test(draft) || !hasExactGbp(draft, expected)) throw Error();
+          if (human && ![/vacuum/i, /Currys/i, /today/i, terms].every((re) => re.test(draft)))
+            throw Error();
+          if (!human)
+            await page.locator("textarea").fill(draft + " QA reference " + runId + " " + mode);
         } else if (mode === "email" || mode === "type") {
           await page
             .locator("textarea")
@@ -178,10 +190,21 @@ for (const role of ["individual", "business"]) {
           ![/MK-508/i, /elm appliances/i, /TWK7203/i, /65/].every((re) => re.test(review))
         )
           throw Error();
-        if (speech && (!/kettle/i.test(review) || !hasExactGbp(review, 65))) throw Error();
+        if (speech && (!item.test(review) || !hasExactGbp(review, expected))) throw Error();
+        if (human && (!review.includes(today) || !/Currys/i.test(review) || !terms.test(review)))
+          throw Error();
         if (mode === "photo" && !/television|\bTV\b/i.test(review)) throw Error();
         if (mode === "room" && !/chair|sofa|table/i.test(review)) throw Error();
         step = "SAVE";
+        // Repeated QA uploads of the same synthetic receipt require explicit confirmation.
+        page.once("dialog", async (dialog) => {
+          if (
+            dialog.type() === "confirm" &&
+            /^This file was already uploaded as .+Save it again anyway\?$/.test(dialog.message())
+          )
+            await dialog.accept();
+          else await dialog.dismiss();
+        });
         await save.click();
         await page.getByText(/^Saved to /).waitFor();
         const records = await page
@@ -194,13 +217,48 @@ for (const role of ["individual", "business"]) {
           );
         if (!records.length) throw Error();
         step = "REOPEN";
+        if (
+          human &&
+          !["/app/assets/", "/app/warranties/"].every((prefix) =>
+            records.some(([path]) => path.startsWith(prefix)),
+          )
+        )
+          throw Error();
         for (const [path, title] of records) {
           await page.goto(base + path);
           await page.getByText(title, { exact: true }).first().waitFor();
+          if (human) {
+            const saved = await page.locator("main").innerText();
+            if (
+              path.startsWith("/app/assets/") &&
+              (!item.test(saved) ||
+                !hasExactGbp(saved, expected) ||
+                !/Currys/i.test(saved) ||
+                !saved.includes(today))
+            )
+              throw Error();
+            if (
+              path.startsWith("/app/warranties/") &&
+              (!terms.test(saved) || !saved.includes(today))
+            )
+              throw Error();
+          }
         }
-        await mark(role + " " + mode + " capture review save reopen", "PASS");
+        await mark(
+          role +
+            " " +
+            (human ? "human Malayalam auto-detect" : mode) +
+            " capture review save reopen",
+          "PASS",
+        );
       } catch {
-        await mark(role + " " + mode + " capture review save reopen", step + "_FAILED");
+        await mark(
+          role +
+            " " +
+            (human ? "human Malayalam auto-detect" : mode) +
+            " capture review save reopen",
+          step + "_FAILED",
+        );
       } finally {
         await browser.close();
       }
