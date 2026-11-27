@@ -1,11 +1,11 @@
 name: Promote verified MatrixKeep release
 on:
-  workflow_run:
-    workflows: ["Verify hardening"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
+      recovered_release:
+        description: Use a verified serving-release artifact from a successful recovery run
+        type: boolean
+        default: false
       website_sha:
         description: Website only (leave empty for normal releases)
         type: string
@@ -37,7 +37,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
+    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -116,7 +116,7 @@ jobs:
           if-no-files-found: error
 
   serving-acceptance:
-    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
+    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -165,7 +165,7 @@ jobs:
         run: bash deploy/billing-acceptance.sh
 
   mail:
-    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
+    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -198,7 +198,7 @@ jobs:
       - run: bash deploy/production-mail-worker.sh
 
   website-production:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.website_sha != ''
+    if: inputs.recovered_release != true && github.ref == 'refs/heads/main' && inputs.website_sha != ''
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -248,7 +248,7 @@ jobs:
       target: production
 
   recover-production:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_commit.message, '[release-recovery]')
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
     permissions:
       actions: read
       contents: read
@@ -256,7 +256,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      RECOVERY_RUN: ${{ github.event.workflow_run.id }}
+      RECOVERY_RUN: ${{ inputs.staging_run }}
       APP_ENV: production
       STAGING_PROJECT: matrixkeep-staging
       REGION: europe-west2
@@ -266,17 +266,27 @@ jobs:
       LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Verify original staging recovery and owner acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE: ${{ inputs.acceptance }}
+        run: |
+          set -euo pipefail
+          [[ $RECOVERY_RUN =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RECOVERY_RUN" | jq -e '
+            .path==".github/workflows/verify.yml" and .event=="push" and .head_branch=="main" and .conclusion=="success"
+          ' >/dev/null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RECOVERY_RUN/jobs" | jq -e 'any(.jobs[]; .name=="recover" and .conclusion=="success")' >/dev/null
       - uses: actions/download-artifact@v4
         with:
           name: matrixkeep-recovered-staging-release
           path: accepted
           github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ inputs.staging_run }}
       - id: source
         run: |
           set -euo pipefail
+          jq -e --slurpfile req deploy/recovery/request.json '.sha==$req[0].sha and .digest==$req[0].digest and .revision==$req[0].revision and .staging_run==$req[0].staging_run and .functional_acceptance==$req[0].acceptance' accepted/release.json >/dev/null
           sha=$(jq -er '.sha|select(test("^[0-9a-f]{40}$"))' accepted/release.json)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
