@@ -1829,3 +1829,62 @@ a[href*="utm_source=lovable-badge"] {
   .marketing-site .mk-cinema-shade { background: linear-gradient(90deg, oklch(0.13 0.03 268 / .96), oklch(0.13 0.03 268 / .68)); }
   .mk-point-4 { display: none !important; }
 }
+
+/* Public-only: scroll-scrubbed Digital Passport story and section bridges. */
+.marketing-site .mk-birth { position: relative; height: 420vh; background: var(--mk-ink); color: var(--background); }
+.marketing-site .mk-birth-sticky { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; overflow: hidden; }
+.marketing-site .mk-birth-grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 3rem; align-items: center; width: 100%; }
+.marketing-site .mk-birth-eyebrow { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.7; }
+.marketing-site .mk-birth h2 { font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.05; margin: 0.6rem 0 1rem; color: var(--background); }
+.marketing-site .mk-birth-lead { opacity: 0.75; max-width: 32rem; }
+.marketing-site .mk-birth-steps { list-style: none; padding: 0; margin: 1.6rem 0; display: grid; gap: 0.45rem; }
+.marketing-site .mk-birth-steps li { opacity: 0.35; transition: opacity .4s, transform .4s; font-size: 0.95rem; padding-left: 1rem; border-left: 2px solid transparent; }
+.marketing-site .mk-birth-steps li[data-done="true"] { opacity: 0.6; }
+.marketing-site .mk-birth-steps li[aria-current] { opacity: 1; transform: translateX(6px); border-color: var(--primary); font-weight: 600; }
+.marketing-site .mk-birth-caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.marketing-site .mk-birth-stage { position: relative; aspect-ratio: 1; max-height: 78vh; }
+.marketing-site .mk-birth-stage > * { transition: opacity .6s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+.marketing-site .mk-birth-asset { position: absolute; inset: 22%; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 30px 80px oklch(0 0 0 / .45); }
+.marketing-site .mk-birth-asset img { width: 100%; height: 100%; object-fit: cover; }
+.marketing-site .mk-birth-asset span { position: absolute; left: .8rem; bottom: .8rem; background: var(--mk-glass); color: var(--mk-ink); font-size: .75rem; padding: .3rem .6rem; border-radius: 99px; }
+.marketing-site .mk-birth-doc { position: absolute; width: 38%; display: grid; grid-template-columns: auto 1fr; gap: .1rem .5rem; align-items: center; background: var(--card); color: var(--mk-ink); border-radius: .9rem; padding: .7rem .8rem; font-size: .78rem; box-shadow: var(--mk-shadow); opacity: 0; }
+.marketing-site .mk-birth-doc em { grid-column: 2; font-style: normal; color: var(--muted-foreground); }
+.marketing-site .mk-birth-doc.d1 { top: 4%; left: 0; transform: translate(30%, 40%) scale(.8); }
+.marketing-site .mk-birth-doc.d2 { top: 6%; right: 0; transform: translate(-30%, 40%) scale(.8); }
+.marketing-site .mk-birth-doc.d3 { bottom: 6%; left: 0; transform: translate(30%, -40%) scale(.8); }
+.marketing-site .mk-birth-doc.d4 { bottom: 6%; right: 0; transform: translate(-30%, -40%) scale(.8); }
+.marketing-site .mk-birth-lines { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+.marketing-site .mk-birth-lines path { stroke: var(--primary); stroke-width: 1.5; fill: none; stroke-dasharray: 260; stroke-dashoffset: 260; transition: stroke-dashoffset 1s ease; }
+.marketing-site .mk-birth-fields { position: absolute; left: 50%; bottom: 24%; transform: translate(-50%, 20px); display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; width: 52%; opacity: 0; }
+.marketing-site .mk-birth-fields span { background: oklch(1 0 0 / .94); color: var(--mk-ink); border-radius: .5rem; padding: .35rem .5rem; font-size: .7rem; }
+.marketing-site .mk-birth-fields i { display: block; font-style: normal; font-size: .6rem; text-transform: uppercase; color: var(--muted-foreground); }
+.marketing-site .mk-birth-passport { position: absolute; inset: 30% 18%; display: grid; place-content: center; gap: .4rem; text-align: center; border-radius: 1.4rem; background: linear-gradient(140deg, var(--primary), var(--mk-ink)); color: var(--primary-foreground); border: 1px solid oklch(1 0 0 / .25); opacity: 0; transform: scale(.7); }
+.marketing-site .mk-birth-passport b { font-size: 1.4rem; }
+.marketing-site .mk-birth-passport span { font-size: .8rem; opacity: .85; }
+.marketing-site .mk-birth-sera { position: absolute; left: 10%; right: 10%; bottom: 2%; display: flex; gap: .6rem; background: var(--card); color: var(--mk-ink); padding: .8rem 1rem; border-radius: 1rem; font-size: .85rem; opacity: 0; transform: translateY(20px); box-shadow: var(--mk-shadow); }
+.marketing-site .mk-birth[data-stage="1"] .mk-birth-doc.d1, .marketing-site .mk-birth[data-stage="1"] .mk-birth-doc.d2,
+.marketing-site .mk-birth[data-stage="2"] .mk-birth-doc, .marketing-site .mk-birth[data-stage="3"] .mk-birth-doc { opacity: 1; transform: none; }
+.marketing-site .mk-birth[data-stage="2"] .mk-birth-fields, .marketing-site .mk-birth[data-stage="3"] .mk-birth-fields { opacity: 1; transform: translate(-50%, 0); }
+.marketing-site .mk-birth[data-stage="3"] .mk-birth-lines { opacity: 1; }
+.marketing-site .mk-birth[data-stage="3"] .mk-birth-lines path { stroke-dashoffset: 0; }
+.marketing-site .mk-birth[data-stage="4"] .mk-birth-asset, .marketing-site .mk-birth[data-stage="5"] .mk-birth-asset { opacity: .25; transform: scale(.9); }
+.marketing-site .mk-birth[data-stage="4"] .mk-birth-passport, .marketing-site .mk-birth[data-stage="5"] .mk-birth-passport { opacity: 1; transform: scale(1); }
+.marketing-site .mk-birth[data-stage="4"] .mk-birth-doc, .marketing-site .mk-birth[data-stage="5"] .mk-birth-doc { opacity: 0; transform: scale(.5); }
+.marketing-site .mk-birth[data-stage="5"] .mk-birth-sera { opacity: 1; transform: none; }
+.marketing-site .mk-bridge { padding: 3.5rem 1.5rem 0; text-align: center; }
+.marketing-site .mk-bridge p { font-size: clamp(1.3rem, 2.6vw, 2rem); font-weight: 600; letter-spacing: -0.01em; color: var(--mk-ink); opacity: 0; transform: translateY(18px); transition: opacity .8s, transform .8s; }
+.marketing-site .mk-bridge.mk-seen p { opacity: 1; transform: none; }
+@media (max-width: 820px) {
+  .marketing-site .mk-birth { height: 360vh; }
+  .marketing-site .mk-birth-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .marketing-site .mk-birth-steps, .marketing-site .mk-birth-lead { display: none; }
+  .marketing-site .mk-birth-caption { position: static; width: auto; height: auto; clip: auto; font-weight: 600; margin-bottom: .6rem; }
+  .marketing-site .mk-birth-stage { max-height: 52vh; margin: 0 auto; width: min(100%, 52vh); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-site .mk-birth { height: auto; }
+  .marketing-site .mk-birth-sticky { position: static; height: auto; padding: 4rem 0; }
+  .marketing-site .mk-bridge p { opacity: 1; transform: none; }
+}
+.marketing-site .mk-birth-grid { padding-inline: clamp(1.25rem, 4vw, 3rem); max-width: 80rem; margin-inline: auto; }
+.marketing-site .mk-birth:not([data-stage="0"]):not([data-stage="1"]) .mk-birth-asset span { opacity: 0; }

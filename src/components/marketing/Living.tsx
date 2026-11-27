@@ -53,7 +53,7 @@ export function LivingSurface({ children }: { children: ReactNode }) {
       { threshold: 0.06 },
     );
     el.querySelectorAll(
-      "main section, .mk-problem-photo, .mk-passport, .mk-worlds article, .mk-industries a",
+      "main section, .mk-bridge, .mk-problem-photo, .mk-passport, .mk-worlds article, .mk-industries a",
     ).forEach((s) => observer.observe(s));
     let frame = 0;
     const scroll = () => {
