@@ -26,6 +26,10 @@ jobs:
       - name: Typecheck
         if: ${{ !cancelled() }}
         run: npm run typecheck
+      - name: Transactional email tests
+        run: |
+          node --test server/email/email.test.mjs
+          python -m unittest discover -s server/email -p test_smtp.py
       - name: Product tests
         if: ${{ !cancelled() }}
         run: npm test
@@ -68,6 +72,8 @@ jobs:
       contents: read
       id-token: write
     env:
+      MATRIXKEEP_MAIL_WORKER_ENABLED: ${{ vars.MATRIXKEEP_MAIL_WORKER_ENABLED }}
+      MATRIXKEEP_MAIL_QA_RECIPIENT: ${{ vars.MATRIXKEEP_MAIL_QA_RECIPIENT }}
       APP_ENV: staging
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
@@ -94,7 +100,82 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
+      - name: Inspect staging mail secret version metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ $GCP_PROJECT_ID == matrixkeep-staging ]]
+          names=(MAIL_DATABASE_URL MATRIXKEEP_SMTP_HOST MATRIXKEEP_SMTP_PORT MATRIXKEEP_SMTP_USER MATRIXKEEP_SMTP_PASSWORD)
+          if ! known=$(gcloud secrets list --project="$GCP_PROJECT_ID" --format='value(name)' 2>/dev/null | sed 's|.*/||'); then
+            printf '%s NO ACCESS\n' "${names[@]}"
+            exit 0
+          fi
+          for name in "${names[@]}"; do
+            if ! grep -Fxq "$name" <<< "$known"; then
+              printf '%s NO ENABLED VERSION\n' "$name"
+            elif versions=$(gcloud secrets versions list "$name" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' --limit=1 --format='value(name)' 2>/dev/null); then
+              if [[ -n $versions ]]; then echo "$name ENABLED"; else echo "$name NO ENABLED VERSION"; fi
+            else
+              printf '%s NO ACCESS\n' "$name"
+            fi
+          done
+      - name: Deploy and exercise the staging mail job only
+        if: (github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]'))
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ $GCP_PROJECT_ID == matrixkeep-staging && $REGION == europe-west2 ]]
+          export MATRIXKEEP_MAIL_QA_RECIPIENT=metrixkeepai+emailqa20261126@gmail.com
+          registry="$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep"
+          common=(--project="$GCP_PROJECT_ID" --region="$REGION" --quiet)
+          mail_identity="matrixkeep-mail@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+          gcloud iam service-accounts describe "$mail_identity" --project="$GCP_PROJECT_ID" --format='value(email)'
+          enabled_version() {
+            gcloud secrets versions list "$1" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' --format='value(name)' |
+              awk -F/ '{print $NF}' | sort -nr | sed -n '1p'
+          }
+          for name in MAIL_DATABASE_URL MATRIXKEEP_SMTP_HOST MATRIXKEEP_SMTP_PORT MATRIXKEEP_SMTP_USER MATRIXKEEP_SMTP_PASSWORD; do
+            version=$(enabled_version "$name")
+            [[ $version =~ ^[1-9][0-9]*$ ]] || { echo "::error::Missing enabled version for $name"; exit 1; }
+            echo "$name version $version"
+            policy=$(gcloud secrets get-iam-policy "$name" --project="$GCP_PROJECT_ID" --format=json)
+            if ! jq -e --arg m "serviceAccount:$mail_identity" '.bindings[] | select(.role=="roles/secretmanager.secretAccessor" and (.condition==null)) | .members | index($m)!=null' <<<"$policy" >/dev/null; then
+              gcloud secrets add-iam-policy-binding "$name" --project="$GCP_PROJECT_ID" --member="serviceAccount:$mail_identity" --role=roles/secretmanager.secretAccessor --condition=None --quiet --format=none
+            fi
+          done
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          mig="$registry/migrator:$GITHUB_SHA"
+          docker build --target migrator --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$mig" .
+          docker push "$mig"
+          digest=$(gcloud artifacts docker images describe "$mig" --format='value(image_summary.digest)')
+          [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+          db_version=$(enabled_version DATABASE_MIGRATION_URL)
+          [[ $db_version =~ ^[1-9][0-9]*$ ]]
+          if ! gcloud run jobs deploy matrixkeep-staging-migrate "${common[@]}" --image="$registry/migrator@$digest" \
+            --service-account="matrixkeep-migrator@$GCP_PROJECT_ID.iam.gserviceaccount.com" --tasks=1 --max-retries=0 \
+            --set-secrets="DATABASE_MIGRATION_URL=DATABASE_MIGRATION_URL:$db_version" \
+            --set-env-vars="APP_ENV=staging,EXPECTED_SUPABASE_REF=cdfpupivjjamhvmfcvry" --execute-now --wait; then
+            execution=$(gcloud run jobs describe matrixkeep-staging-migrate "${common[@]}" --format='value(status.latestCreatedExecution.name)')
+            [[ $execution =~ ^matrixkeep-staging-migrate-[a-z0-9]+$ ]]
+            echo "Failed staging migration execution: $execution"
+            gcloud logging read "resource.type=cloud_run_job AND labels.\"run.googleapis.com/execution_name\"=\"$execution\"" \
+              --project="$GCP_PROJECT_ID" --limit=30 --format=json |
+              jq -r '[.[] | (.jsonPayload.code // (try (.textPayload | fromjson).code) // empty) | select(test("^[A-Z0-9_]{2,32}$"))] | unique | .[]'
+            exit 1
+          fi
+          accepted_migrator="$registry/migrator@$digest"
+          MATRIXKEEP_EXERCISE_STAGING_DELIVERY=true source deploy/staging-mail-worker.sh
+          gcloud run jobs execute "$job" "${common[@]}" --wait
+          jq -n --arg sha "$GITHUB_SHA" --arg worker "$repo@$digest" --arg migrator "$accepted_migrator" \
+            '{sha:$sha,worker:$worker,migrator:$migrator}' > mail-release.json
+      - uses: actions/upload-artifact@v4
+        if: (github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]'))
+        with:
+          name: matrixkeep-staging-mail-release
+          path: mail-release.json
+          if-no-files-found: error
       - name: Publish immutable release images
+        if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         shell: bash
         run: |
           set -euo pipefail
@@ -115,12 +196,15 @@ jobs:
             echo "$field=$repo@$digest" >> "$GITHUB_ENV"
           done
       - name: Migrate staging, deploy and verify HTTPS health
+        if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         run: bash deploy/cloud-run.sh
       - name: Configure service monitoring
+        if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         env:
           MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
         run: python3 deploy/monitoring.py
       - uses: actions/upload-artifact@v4
+        if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         with:
           name: matrixkeep-staging-release
           path: release.json

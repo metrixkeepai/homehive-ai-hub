@@ -98,8 +98,17 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
-  const [preview, setPreview] = useState({ image: photos.coffee, title: "One asset. Its whole story.", detail: "Evidence connected · Passport ready" });
-  useEffect(() => { const update = () => setScrolled(window.scrollY > 20); update(); window.addEventListener("scroll", update, { passive: true }); return () => window.removeEventListener("scroll", update); }, []);
+  const [preview, setPreview] = useState({
+    image: photos.coffee,
+    title: "One asset. Its whole story.",
+    detail: "Evidence connected · Passport ready",
+  });
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 20);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
   const close = () => {
     setOpen(false);
     setMenu(null);
@@ -113,7 +122,10 @@ export function SiteHeader() {
   }, []);
   const group = menuGroups.find((m) => m.label === menu);
   return (
-    <header className={`mk-header ${scrolled ? "is-scrolled" : ""}`} onMouseLeave={() => setMenu(null)}>
+    <header
+      className={`mk-header ${scrolled ? "is-scrolled" : ""}`}
+      onMouseLeave={() => setMenu(null)}
+    >
       <div className="mk-nav">
         <Logo light />
         <nav aria-label="Main navigation" className="mk-desktop-nav">
@@ -198,7 +210,25 @@ export function SiteHeader() {
           <div className="mk-mega-inner">
             <div className="mk-mega-links">
               {group?.items.map((m) => (
-                <Link key={m.t} to={m.to} onClick={close} onMouseEnter={() => setPreview({ image: publicHero(m.to), title: m.t, detail: m.d ?? "Explore MatrixKeep" })} onFocus={() => setPreview({ image: publicHero(m.to), title: m.t, detail: m.d ?? "Explore MatrixKeep" })}>
+                <Link
+                  key={m.t}
+                  to={m.to}
+                  onClick={close}
+                  onMouseEnter={() =>
+                    setPreview({
+                      image: publicHero(m.to),
+                      title: m.t,
+                      detail: m.d ?? "Explore MatrixKeep",
+                    })
+                  }
+                  onFocus={() =>
+                    setPreview({
+                      image: publicHero(m.to),
+                      title: m.t,
+                      detail: m.d ?? "Explore MatrixKeep",
+                    })
+                  }
+                >
                   <Sparkles className="size-4" />
                   <span>{m.t}</span>
                   {m.d && <small>{m.d}</small>}
@@ -211,8 +241,12 @@ export function SiteHeader() {
                     key={m.slug}
                     to="/industries/$slug"
                     params={{ slug: m.slug }}
-                    onMouseEnter={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
-                    onFocus={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
+                    onMouseEnter={() =>
+                      setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })
+                    }
+                    onFocus={() =>
+                      setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })
+                    }
                     onClick={close}
                   >
                     <m.icon className="size-4" />
@@ -226,8 +260,12 @@ export function SiteHeader() {
                     key={m.slug}
                     to="/use-cases/$slug"
                     params={{ slug: m.slug }}
-                    onMouseEnter={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
-                    onFocus={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
+                    onMouseEnter={() =>
+                      setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })
+                    }
+                    onFocus={() =>
+                      setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })
+                    }
                     onClick={close}
                   >
                     <m.icon className="size-4" />
@@ -241,7 +279,13 @@ export function SiteHeader() {
               onClick={close}
               className="mk-mega-feature"
             >
-              <img key={preview.image} src={preview.image} alt={preview.title + " example"} width="627" height="627" />
+              <img
+                key={preview.image}
+                src={preview.image}
+                alt={preview.title + " example"}
+                width="627"
+                height="627"
+              />
               <span>{preview.title}</span>
               <p>{preview.detail}</p>
               <small>Explore Digital Passports →</small>
@@ -391,7 +435,13 @@ export function PageHero({
   visual?: ReactNode;
   image?: string;
 }) {
-  const image = suppliedImage ?? (/business|enterprise/i.test(eyebrow) ? photos.enterprise : /contact/i.test(eyebrow) ? photos.it : photos.world);
+  const image =
+    suppliedImage ??
+    (/business|enterprise/i.test(eyebrow)
+      ? photos.enterprise
+      : /contact/i.test(eyebrow)
+        ? photos.it
+        : photos.world);
   return (
     <section className="mk-page-hero">
       <img

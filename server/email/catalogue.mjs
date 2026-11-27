@@ -1,0 +1,330 @@
+// Braced fields are customer-facing display values. Never pass raw provider payloads.
+export const catalogue = {
+  confirmation: {
+    subject: "Confirm your MatrixKeep email address",
+    preview: "One quick step to finish setting up your MatrixKeep account.",
+    title: "Welcome to MatrixKeep",
+    action: "Confirm email address",
+    signed: true,
+    before: [
+      "Thanks for creating your MatrixKeep account.",
+      "Before you get started, please confirm that {email} belongs to you.",
+      "Once confirmed, you can start building your secure digital record for the things that matter — your home, assets, documents, warranties, insurance, vehicles and important life records.",
+    ],
+    after: [
+      "This verification link is intended only for you. If you did not create a MatrixKeep account, you can safely ignore this email.",
+      "MatrixKeep will never ask you to send your password by email.",
+    ],
+  },
+  recovery: {
+    subject: "Reset your MatrixKeep password",
+    preview: "Use this secure link to choose a new MatrixKeep password.",
+    title: "Reset your password",
+    action: "Reset password",
+    signed: true,
+    before: [
+      "We received a request to reset the password for your MatrixKeep account.",
+      "Use the secure button below to create a new password.",
+    ],
+    after: [
+      "If you did not request a password reset, you can safely ignore this email. Your existing password will remain unchanged.",
+      "For your security, never forward this email or share the reset link with anyone.",
+    ],
+  },
+  password_changed_notification: {
+    subject: "Your MatrixKeep password was changed",
+    preview: "A security update was made to your MatrixKeep account.",
+    title: "Password successfully changed",
+    action: "Go to MatrixKeep",
+    path: "/auth",
+    before: [
+      "The password for your MatrixKeep account was successfully changed.",
+      "If you made this change, no further action is required.",
+      "If you did not change your password, contact MatrixKeep immediately at hello@matrixkeep.com and reset your password from the MatrixKeep sign-in page.",
+    ],
+    after: ["This is an important account security notification."],
+  },
+  email_changed_notification: {
+    subject: "Your MatrixKeep email address was changed",
+    preview: "Review this account security change.",
+    title: "Your email address has been updated",
+    action: "Review my account",
+    path: "/app/profile",
+    before: [
+      "The email address associated with your MatrixKeep account has been changed.",
+      "If you requested this change, no action is required.",
+      "If you do not recognise this activity, contact us immediately at hello@matrixkeep.com.",
+    ],
+    after: [
+      "For your security, we recommend reviewing your account details if this change was unexpected.",
+    ],
+  },
+  invite: {
+    subject: "You’ve been invited to MatrixKeep",
+    preview: "{inviter_name} has invited you to access {workspace_name}.",
+    title: "You’ve been invited",
+    action: "Accept invitation",
+    signed: true,
+    before: [
+      "{inviter_name} has invited you to access {workspace_name} through MatrixKeep.",
+      "MatrixKeep helps households and organisations keep important assets, documents, warranties, insurance information, maintenance records and supporting evidence together in one secure digital passport.",
+      "Your access may be limited based on the permissions selected by the person inviting you.",
+    ],
+    after: ["If you were not expecting this invitation, you can safely ignore this email."],
+  },
+  welcome: {
+    subject: "Welcome to MatrixKeep — your digital record starts here",
+    preview: "Everything important, organised around what you own and manage.",
+    title: "Welcome to MatrixKeep",
+    action: "Open MatrixKeep",
+    path: "/app",
+    before: [
+      "Your MatrixKeep account is ready.",
+      "You now have one place to organise and understand the records behind your home, assets and important possessions.",
+      "You can start by adding:",
+    ],
+    list: [
+      "Your property and rooms",
+      "Important assets and purchases",
+      "Vehicles",
+      "Documents and receipts",
+      "Warranties",
+      "Insurance policies",
+      "Maintenance information",
+      "Renewals and reminders",
+    ],
+    summary:
+      "MatrixKeep is designed to help turn scattered information into an organised, searchable and useful digital passport.",
+    after: [
+      "A good first step is to add one important item — a property, appliance, vehicle, warranty or document — and let MatrixKeep build from there.",
+    ],
+  },
+  activated: {
+    subject: "Your MatrixKeep {plan_name} plan is active",
+    preview: "Your new MatrixKeep subscription is ready.",
+    title: "Welcome to {plan_name}",
+    action: "Open MatrixKeep",
+    path: "/app",
+    before: ["Your MatrixKeep {plan_name} subscription has been activated successfully."],
+    details: [
+      ["Plan", "plan_name"],
+      ["Billing", "billing_interval"],
+      ["Amount", "amount"],
+      ["Next renewal", "renewal_date"],
+    ],
+    summary: "Your new plan limits and features are now available in your MatrixKeep account.",
+    after: [
+      "You can review your current subscription, billing information and invoices at any time from Subscription & Billing.",
+      "Thank you for choosing MatrixKeep.",
+    ],
+  },
+  upgraded: {
+    subject: "Your MatrixKeep plan has been upgraded",
+    preview: "Your upgraded features are now available.",
+    title: "Your upgrade is complete",
+    action: "Explore your upgraded plan",
+    path: "/app/plans",
+    before: [
+      "Your MatrixKeep subscription has been upgraded from {old_plan} to {new_plan}.",
+      "Your upgraded limits and features are now available.",
+    ],
+    details: [
+      ["Current plan", "new_plan"],
+      ["Billing", "billing_interval"],
+      ["Next billing date", "renewal_date"],
+    ],
+    after: ["No further action is required."],
+  },
+  downgraded: {
+    subject: "Your MatrixKeep plan change is confirmed",
+    preview: "Your subscription has been scheduled to change.",
+    title: "Your plan change is confirmed",
+    action: "Review my subscription",
+    path: "/app/plans",
+    before: [
+      "Your MatrixKeep subscription is changing from {old_plan} to {new_plan}.",
+      "The change will take effect on {effective_date}. Until then, your current plan remains active.",
+      "Please review your new plan limits to make sure they continue to meet your requirements.",
+    ],
+  },
+  payment_received: {
+    subject: "MatrixKeep payment received",
+    preview: "Your payment has been processed successfully.",
+    title: "Payment successful",
+    action: "View subscription & billing",
+    path: "/app/plans",
+    before: ["We've successfully received your payment for MatrixKeep."],
+    details: [
+      ["Plan", "plan_name"],
+      ["Amount paid", "amount"],
+      ["Payment date", "payment_date"],
+      ["Billing period", "billing_period"],
+      ["Next renewal", "renewal_date"],
+    ],
+    summary: "Your subscription remains active and no action is required.",
+    after: [
+      "Your invoice or receipt is available through your billing account where applicable.",
+      "Thank you for using MatrixKeep.",
+    ],
+  },
+  payment_failed: {
+    subject: "Action needed — MatrixKeep payment unsuccessful",
+    preview: "Please update your payment details to keep your subscription active.",
+    title: "We couldn't process your payment",
+    action: "Update payment details",
+    path: "/app/plans",
+    before: [
+      "We were unable to process the latest payment for your MatrixKeep {plan_name} subscription.",
+    ],
+    details: [
+      ["Amount", "amount"],
+      ["Attempt date", "payment_date"],
+    ],
+    summary:
+      "Your MatrixKeep data has not been deleted. Please review or update your payment method so your subscription can continue without interruption.",
+    after: [
+      "If you recently updated your payment method, no further action may be required while the payment is retried.",
+      "If you need help, contact hello@matrixkeep.com.",
+    ],
+  },
+  renewal: {
+    subject: "Your MatrixKeep subscription renews on {renewal_date}",
+    preview: "A reminder about your upcoming MatrixKeep renewal.",
+    title: "Your subscription is renewing soon",
+    action: "Manage subscription",
+    path: "/app/plans",
+    before: ["Your MatrixKeep {plan_name} subscription is scheduled to renew on {renewal_date}."],
+    details: [
+      ["Renewal amount", "amount"],
+      ["Billing interval", "billing_interval"],
+    ],
+    summary: "No action is required if you would like to continue your subscription.",
+    after: [
+      "You can review your plan and billing details before renewal from Subscription & Billing.",
+    ],
+  },
+  cancelled: {
+    subject: "Your MatrixKeep subscription cancellation is confirmed",
+    preview: "Your subscription status has been updated.",
+    title: "Subscription cancellation confirmed",
+    action: "View my account",
+    path: "/app/plans",
+    before: ["Your MatrixKeep {plan_name} subscription has been cancelled."],
+    summary:
+      "Your MatrixKeep account and records remain accessible subject to the limits of the plan available after cancellation.",
+    after: ["We'd be pleased to have you back whenever MatrixKeep is useful to you again."],
+  },
+  trial_ending: {
+    subject: "Your MatrixKeep trial ends on {trial_end_date}",
+    preview: "Review your plan before your trial ends.",
+    title: "Your trial is ending soon",
+    action: "Review subscription",
+    path: "/app/plans",
+    before: [
+      "Your MatrixKeep {plan_name} trial ends on {trial_end_date}.",
+      "After the trial, your subscription will follow the billing arrangement selected when you started the trial, unless you change or cancel it beforehand.",
+    ],
+  },
+  voucher: {
+    subject: "Your MatrixKeep voucher has been applied",
+    preview: "Your account benefits have been updated.",
+    title: "Voucher successfully redeemed",
+    action: "Open MatrixKeep",
+    path: "/app",
+    before: ["Your MatrixKeep voucher has been successfully applied."],
+    details: [
+      ["Voucher", "voucher_code_masked"],
+      ["Benefit", "voucher_benefit"],
+      ["Valid until", "voucher_expiry"],
+    ],
+    summary: "Your account has already been updated.",
+  },
+  warranty: {
+    subject: "{asset_name} warranty expires {relative_date}",
+    preview: "Review your warranty before coverage ends.",
+    title: "Warranty expiry approaching",
+    action: "Review warranty",
+    path: "/app/warranties",
+    before: [
+      "The warranty recorded in MatrixKeep for {asset_name} is due to expire on {expiry_date}.",
+    ],
+    details: [
+      ["Warranty provider", "provider_name"],
+      ["Property", "property_name"],
+    ],
+    summary:
+      "Before it expires, you may want to review the warranty documents, check for unresolved issues or confirm whether extended cover is available.",
+    after: ["Your supporting warranty records are available in MatrixKeep."],
+  },
+  insurance: {
+    subject: "{policy_name} renewal is approaching",
+    preview: "Your insurance policy is due for renewal on {renewal_date}.",
+    title: "Insurance renewal approaching",
+    action: "Review insurance record",
+    path: "/app/insurance",
+    before: [
+      "Your MatrixKeep records show that the following insurance policy is approaching renewal: {policy_name}.",
+    ],
+    details: [
+      ["Provider", "provider_name"],
+      ["Renewal date", "renewal_date"],
+      ["Covered item/property", "covered_item"],
+    ],
+    summary:
+      "Reviewing the policy before renewal can help ensure the details and cover remain suitable.",
+  },
+  document: {
+    subject: "{document_name} expires on {expiry_date}",
+    preview: "An important MatrixKeep document is approaching expiry.",
+    title: "Document expiry reminder",
+    action: "Review document",
+    path: "/app/documents",
+    before: [
+      "The following document recorded in MatrixKeep is approaching its expiry date: {document_name}.",
+    ],
+    details: [
+      ["Expiry date", "expiry_date"],
+      ["Related to", "related_asset"],
+    ],
+    after: [
+      "You can upload an updated document or change its renewal information directly in MatrixKeep.",
+    ],
+  },
+  maintenance: {
+    subject: "Maintenance due for {asset_name}",
+    preview: "A scheduled maintenance item is approaching.",
+    title: "Maintenance is due",
+    action: "View maintenance task",
+    path: "/app/maintenance",
+    before: ["MatrixKeep has a maintenance reminder for {asset_name}."],
+    details: [
+      ["Maintenance", "maintenance_type"],
+      ["Due date", "due_date"],
+      ["Location", "property_or_room"],
+    ],
+    summary:
+      "Keeping maintenance history updated helps preserve a useful long-term record for the asset.",
+    after: [
+      "When complete, record the work, cost, supporting invoice or evidence directly in MatrixKeep.",
+    ],
+  },
+  security: {
+    subject: "Important activity on your MatrixKeep account",
+    preview: "Review a recent security-related account event.",
+    title: "Please review this account activity",
+    action: "Secure my account",
+    path: "/auth",
+    before: ["We detected the following account action: {security_event}."],
+    details: [
+      ["Date", "event_date"],
+      ["Approximate device/location", "event_context"],
+    ],
+    summary: "If this was you, no action is required. If you don't recognise this activity:",
+    steps: [
+      "Change your MatrixKeep password.",
+      "Review your account information.",
+      "Contact hello@matrixkeep.com if you need assistance.",
+    ],
+    after: ["MatrixKeep will never ask you to email us your password."],
+  },
+};

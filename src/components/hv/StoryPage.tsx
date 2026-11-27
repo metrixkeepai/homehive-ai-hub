@@ -73,7 +73,21 @@ export function StoryPage({
           </div>
         </div>
         <img
-          src={kind === "industries" ? (s.slug === "dental" ? photos.dental : s.slug === "healthcare" ? photos.it : s.slug === "hospitality" ? photos.coffee : s.slug === "automotive-fleet" ? photos.vehicle : s.slug === "homeowners-families" ? photos.appliance : photos[s.slug as keyof typeof photos] ?? photos.it) : photos.it}
+          src={
+            kind === "industries"
+              ? s.slug === "dental"
+                ? photos.dental
+                : s.slug === "healthcare"
+                  ? photos.it
+                  : s.slug === "hospitality"
+                    ? photos.coffee
+                    : s.slug === "automotive-fleet"
+                      ? photos.vehicle
+                      : s.slug === "homeowners-families"
+                        ? photos.appliance
+                        : (photos[s.slug as keyof typeof photos] ?? photos.it)
+              : photos.it
+          }
           alt={`${s.t} records and equipment`}
           width="627"
           height="627"

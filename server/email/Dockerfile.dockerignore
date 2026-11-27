@@ -1,0 +1,8 @@
+**
+!package-lock.json
+!server/
+!server/email/
+!server/email/**
+**/.env*
+**/*.pem
+**/*.key

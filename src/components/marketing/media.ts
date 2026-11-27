@@ -36,7 +36,10 @@ export function publicHero(path: string) {
   if (path === "/industries") return photos.warehouse;
   if (path === "/use-cases") return photos.world;
   const slug = path.split("/").filter(Boolean).at(-1) ?? "life";
-  return scenes[slug] ?? (slug === "individual" ? photos.family : slug === "enterprise" ? photos.enterprise : photos.it);
+  return (
+    scenes[slug] ??
+    (slug === "individual" ? photos.family : slug === "enterprise" ? photos.enterprise : photos.it)
+  );
 }
 
 import scene0 from "@/assets/marketing/scene-healthcare.webp.asset.json";
@@ -75,15 +78,15 @@ import scene32 from "@/assets/marketing/scene-intelligence.webp.asset.json";
 import scene33 from "@/assets/marketing/scene-life.webp.asset.json";
 import scene34 from "@/assets/marketing/scene-business.webp.asset.json";
 export const scenes: Record<string, string> = {
-  "healthcare": scene0.url,
-  "retail": scene1.url,
-  "education": scene2.url,
-  "property": scene3.url,
-  "construction": scene4.url,
-  "hospitality": scene5.url,
-  "offices": scene6.url,
-  "manufacturing": scene7.url,
-  "dental": scene8.url,
+  healthcare: scene0.url,
+  retail: scene1.url,
+  education: scene2.url,
+  property: scene3.url,
+  construction: scene4.url,
+  hospitality: scene5.url,
+  offices: scene6.url,
+  manufacturing: scene7.url,
+  dental: scene8.url,
   "warehousing-logistics": scene9.url,
   "automotive-fleet": scene10.url,
   "homeowners-families": scene11.url,
@@ -99,15 +102,15 @@ export const scenes: Record<string, string> = {
   "compliance-evidence": scene21.url,
   "property-asset-intelligence": scene22.url,
   "important-documents": scene23.url,
-  "features": scene24.url,
+  features: scene24.url,
   "ai-agents": scene25.url,
-  "sera": scene26.url,
+  sera: scene26.url,
   "digital-passport": scene27.url,
-  "partners": scene28.url,
+  partners: scene28.url,
   "how-it-works": scene29.url,
-  "about": scene30.url,
-  "security": scene31.url,
-  "intelligence": scene32.url,
-  "life": scene33.url,
-  "business": scene34.url,
+  about: scene30.url,
+  security: scene31.url,
+  intelligence: scene32.url,
+  life: scene33.url,
+  business: scene34.url,
 };
