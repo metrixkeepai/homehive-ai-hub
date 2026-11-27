@@ -144,7 +144,7 @@ jobs:
             fi
           done
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
-          source deploy/staging-mail-worker.sh
+          MATRIXKEEP_EXERCISE_STAGING_DELIVERY=true source deploy/staging-mail-worker.sh
           gcloud run jobs execute "$job" "${common[@]}" --wait
       - name: Publish immutable release images
         if: "!(github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]'))"

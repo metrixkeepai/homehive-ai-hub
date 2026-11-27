@@ -41,6 +41,9 @@ if ! gcloud run jobs execute "$job" "${common[@]}" --wait; then
   fi
   exit 1
 fi
+if [[ ${MATRIXKEEP_EXERCISE_STAGING_DELIVERY:-false} == true ]]; then
+  gcloud run jobs execute "$job" "${common[@]}" --update-env-vars=MATRIXKEEP_STAGING_DELIVERY_QA=true --wait
+fi
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
