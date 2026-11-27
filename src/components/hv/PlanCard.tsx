@@ -10,15 +10,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { type PlanDef, priceLabel, gbp, yearlySaving } from "@/lib/plans";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  catalogueFor,
-  effective,
-  formatLimit,
-  groupsFor,
-  type Entitlements,
-} from "@/lib/entitlements";
+import { catalogueFor, effective, formatLimit, groupsFor } from "@/lib/entitlements";
 
 export function BillingToggle({
   yearly,
@@ -64,6 +56,7 @@ export function PlanCard({
     [MapPin, p.cap.places],
     [Package, p.cap.assets],
     [HardDrive, p.cap.storage],
+    [Sparkles, p.cap.captures],
   ];
   return (
     <div
@@ -152,22 +145,10 @@ export function PlanCard({
 
 /** Side-by-side comparison driven by each plan's live feature settings (approved Super Admin versions over defaults). */
 export function CompareTable({ list }: { list: PlanDef[] }) {
-  const published =
-    useQuery({
-      queryKey: ["published-entitlements"],
-      staleTime: 60_000,
-      queryFn: async () => {
-        const { data } = await supabase.rpc("published_plan_entitlements");
-        const out: Record<string, Entitlements> = {};
-        for (const r of data ?? [])
-          if (r.entitlements) out[r.plan_key] = r.entitlements as Entitlements;
-        return out;
-      },
-    }).data ?? {};
   const [open, setOpen] = useState<string | null>(null);
   if (!list.length) return null;
   const aud = list[0]!.audience;
-  const ents = Object.fromEntries(list.map((p) => [p.key, effective(p.key, published[p.key])]));
+  const ents = Object.fromEntries(list.map((p) => [p.key, effective(p.key, p.entitlements)]));
   const feats = catalogueFor(aud);
   const cell = (k: string, f: string, limits: boolean) => {
     const e = ents[k]?.[f];

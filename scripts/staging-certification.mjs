@@ -181,6 +181,76 @@ try {
     await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
     await page.waitForURL(/\/app(?:\/|$)/);
   });
+  if (adminOk && login) {
+    await check("Approved capture allowance on pricing, plans, billing and runtime", async () => {
+      const key = "free";
+      const approved = async () => {
+        const { data, error } = await db
+          .from("plan_versions")
+          .select("id,version,entitlements")
+          .eq("plan_key", key)
+          .eq("status", "approved")
+          .single();
+        if (error || !data) throw Error("Approved plan unavailable");
+        return data;
+      };
+      const before = await approved();
+      const limit = before.entitlements.ai_captures.limit;
+      const note = "QA allowance " + executionId;
+      const target = limit + 1;
+      await admin.goto(base + "/super-admin/plans/free");
+      const latest = admin.locator("tbody tr").first();
+      if (
+        !(await latest.innerText()).includes("v" + before.version) ||
+        (await admin.getByLabel("Maximum AI Captures", { exact: true }).inputValue()) !==
+          String(limit)
+      )
+        throw Error("Staging draft already in progress");
+      await admin.getByLabel("Maximum AI Captures", { exact: true }).fill(String(target));
+      await admin.getByLabel("Change note").fill(note);
+      await admin.getByRole("button", { name: "Save as new version", exact: true }).click();
+      const row = admin.getByRole("row").filter({ hasText: note });
+      const { data: draft, error } = await db
+        .from("plan_versions")
+        .select("id")
+        .eq("notes", note)
+        .maybeSingle();
+      if (error) throw error;
+      await row.waitFor();
+      const edited =
+        draft ?? (await db.from("plan_versions").select("id").eq("notes", note).single()).data;
+      if (!edited) throw Error("Missing fixture draft");
+      try {
+        await row.getByRole("button", { name: "Approve", exact: true }).click();
+        await row.getByRole("cell", { name: "approved", exact: true }).waitFor();
+        for (const path of ["/pricing", "/app/plans", "/app/billing"]) {
+          await page.goto(base + path);
+          await page
+            .getByText(new RegExp("\\b" + target + " AI captures/mo"))
+            .first()
+            .waitFor();
+        }
+        const runtime = await db.rpc("account_entitlements", { _user: created.user.id });
+        if (runtime.error || runtime.data?.ai_captures?.limit !== target)
+          throw Error("Runtime did not adopt approved version");
+      } finally {
+        if ((await approved()).id === edited.id) {
+          // Restore the original approved version with the same normal Admin action.
+          await admin
+            .getByRole("row")
+            .filter({ has: admin.getByRole("cell", { name: "v" + before.version, exact: true }) })
+            .getByRole("button", { name: "Approve", exact: true })
+            .click();
+          await admin
+            .getByRole("row")
+            .filter({ has: admin.getByRole("cell", { name: "v" + before.version, exact: true }) })
+            .getByRole("cell", { name: "approved", exact: true })
+            .waitFor();
+        }
+        if ((await approved()).id !== before.id) throw Error("Approved plan changed concurrently");
+      }
+    });
+  }
   if (login) {
     for (const section of [
       "my-home",
