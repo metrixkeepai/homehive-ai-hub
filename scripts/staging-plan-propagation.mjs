@@ -20,7 +20,7 @@ export async function checkPlanPropagation({ admin, page, db, base, key, userId,
     await admin.getByRole("cell", { name: "v" + before.version, exact: true }).waitFor();
     const latest = admin.locator("tbody tr").first();
     if (
-      !(await latest.innerText()).includes("v" + before.version) ||
+      (await latest.getByRole("cell", { name: /^draft$/i }).count()) ||
       (await admin.getByLabel("Maximum AI Captures", { exact: true }).inputValue()) !==
         String(limit)
     )

@@ -34,8 +34,10 @@ function PlanDetail() {
     enabled: !isNew,
   });
   const base = plans.find((p) => p.key === key);
-  const live = q.data?.versions.find((v) => v.status === "approved") ?? base;
-  const latest = (q.data?.versions ?? [])[0];
+  const approved = q.data?.versions.find((v) => v.status === "approved");
+  const live = approved ?? base;
+  const newest = q.data?.versions[0];
+  const editable = newest?.status === "draft" ? newest : (approved ?? newest);
   const [f, setF] = useState({
     plan_key: "",
     name: "",
@@ -48,7 +50,7 @@ function PlanDetail() {
     entitlements: {} as Entitlements,
   });
   useEffect(() => {
-    const src = latest ?? live;
+    const src = editable ?? base;
     if (!src || isNew) return;
     setF({
       plan_key: key,
@@ -58,10 +60,9 @@ function PlanDetail() {
       monthly: src.monthly == null ? null : Number(src.monthly),
       yearly: src.yearly == null ? null : Number(src.yearly),
       capacity: Object.fromEntries(
-        Object.entries(latest ? jsonObject(latest.capacity) : (base?.cap ?? {})).map(([k, v]) => [
-          k,
-          String(v ?? ""),
-        ]),
+        Object.entries(editable ? jsonObject(editable.capacity) : (base?.cap ?? {})).map(
+          ([k, v]) => [k, String(v ?? "")],
+        ),
       ),
       benefits: (src.benefits ?? []).join("\n"),
       notes: "",
@@ -81,10 +82,10 @@ function PlanDetail() {
               unit: z.enum(["count", "MB", "GB", "TB", "per month"]).optional(),
             }),
           )
-          .safeParse(latest?.entitlements).data ?? {}),
+          .safeParse(editable?.entitlements).data ?? {}),
       },
     });
-  }, [latest?.id, base?.key, isNew]);
+  }, [editable?.id, base?.key, isNew]);
   useEffect(() => {
     if (isNew) setF((x) => ({ ...x, entitlements: defaultEntitlements("", x.audience) }));
   }, [isNew, f.audience]);

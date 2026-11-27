@@ -1,4 +1,4 @@
-import { refreshPlans } from "@/lib/plan-status";
+import { refreshPlans, usePublishedPlans } from "@/lib/plan-status";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,10 +16,12 @@ function Plans() {
     arc = useServerFn(archivePlan);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["admin", "plans"], queryFn: () => fn({ data: {} }) });
+  const published = usePublishedPlans();
+  const catalogue = published.data ?? plans;
   const versions = q.data?.versions ?? [];
   const inactive = new Set(q.data?.inactive ?? []);
   const newKeys = [...new Set(versions.map((v) => v.plan_key))].filter(
-    (k) => !plans.some((p) => p.key === k),
+    (k) => !catalogue.some((p) => p.key === k),
   );
   const done = () => refreshPlans(qc);
   const err = (e: Error) => toast.error(e.message);
@@ -126,7 +128,7 @@ function Plans() {
           "Actions",
         ]}
       >
-        {plans.map((p) => {
+        {catalogue.map((p) => {
           const v = versions.find((x) => x.plan_key === p.key);
           return (
             <tr key={p.key} className="border-t hover:bg-muted/30">
@@ -145,7 +147,7 @@ function Plans() {
               <td className="p-3">{p.yearly == null ? "—" : money(p.yearly)}</td>
               <td className="p-3">{q.data?.counts[p.key] ?? 0}</td>
               <td className="p-3">{v ? `v${v.version} · ${v.status}` : "Live only"}</td>
-              <td className="p-3">{p.key === "business_starter" ? "14 days" : "—"}</td>
+              <td className="p-3">{p.trialDays ? p.trialDays + " days" : "—"}</td>
               {p.key === "free" ? (
                 <td className="p-3 text-xs text-muted-foreground">Required</td>
               ) : (
