@@ -72,6 +72,8 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
+      - name: Verify advertised AI features before promotion
+        run: bash deploy/recovery/guard.sh production required
       - name: Copy the accepted image manifests without rebuilding
         run: |
           set -euo pipefail

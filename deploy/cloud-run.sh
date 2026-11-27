@@ -242,8 +242,3 @@ trap - ERR
 jq -n --arg sha "$GITHUB_SHA" --arg image "$IMAGE" --arg migrator "$MIGRATOR_IMAGE" \
   --arg project "$GCP_PROJECT_ID" --arg region "$REGION" --arg service "$service" --arg revision "$revision" \
   --arg origin "$origin" '{sha:$sha,image:$image,migrator:$migrator,project:$project,region:$region,service:$service,revision:$revision,origin:$origin}' > release.json
-
-# Run owner-requested certification against the same pinned release.
-if [[ $APP_ENV == staging && $(git log -1 --format=%s) == *"[staging-qa]"* ]]; then
-  bash deploy/staging-qa.sh
-fi

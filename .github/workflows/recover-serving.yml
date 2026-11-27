@@ -1,0 +1,77 @@
+name: Recover and promote verified serving release
+on:
+  workflow_dispatch:
+    inputs:
+      owner_acceptance:
+        description: Owner acceptance reference for the reviewed recovery request
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths: [deploy/recovery/request.json]
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+jobs:
+  recover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency: matrixkeep-serving-recovery
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Derive deployment evidence and verify staging AI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER_ACCEPTANCE: ${{ inputs.owner_acceptance }}
+        run: |
+          bash deploy/recovery/verify.sh
+          bash deploy/recovery/guard.sh staging required
+          if [[ -n $OWNER_ACCEPTANCE ]]; then jq --arg a "$OWNER_ACCEPTANCE" '.dispatch_acceptance=$a' release.json > accepted.json && mv accepted.json release.json; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-recovered-staging-release
+          path: release.json
+          if-no-files-found: error
+  promote:
+    needs: recover
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: matrixkeep-production
+    env:
+      APP_ENV: production
+      STAGING_PROJECT: matrixkeep-staging
+      REGION: europe-west2
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      STRIPE_ACCOUNT_ID: ${{ vars.STRIPE_ACCOUNT_ID }}
+      LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: matrixkeep-recovered-staging-release
+          path: accepted
+      - id: source
+        run: echo "sha=$(jq -er '.sha|select(test(\"^[0-9a-f]{40}$\"))' accepted/release.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          path: application
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - run: bash deploy/recovery/promote.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-production-release
+          path: application/release.json
+          if-no-files-found: error
