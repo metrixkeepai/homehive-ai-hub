@@ -1,0 +1,283 @@
+/** Public photograph assignments; no account records or customer imagery. */
+export const imageManifest = [
+  {
+    "key": "healthcare",
+    "assetPointer": "src/assets/marketing/scene-healthcare.webp.asset.json",
+    "route": "/industries/healthcare",
+    "section": "page introduction",
+    "subject": "Healthcare illustrative environment and evidence",
+    "alt": "Healthcare illustrative environment and evidence"
+  },
+  {
+    "key": "retail",
+    "assetPointer": "src/assets/marketing/scene-retail.webp.asset.json",
+    "route": "/industries/retail",
+    "section": "page introduction",
+    "subject": "Retail illustrative environment and evidence",
+    "alt": "Retail illustrative environment and evidence"
+  },
+  {
+    "key": "education",
+    "assetPointer": "src/assets/marketing/scene-education.webp.asset.json",
+    "route": "/industries/education",
+    "section": "page introduction",
+    "subject": "Education illustrative environment and evidence",
+    "alt": "Education illustrative environment and evidence"
+  },
+  {
+    "key": "property",
+    "assetPointer": "src/assets/marketing/scene-property.webp.asset.json",
+    "route": "/industries/property",
+    "section": "page introduction",
+    "subject": "Property illustrative environment and evidence",
+    "alt": "Property illustrative environment and evidence"
+  },
+  {
+    "key": "construction",
+    "assetPointer": "src/assets/marketing/scene-construction.webp.asset.json",
+    "route": "/industries/construction",
+    "section": "page introduction",
+    "subject": "Construction illustrative environment and evidence",
+    "alt": "Construction illustrative environment and evidence"
+  },
+  {
+    "key": "hospitality",
+    "assetPointer": "src/assets/marketing/scene-hospitality.webp.asset.json",
+    "route": "/industries/hospitality",
+    "section": "page introduction",
+    "subject": "Hospitality equipment and caf\u00e9 interior",
+    "alt": "Hospitality equipment and caf\u00e9 interior"
+  },
+  {
+    "key": "offices",
+    "assetPointer": "src/assets/marketing/scene-offices.webp.asset.json",
+    "route": "/industries/offices",
+    "section": "page introduction",
+    "subject": "Offices illustrative environment and evidence",
+    "alt": "Offices illustrative environment and evidence"
+  },
+  {
+    "key": "manufacturing",
+    "assetPointer": "src/assets/marketing/scene-manufacturing.webp.asset.json",
+    "route": "/industries/manufacturing",
+    "section": "page introduction",
+    "subject": "Manufacturing illustrative environment and evidence",
+    "alt": "Manufacturing illustrative environment and evidence"
+  },
+  {
+    "key": "dental",
+    "assetPointer": "src/assets/marketing/scene-dental.webp.asset.json",
+    "route": "/industries/dental",
+    "section": "page introduction",
+    "subject": "Dental treatment equipment",
+    "alt": "Dental treatment equipment"
+  },
+  {
+    "key": "warehousing-logistics",
+    "assetPointer": "src/assets/marketing/scene-warehousing-logistics.webp.asset.json",
+    "route": "/industries/warehousing-logistics",
+    "section": "page introduction",
+    "subject": "Warehouse equipment and stored stock",
+    "alt": "Warehouse equipment and stored stock"
+  },
+  {
+    "key": "automotive-fleet",
+    "assetPointer": "src/assets/marketing/scene-automotive-fleet.webp.asset.json",
+    "route": "/industries/automotive-fleet",
+    "section": "page introduction",
+    "subject": "Vehicles and workshop equipment",
+    "alt": "Vehicles and workshop equipment"
+  },
+  {
+    "key": "homeowners-families",
+    "assetPointer": "src/assets/marketing/scene-homeowners-families.webp.asset.json",
+    "route": "/industries/homeowners-families",
+    "section": "page introduction",
+    "subject": "Homeowners families illustrative environment and evidence",
+    "alt": "Homeowners families illustrative environment and evidence"
+  },
+  {
+    "key": "home-inventory",
+    "assetPointer": "src/assets/marketing/scene-home-inventory.webp.asset.json",
+    "route": "/use-cases/home-inventory",
+    "section": "page introduction",
+    "subject": "Home inventory illustrative environment and evidence",
+    "alt": "Home inventory illustrative environment and evidence"
+  },
+  {
+    "key": "warranty-tracking",
+    "assetPointer": "src/assets/marketing/scene-warranty-tracking.webp.asset.json",
+    "route": "/use-cases/warranty-tracking",
+    "section": "page introduction",
+    "subject": "Warranty tracking illustrative environment and evidence",
+    "alt": "Warranty tracking illustrative environment and evidence"
+  },
+  {
+    "key": "renewal-tracking",
+    "assetPointer": "src/assets/marketing/scene-renewal-tracking.webp.asset.json",
+    "route": "/use-cases/renewal-tracking",
+    "section": "page introduction",
+    "subject": "Renewal tracking illustrative environment and evidence",
+    "alt": "Renewal tracking illustrative environment and evidence"
+  },
+  {
+    "key": "insurance-claims",
+    "assetPointer": "src/assets/marketing/scene-insurance-claims.webp.asset.json",
+    "route": "/use-cases/insurance-claims",
+    "section": "page introduction",
+    "subject": "Insurance claims illustrative environment and evidence",
+    "alt": "Insurance claims illustrative environment and evidence"
+  },
+  {
+    "key": "passport-transfer",
+    "assetPointer": "src/assets/marketing/scene-passport-transfer.webp.asset.json",
+    "route": "/use-cases/passport-transfer",
+    "section": "page introduction",
+    "subject": "Passport transfer illustrative environment and evidence",
+    "alt": "Passport transfer illustrative environment and evidence"
+  },
+  {
+    "key": "multi-location",
+    "assetPointer": "src/assets/marketing/scene-multi-location.webp.asset.json",
+    "route": "/use-cases/multi-location",
+    "section": "page introduction",
+    "subject": "Multi location illustrative environment and evidence",
+    "alt": "Multi location illustrative environment and evidence"
+  },
+  {
+    "key": "vehicles-fleet",
+    "assetPointer": "src/assets/marketing/scene-vehicles-fleet.webp.asset.json",
+    "route": "/use-cases/vehicles-fleet",
+    "section": "page introduction",
+    "subject": "Vehicles fleet illustrative environment and evidence",
+    "alt": "Vehicles fleet illustrative environment and evidence"
+  },
+  {
+    "key": "equipment-logistics",
+    "assetPointer": "src/assets/marketing/scene-equipment-logistics.webp.asset.json",
+    "route": "/use-cases/equipment-logistics",
+    "section": "page introduction",
+    "subject": "Equipment logistics illustrative environment and evidence",
+    "alt": "Equipment logistics illustrative environment and evidence"
+  },
+  {
+    "key": "business-asset-management",
+    "assetPointer": "src/assets/marketing/scene-business-asset-management.webp.asset.json",
+    "route": "/use-cases/business-asset-management",
+    "section": "page introduction",
+    "subject": "Business asset management illustrative environment and evidence",
+    "alt": "Business asset management illustrative environment and evidence"
+  },
+  {
+    "key": "compliance-evidence",
+    "assetPointer": "src/assets/marketing/scene-compliance-evidence.webp.asset.json",
+    "route": "/use-cases/compliance-evidence",
+    "section": "page introduction",
+    "subject": "Compliance evidence illustrative environment and evidence",
+    "alt": "Compliance evidence illustrative environment and evidence"
+  },
+  {
+    "key": "property-asset-intelligence",
+    "assetPointer": "src/assets/marketing/scene-property-asset-intelligence.webp.asset.json",
+    "route": "/use-cases/property-asset-intelligence",
+    "section": "page introduction",
+    "subject": "Property asset intelligence illustrative environment and evidence",
+    "alt": "Property asset intelligence illustrative environment and evidence"
+  },
+  {
+    "key": "important-documents",
+    "assetPointer": "src/assets/marketing/scene-important-documents.webp.asset.json",
+    "route": "/use-cases/important-documents",
+    "section": "page introduction",
+    "subject": "Important documents illustrative environment and evidence",
+    "alt": "Important documents illustrative environment and evidence"
+  },
+  {
+    "key": "features",
+    "assetPointer": "src/assets/marketing/scene-features.webp.asset.json",
+    "route": "/features",
+    "section": "page introduction",
+    "subject": "Features illustrative environment and evidence",
+    "alt": "Features illustrative environment and evidence"
+  },
+  {
+    "key": "ai-agents",
+    "assetPointer": "src/assets/marketing/scene-ai-agents.webp.asset.json",
+    "route": "/ai-agents",
+    "section": "page introduction",
+    "subject": "Ai agents illustrative environment and evidence",
+    "alt": "Ai agents illustrative environment and evidence"
+  },
+  {
+    "key": "sera",
+    "assetPointer": "src/assets/marketing/scene-sera.webp.asset.json",
+    "route": "/sera",
+    "section": "page introduction",
+    "subject": "Sera illustrative environment and evidence",
+    "alt": "Sera illustrative environment and evidence"
+  },
+  {
+    "key": "digital-passport",
+    "assetPointer": "src/assets/marketing/scene-digital-passport.webp.asset.json",
+    "route": "/digital-passport",
+    "section": "page introduction",
+    "subject": "Digital passport illustrative environment and evidence",
+    "alt": "Digital passport illustrative environment and evidence"
+  },
+  {
+    "key": "partners",
+    "assetPointer": "src/assets/marketing/scene-partners.webp.asset.json",
+    "route": "/partners",
+    "section": "page introduction",
+    "subject": "Partners illustrative environment and evidence",
+    "alt": "Partners illustrative environment and evidence"
+  },
+  {
+    "key": "how-it-works",
+    "assetPointer": "src/assets/marketing/scene-how-it-works.webp.asset.json",
+    "route": "/how-it-works",
+    "section": "page introduction",
+    "subject": "How it works illustrative environment and evidence",
+    "alt": "How it works illustrative environment and evidence"
+  },
+  {
+    "key": "about",
+    "assetPointer": "src/assets/marketing/scene-about.webp.asset.json",
+    "route": "/about",
+    "section": "page introduction",
+    "subject": "About illustrative environment and evidence",
+    "alt": "About illustrative environment and evidence"
+  },
+  {
+    "key": "security",
+    "assetPointer": "src/assets/marketing/scene-security.webp.asset.json",
+    "route": "/security",
+    "section": "page introduction",
+    "subject": "Security illustrative environment and evidence",
+    "alt": "Security illustrative environment and evidence"
+  },
+  {
+    "key": "intelligence",
+    "assetPointer": "src/assets/marketing/scene-intelligence.webp.asset.json",
+    "route": "/",
+    "section": "cinematic scene",
+    "subject": "Laptop and purchase evidence on a desk",
+    "alt": "Laptop and purchase evidence on a desk"
+  },
+  {
+    "key": "life",
+    "assetPointer": "src/assets/marketing/scene-life.webp.asset.json",
+    "route": "/",
+    "section": "cinematic scene",
+    "subject": "Modern living room and kitchen with household belongings",
+    "alt": "Modern living room and kitchen with household belongings"
+  },
+  {
+    "key": "business",
+    "assetPointer": "src/assets/marketing/scene-business.webp.asset.json",
+    "route": "/",
+    "section": "cinematic scene",
+    "subject": "Caf\u00e9 equipment and business workspace",
+    "alt": "Caf\u00e9 equipment and business workspace"
+  }
+] as const;

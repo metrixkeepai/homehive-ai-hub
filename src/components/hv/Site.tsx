@@ -1,10 +1,11 @@
+import { LivingSurface, LivingOverlay } from "@/components/marketing/Living";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode, type ComponentType } from "react";
 import { Menu, X, ChevronDown, Check, ArrowRight, FileCheck2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "./Logo";
 import { industries, useCases } from "./siteContent";
-import { photos } from "@/components/marketing/media";
+import { photos, publicHero, storyPhoto } from "@/components/marketing/media";
 
 export function Reveal({
   children,
@@ -23,7 +24,8 @@ export function Reveal({
       ([entry]) => {
         if (entry?.isIntersecting) {
           el.classList.add("in");
-          io.disconnect();
+        } else {
+          el.classList.remove("in");
         }
       },
       { threshold: 0.05 },
@@ -95,6 +97,9 @@ const menuGroups: { label: string; items: Entry[] }[] = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [preview, setPreview] = useState({ image: photos.coffee, title: "One asset. Its whole story.", detail: "Evidence connected · Passport ready" });
+  useEffect(() => { const update = () => setScrolled(window.scrollY > 20); update(); window.addEventListener("scroll", update, { passive: true }); return () => window.removeEventListener("scroll", update); }, []);
   const close = () => {
     setOpen(false);
     setMenu(null);
@@ -108,9 +113,9 @@ export function SiteHeader() {
   }, []);
   const group = menuGroups.find((m) => m.label === menu);
   return (
-    <header className="mk-header" onMouseLeave={() => setMenu(null)}>
+    <header className={`mk-header ${scrolled ? "is-scrolled" : ""}`} onMouseLeave={() => setMenu(null)}>
       <div className="mk-nav">
-        <Logo />
+        <Logo light />
         <nav aria-label="Main navigation" className="mk-desktop-nav">
           <Link to="/" onMouseEnter={() => setMenu(null)}>
             Home
@@ -193,7 +198,8 @@ export function SiteHeader() {
           <div className="mk-mega-inner">
             <div className="mk-mega-links">
               {group?.items.map((m) => (
-                <Link key={m.t} to={m.to} onClick={close}>
+                <Link key={m.t} to={m.to} onClick={close} onMouseEnter={() => setPreview({ image: publicHero(m.to), title: m.t, detail: m.d ?? "Explore MatrixKeep" })} onFocus={() => setPreview({ image: publicHero(m.to), title: m.t, detail: m.d ?? "Explore MatrixKeep" })}>
+                  <Sparkles className="size-4" />
                   <span>{m.t}</span>
                   {m.d && <small>{m.d}</small>}
                   <ArrowRight className="size-4" />
@@ -205,8 +211,11 @@ export function SiteHeader() {
                     key={m.slug}
                     to="/industries/$slug"
                     params={{ slug: m.slug }}
+                    onMouseEnter={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
+                    onFocus={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
                     onClick={close}
                   >
+                    <m.icon className="size-4" />
                     <span>{m.t}</span>
                     <small>{m.short}</small>
                   </Link>
@@ -217,8 +226,11 @@ export function SiteHeader() {
                     key={m.slug}
                     to="/use-cases/$slug"
                     params={{ slug: m.slug }}
+                    onMouseEnter={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
+                    onFocus={() => setPreview({ image: storyPhoto(m.slug), title: m.t, detail: m.short })}
                     onClick={close}
                   >
+                    <m.icon className="size-4" />
                     <span>{m.t}</span>
                     <small>{m.short}</small>
                   </Link>
@@ -229,8 +241,9 @@ export function SiteHeader() {
               onClick={close}
               className="mk-mega-feature"
             >
-              <img src={photos.coffee} alt="Commercial coffee machine" width="627" height="627" />
-              <span>One asset. Its whole story.</span>
+              <img key={preview.image} src={preview.image} alt={preview.title + " example"} width="627" height="627" />
+              <span>{preview.title}</span>
+              <p>{preview.detail}</p>
               <small>Explore Digital Passports →</small>
             </Link>
           </div>
@@ -354,11 +367,11 @@ export function SiteFooter() {
 }
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <div className="marketing-site">
+    <LivingSurface>
       <SiteHeader />
       <main>{children}</main>
       <SiteFooter />
-    </div>
+    </LivingSurface>
   );
 }
 export function PageHero({
@@ -368,6 +381,7 @@ export function PageHero({
   lead,
   cta = "Start Free",
   visual,
+  image: suppliedImage,
 }: {
   eyebrow: string;
   title: string;
@@ -375,12 +389,9 @@ export function PageHero({
   lead: string;
   cta?: string;
   visual?: ReactNode;
+  image?: string;
 }) {
-  const image = /business|enterprise/i.test(eyebrow)
-    ? photos.enterprise
-    : /industry/i.test(eyebrow)
-      ? photos.cafe
-      : photos.world;
+  const image = suppliedImage ?? (/business|enterprise/i.test(eyebrow) ? photos.enterprise : /contact/i.test(eyebrow) ? photos.it : photos.world);
   return (
     <section className="mk-page-hero">
       <img
@@ -425,6 +436,7 @@ export function PageHero({
         </div>
         {visual && <div className="mk-hero-preview">{visual}</div>}
       </div>
+      <LivingOverlay label={eyebrow} />
     </section>
   );
 }

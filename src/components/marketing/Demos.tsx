@@ -9,6 +9,7 @@ import {
   Check,
   MapPin,
   CalendarClock,
+  Users, Package, HardDrive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,9 @@ import { Reveal } from "@/components/hv/Site";
 import { CompareTable } from "@/components/hv/PlanCard";
 
 const assets = [
+  {
+    key: "television", tab: "Television", name: "Living room television", category: "Home entertainment", value: "£1,300", location: "Home · Living room", purchase: "20 November 2024", warranty: "20 November 2027", maintenance: "Device check · 20 November 2026", alert: "Keep the receipt and warranty terms together.", image: photos.world, docs: ["Purchase receipt", "Warranty terms", "Asset photograph"],
+  },
   {
     key: "appliance",
     tab: "Appliance",
@@ -120,8 +124,9 @@ const assets = [
   },
 ];
 export function PassportDemo({ personal = false }: { personal?: boolean }) {
+  const [evidence, setEvidence] = useState(0);
   const [key, setKey] = useState(personal ? "appliance" : "coffee");
-  const list = personal ? assets.filter((a) => ["appliance", "vehicle"].includes(a.key)) : assets;
+  const list = personal ? assets.filter((a) => ["television", "appliance", "vehicle"].includes(a.key)) : assets;
   const asset = list.find((a) => a.key === key) ?? list[0];
   if (!asset) return null;
   return (
@@ -143,7 +148,7 @@ export function PassportDemo({ personal = false }: { personal?: boolean }) {
             key={a.key}
             variant="outline"
             aria-pressed={key === a.key}
-            onClick={() => setKey(a.key)}
+            onClick={() => { setKey(a.key); setEvidence(0); }}
           >
             {a.tab}
           </Button>
@@ -152,6 +157,7 @@ export function PassportDemo({ personal = false }: { personal?: boolean }) {
       <div className="mk-passport" key={asset.key}>
         <div className="mk-passport-photo">
           <img src={asset.image} alt={asset.name} width="627" height="627" loading="lazy" />
+          <div className="mk-passport-layers">{asset.docs.map((d, i) => <Button key={d} variant="outline" aria-pressed={evidence === i} onClick={() => setEvidence(i)}><FileText className="size-3.5" />{d}</Button>)}</div>
           <span>
             <MapPin className="mr-1 inline size-3" />
             {asset.location}
@@ -188,6 +194,7 @@ export function PassportDemo({ personal = false }: { personal?: boolean }) {
               </span>
             ))}
           </div>
+          <div className="mk-evidence-selected" aria-live="polite">{asset.docs[evidence]} · Connected to {asset.name}. {evidence === 0 ? `Recorded purchase ${asset.value} · ${asset.purchase}` : evidence === 1 ? `Warranty recorded until ${asset.warranty}` : asset.maintenance}</div>
           <div className="mk-passport-next">
             <Bell className="size-4 text-primary" />
             <div>
@@ -269,16 +276,24 @@ const businessQuestions = [
   },
 ];
 export function SeraDemo({ initial = "personal" }: { initial?: "personal" | "business" }) {
-  const [mode, setMode] = useState(initial);
+  const [mode, setMode] = useState<"personal" | "business" | "enterprise">(initial);
+  const [visibleText, setVisibleText] = useState(1000);
   const [index, setIndex] = useState(0);
   const [typing, setTyping] = useState(false);
   const questions = mode === "personal" ? personalQuestions : businessQuestions;
   const current = questions[index] ?? questions[0];
   useEffect(() => {
     if (!typing) return;
+    setVisibleText(0);
     const t = setTimeout(() => setTyping(false), 650);
     return () => clearTimeout(t);
   }, [typing, index, mode]);
+  useEffect(() => {
+    if (typing || !current || visibleText >= current.a.length) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setVisibleText(current.a.length); return; }
+    const t = setTimeout(() => setVisibleText((n) => n + 12), 24);
+    return () => clearTimeout(t);
+  }, [typing, current, visibleText]);
   if (!current) return null;
   return (
     <section className="mk-tint" id="sera-demo">
@@ -295,7 +310,7 @@ export function SeraDemo({ initial = "personal" }: { initial?: "personal" | "bus
             about what you have saved, in everyday language.
           </p>
           <div className="mk-tabs" role="group" aria-label="Assistant audience">
-            {(["personal", "business"] as const).map((m) => (
+            {(["personal", "business", "enterprise"] as const).map((m) => (
               <Button
                 key={m}
                 variant="outline"
@@ -306,7 +321,7 @@ export function SeraDemo({ initial = "personal" }: { initial?: "personal" | "bus
                   setTyping(true);
                 }}
               >
-                {m === "personal" ? "Personal Assistant" : "Business Assistant"}
+                {m === "personal" ? "Personal Assistant" : m === "business" ? "Business Assistant" : "Enterprise Illustration"}
               </Button>
             ))}
           </div>
@@ -329,7 +344,7 @@ export function SeraDemo({ initial = "personal" }: { initial?: "personal" | "bus
           </div>
           <div className="mk-chat-question">{current.q}</div>
           <div className="mk-chat-answer" aria-live="polite">
-            {typing ? <span className="text-muted-foreground">Sera is thinking…</span> : current.a}
+            {typing ? <span className="mk-typing-dots" aria-label="Sera is thinking"><i /><i /><i /></span> : <span aria-hidden="true">{current.a.slice(0, visibleText)}</span>}<span className="sr-only">{typing ? "Sera is thinking" : current.a}</span>
           </div>
           {!typing && (
             <div className="mk-chat-source">
@@ -338,6 +353,7 @@ export function SeraDemo({ initial = "personal" }: { initial?: "personal" | "bus
               <Check className="ml-auto size-4 text-primary" />
             </div>
           )}
+          {!typing && <div className="mk-sera-context"><img src={mode === "personal" ? index === 2 ? photos.vehicle : photos.appliance : photos.coffee} alt="Relevant example asset" width="68" height="52" loading="lazy" /><div><strong>{current.source}</strong><small>Digital Passport · Evidence connected</small></div></div>}
           <div className="mk-questions">
             {questions.map((q, i) => (
               <Button
@@ -484,6 +500,8 @@ export function MarketingPricing({
 }) {
   const [audience, setAudience] = useState<Audience>(initial);
   const [yearly, setYearly] = useState(false);
+  const Heading = comparison ? "h1" : "h2";
+  const PlanHeading = comparison ? "h2" : "h3";
   const catalogue = usePublishedPlans();
   const inactive = useInactivePlans();
   const list = (catalogue.data ?? plans).filter(
@@ -492,11 +510,11 @@ export function MarketingPricing({
   return (
     <section className="mk-container mk-section" id="plans">
       <p className="mk-eyebrow">Plans for your world</p>
-      <h2>
+      <Heading>
         Invest a little.
         <br />
         Stay in control of much more.
-      </h2>
+      </Heading>
       <p className="mk-lead">
         Start with what matters today. Choose more space and capabilities as your needs grow.
       </p>
@@ -509,7 +527,7 @@ export function MarketingPricing({
               aria-pressed={audience === a}
               onClick={() => setAudience(a)}
             >
-              {a === "individual" ? "Individual" : a === "business" ? "Business" : "Enterprise"}
+              {a === "individual" ? "Individual" : a === "business" ? "Business" : "Enterprise & White-label"}
             </Button>
           ))}
         </div>
@@ -519,7 +537,7 @@ export function MarketingPricing({
               Monthly
             </Button>
             <Button variant="outline" aria-pressed={yearly} onClick={() => setYearly(true)}>
-              Annual
+              Yearly
             </Button>
           </div>
         )}
@@ -530,7 +548,7 @@ export function MarketingPricing({
         </p>
       )}
       {catalogue.isError && (
-        <div role="alert" className="py-8">
+        <div role="alert" className="mk-catalogue-notice">
           <p>
             Published updates are unavailable. Existing catalogue prices are shown below; confirm
             the current plan in your account before subscribing.
@@ -545,37 +563,16 @@ export function MarketingPricing({
           const price = yearly ? p.yearly : p.monthly;
           return (
             <article key={p.key} className={`mk-price ${p.badge ? "mk-price-featured" : ""}`}>
-              <div className="flex justify-between gap-2 items-start">
-                <h3>{p.name}</h3>
-                {p.badge && (
-                  <span className="text-[9px] uppercase text-primary font-bold">{p.badge}</span>
-                )}
-              </div>
+              {p.badge && <span className="mk-price-badge">{p.badge.toLowerCase().includes("popular") ? "Recommended" : p.badge}</span>}
+              <PlanHeading>{p.name}</PlanHeading>
               <p className="mt-3">{p.positioning}</p>
-              <p className="mk-price-number">
-                {price === null
-                  ? "Custom"
-                  : `£${price.toLocaleString("en-GB", { maximumFractionDigits: 2 })}`}
-                <small>{price === null ? "" : yearly ? " / year" : " / month"}</small>
-              </p>
-              <ul>
-                {[
-                  p.cap.users,
-                  p.cap.places,
-                  p.cap.assets,
-                  p.cap.docs,
-                  p.cap.storage,
-                  p.cap.captures,
-                  p.cap.sera,
-                ]
-                  .filter(Boolean)
-                  .map((c) => (
-                    <li key={c}>
-                      <Check className="size-3.5 text-primary" />
-                      {c}
-                    </li>
-                  ))}
-              </ul>
+              <p className="mk-price-number" key={String(price)}>{price === null ? "Custom" : `£${price.toLocaleString("en-GB", { maximumFractionDigits: 2 })}`}<small>{price ? yearly ? "/year" : "/month" : ""}</small></p>
+              <div className="mk-price-alternative">{p.monthly && p.yearly ? yearly ? `£${(p.yearly / 12).toFixed(2)}/month · save £${(p.monthly * 12 - p.yearly).toFixed(2)}/year` : `or £${p.yearly}/year` : price === 0 ? "Free forever" : "Tailored contract"}</div>
+              <div className="mk-price-allowances">{[[Users, p.cap.users], [MapPin, p.cap.places], [Package, p.cap.assets], [HardDrive, p.cap.storage]].map(([Icon, text], i) => { const I = Icon as typeof Users; return <span key={i}><I />{text as string}</span>; })}</div>
+              <p className="mk-price-best"><strong>Best for:</strong> {p.bestFor}</p>
+              <p className="mk-price-outcome">{p.outcome}</p>
+              <ul>{p.benefits.slice(0, 5).map((benefit) => <li key={benefit}><Check className="size-3.5 text-primary" />{benefit}</li>)}</ul>
+              <details><summary>See everything included</summary><ul>{p.benefits.slice(5).map((benefit) => <li key={benefit}><Check className="size-3.5 text-primary" />{benefit}</li>)}{[p.cap.docs, p.cap.captures, p.cap.sera, p.support].filter(Boolean).map((c) => <li key={c}><Check className="size-3.5 text-primary" />{c}</li>)}</ul></details>
               {p.trialDays && <p className="mb-3">{p.trialDays}-day Business Starter trial</p>}
               <Button asChild variant={p.badge ? "default" : "outline"}>
                 <Link to={price === null ? "/contact" : "/auth"}>

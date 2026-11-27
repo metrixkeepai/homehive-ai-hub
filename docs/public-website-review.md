@@ -44,3 +44,12 @@ Production was not published or deployed.
 Public route files; public Site/StoryPage/siteContent; new components/marketing modules and calculator test; new marketing asset pointers; scoped src/styles.css additions; static sitemap/robots; AGENTS.md; roadmap.md; this report.
 
 No authentication logic, APIs, backend services, database migrations, generated clients/types, Stripe integrations, protected application pages, Super Admin, environment variables or deployment configuration were edited for this transformation. A pre-existing sandbox-managed bun.lock update is unrelated to the website work.
+
+
+## Cinematic preview update
+
+- Restored dark navigation and menus, dark highlighted Home pricing and existing plan prices; added three selectable scenes, motion pause, evidence hotspots, eight passport examples and scripted Sera modes.
+- Added 35 scene asset pointers and a route/section/subject/alt image inventory. No duplicate primary hero images found among the 42 public pages.
+- Latest browser run: 42 routes, ten widths (320–1920), zero horizontal overflow or page errors. Scene switching, evidence selection, Sera responses, room/location selection, pricing expansion and reduced-motion pause verified.
+- Automated accessibility checks found no violations on eight tested pages; the last pricing heading-order finding was corrected and is being rechecked. This is not accessibility certification.
+- ROI tests: three passed. Protected billing/passport/admin/AI database-type errors remain in the automatic checker and were not changed under the public-only restriction. Production compilation and live catalogue freshness remain unverified. No publish performed.

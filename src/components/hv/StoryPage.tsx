@@ -1,3 +1,4 @@
+import { LivingOverlay } from "@/components/marketing/Living";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Check, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function StoryPage({
             </div>
           </div>
         </div>
+        <LivingOverlay label={s.feed[0]?.[0] ?? s.t} rows={s.tracks} />
       </section>
       <section className="mk-container mk-section mk-split">
         <div>
@@ -71,7 +73,7 @@ export function StoryPage({
           </div>
         </div>
         <img
-          src={kind === "industries" ? storyPhoto(s.slug) : photos.it}
+          src={kind === "industries" ? (s.slug === "dental" ? photos.dental : s.slug === "healthcare" ? photos.it : s.slug === "hospitality" ? photos.coffee : s.slug === "automotive-fleet" ? photos.vehicle : s.slug === "homeowners-families" ? photos.appliance : photos[s.slug as keyof typeof photos] ?? photos.it) : photos.it}
           alt={`${s.t} records and equipment`}
           width="627"
           height="627"
@@ -176,7 +178,7 @@ export function StoryIndex({
     <SiteShell>
       <section className="mk-page-hero">
         <img
-          src={kind === "industries" ? photos.cafe : photos.family}
+          src={kind === "industries" ? photos.warehouse : photos.world}
           alt={
             kind === "industries"
               ? "Independent business with equipment"

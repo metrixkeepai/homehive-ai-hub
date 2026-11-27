@@ -1,3 +1,4 @@
+import { IntelligenceShowcase } from "./Living";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -292,44 +293,7 @@ export function Capabilities() {
     </section>
   );
 }
-export function Intelligence() {
-  return (
-    <section className="mk-container mk-section">
-      <p className="mk-eyebrow">AI-assisted. Human-directed.</p>
-      <h2>
-        Do not just manage your assets.
-        <br />
-        Give them intelligence.
-      </h2>
-      <p className="mk-lead">
-        AI helps turn unstructured information into useful records. You review the evidence and stay
-        in control of the next action.
-      </p>
-      <div className="mk-flow">
-        {[
-          { icon: Camera, t: "Capture information" },
-          { icon: Brain, t: "Understand evidence" },
-          { icon: Link2, t: "Connect assets" },
-          { icon: CalendarClock, t: "Identify dates" },
-          { icon: Eye, t: "Present insights" },
-          { icon: Check, t: "Human review & action" },
-        ].map((s, i) => (
-          <Reveal key={s.t} delay={i * 70}>
-            <s.icon className="size-6" />
-            <strong>{s.t}</strong>
-          </Reveal>
-        ))}
-      </div>
-      <div className="mk-roadmap">
-        <strong>Advanced roadmap · In development</strong>
-        <span>Compliance Assurance</span>
-        <span>Evidence Verification</span>
-        <span>Risk Intelligence</span>
-        <span>Human-supervised Remediation</span>
-      </div>
-    </section>
-  );
-}
+export function Intelligence() { return <IntelligenceShowcase />; }
 export function Journey() {
   return (
     <>

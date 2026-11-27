@@ -1,3 +1,4 @@
+import { EnvironmentExplorer, LivingOverlay } from "./Living";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -23,7 +24,7 @@ import { commonFaq } from "./content";
 const content = {
   individual: {
     eyebrow: "MatrixKeep for Individuals & Families",
-    title: "Life is complicated enough. Keeping track of it shouldn’t be.",
+    title: "Give everything you’ve worked for an intelligent digital memory.",
     lead: "Your home. Your belongings. Your vehicles. Your important documents. One intelligent digital home for everything you own and everything you need to remember.",
     image: photos.family,
     cta: "Start Free",
@@ -37,7 +38,7 @@ const content = {
   },
   business: {
     eyebrow: "MatrixKeep for Small & Medium Businesses",
-    title: "Run your business smarter. Let AI keep track of what matters.",
+    title: "Run your business. Let MatrixKeep remember the details.",
     lead: "Every piece of equipment. Every invoice. Every warranty. Every contract. Every location. Bring your business knowledge together without the complexity of traditional enterprise software.",
     image: photos.cafe,
     cta: "Explore Business Plans",
@@ -170,7 +171,9 @@ export function AudiencePage({ audience }: { audience: keyof typeof content }) {
             </div>
           </div>
         </div>
+        <LivingOverlay label={enterprise ? "Connected enterprise locations" : business ? "Business equipment passport" : "Your digital home"} />
       </section>
+      {!enterprise && <EnvironmentExplorer personal={!business} />}
       <section className="mk-container mk-section mk-split">
         <Reveal>
           <p className="mk-eyebrow">Built around what matters to you</p>

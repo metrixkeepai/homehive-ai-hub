@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteShell, PageHero, FeatureGrid, FAQ, CTA, FeedCard } from "@/components/hv/Site";
-import { photos } from "./media";
+import { photos, scenes } from "./media";
 import { PassportDemo, SeraDemo } from "./Demos";
 import { Capabilities, Intelligence, Journey, Trust } from "./Sections";
 import { commonFaq } from "./content";
@@ -128,6 +128,7 @@ export function ProductPage({ kind }: { kind: ProductKind }) {
   return (
     <SiteShell>
       <PageHero
+        image={scenes[kind] ?? photos.world}
         eyebrow={c.eyebrow}
         title={c.title}
         lead={c.lead}

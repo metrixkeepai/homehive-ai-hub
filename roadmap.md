@@ -35,6 +35,14 @@
 
 # Public website transformation
 
+# Cinematic public website
+
+- [x] Restore dark header, interactive mega menus and original premium pricing presentation.
+- [x] Add three-scene hero, motion controls, scroll and pointer-responsive storytelling.
+- [x] Enhance passports, Sera, intelligence and audience/location demonstrations.
+- [x] Replace duplicate primary imagery and maintain an image manifest.
+- [x] Verify public routes, interactions, responsive layouts and reduced motion; report measured limitations.
+
 - [x] Isolated public design, navigation and photography
 - [x] Complete homepage and audience pages
 - [x] Product, industry, use-case and company marketing pages

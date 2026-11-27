@@ -1,9 +1,9 @@
-import { photos } from "./media";
+import { photos, publicHero } from "./media";
 export function marketingHead(
   title: string,
   description: string,
   path: string,
-  image = photos.world,
+  image = publicHero(path),
 ) {
   return {
     meta: [
@@ -13,8 +13,7 @@ export function marketingHead(
       { property: "og:description", content: description },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: image },
-      { name: "twitter:image", content: image },
+      ...(image.startsWith("https://") ? [{ property: "og:image", content: image }, { name: "twitter:image", content: image }] : []),
     ],
     links: [{ rel: "canonical", href: `https://matrixkeep.com${path}` }],
   };

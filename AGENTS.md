@@ -29,3 +29,6 @@
 - Public marketing lives in isolated marketing components and the public-only SiteShell; scope presentation tokens under .marketing-site so authenticated screens retain their existing theme.
 - Public product demonstrations use local illustrative records and scripted responses, never authenticated data or AI APIs; the ROI calculator is a pure tested calculation.
 - Marketing pricing reads the existing published catalogue and reuses the approved-entitlement comparison; marketing copy never defines plan access.
+
+- Public motion uses one scoped LivingSurface lifecycle (intersection, scroll, pointer and reduced-motion controls); hero and scripted demonstrations never invoke account APIs.
+- Marketing primary photographs are assigned by route slug in the media manifest so unrelated industry and use-case openings cannot share a primary photograph.

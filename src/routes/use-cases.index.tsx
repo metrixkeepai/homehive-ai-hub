@@ -17,8 +17,6 @@ export const Route = createFileRoute("/use-cases/")({
       { property: "og:description", content: "See what you can do with MatrixKeep." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:image", content: photos.family },
-      { name: "twitter:image", content: photos.family },
     ],
   }),
   component: () => (

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell, PageHero, FAQ, CTA } from "@/components/hv/Site";
+import { SiteShell, FAQ, CTA } from "@/components/hv/Site";
 import { MarketingPricing } from "@/components/marketing/Demos";
 import { marketingHead, commonFaq } from "@/components/marketing/content";
 export const Route = createFileRoute("/pricing")({
@@ -11,11 +11,6 @@ export const Route = createFileRoute("/pricing")({
     ),
   component: () => (
     <SiteShell>
-      <PageHero
-        eyebrow="Pricing"
-        title="A plan for what matters. Room for what comes next."
-        lead="Clear prices and current allowances, from your first saved asset to a growing business. Existing plans, existing checkout, no surprises."
-      />
       <MarketingPricing comparison />
       <FAQ
         items={[
