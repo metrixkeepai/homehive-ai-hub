@@ -129,9 +129,6 @@ jobs:
           registry="$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep"
           common=(--project="$GCP_PROJECT_ID" --region="$REGION" --quiet)
           mail_identity="matrixkeep-mail@$GCP_PROJECT_ID.iam.gserviceaccount.com"
-          if [[ -z $(gcloud iam service-accounts list --project="$GCP_PROJECT_ID" --filter="email=$mail_identity" --format='value(email)') ]]; then
-            gcloud iam service-accounts create matrixkeep-mail --project="$GCP_PROJECT_ID" --display-name="MatrixKeep staging mail worker"
-          fi
           gcloud iam service-accounts describe "$mail_identity" --project="$GCP_PROJECT_ID" --format='value(email)'
           enabled_version() {
             gcloud secrets versions list "$1" --project="$GCP_PROJECT_ID" --filter='state=ENABLED' --format='value(name)' |
