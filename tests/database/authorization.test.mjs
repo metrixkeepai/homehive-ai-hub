@@ -761,9 +761,7 @@ test("approved capture allowance reaches the catalogue and shared receipt/speech
   await db.query("update profiles set plan='home',plan_source='admin' where id=$1", [user]);
   const reserve = (feature) =>
     db.query("select reserve_ai_operation($1,null,$2,1,0.001)", [user, feature]);
-  await db.exec(
-    "update runtime_limits set ai_enabled=true",
-  );
+  await db.exec("update runtime_limits set ai_enabled=true");
   const version =
     await db.query(`insert into plan_versions(plan_key,version,name,audience,monthly,yearly,capacity,benefits,status,entitlements)
     values('home',999,'QA Home','individual',4.99,49,'{}','{}','draft','{"ai_captures":{"on":true,"limit":2}}') returning id`);
