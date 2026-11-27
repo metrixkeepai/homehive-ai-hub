@@ -151,10 +151,18 @@ jobs:
           [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
           db_version=$(enabled_version DATABASE_MIGRATION_URL)
           [[ $db_version =~ ^[1-9][0-9]*$ ]]
-          gcloud run jobs deploy matrixkeep-staging-migrate "${common[@]}" --image="$registry/migrator@$digest" \
+          if ! gcloud run jobs deploy matrixkeep-staging-migrate "${common[@]}" --image="$registry/migrator@$digest" \
             --service-account="matrixkeep-migrator@$GCP_PROJECT_ID.iam.gserviceaccount.com" --tasks=1 --max-retries=0 \
             --set-secrets="DATABASE_MIGRATION_URL=DATABASE_MIGRATION_URL:$db_version" \
-            --set-env-vars="APP_ENV=staging,EXPECTED_SUPABASE_REF=cdfpupivjjamhvmfcvry" --execute-now --wait
+            --set-env-vars="APP_ENV=staging,EXPECTED_SUPABASE_REF=cdfpupivjjamhvmfcvry" --execute-now --wait; then
+            execution=$(gcloud run jobs describe matrixkeep-staging-migrate "${common[@]}" --format='value(status.latestCreatedExecution.name)')
+            [[ $execution =~ ^matrixkeep-staging-migrate-[a-z0-9]+$ ]]
+            echo "Failed staging migration execution: $execution"
+            gcloud logging read "resource.type=cloud_run_job AND labels.\"run.googleapis.com/execution_name\"=\"$execution\"" \
+              --project="$GCP_PROJECT_ID" --limit=30 --format=json |
+              jq -r '[.[] | (.jsonPayload.code // (try (.textPayload | fromjson).code) // empty) | select(test("^[A-Z0-9_]{2,32}$"))] | unique | .[]'
+            exit 1
+          fi
           MATRIXKEEP_EXERCISE_STAGING_DELIVERY=true source deploy/staging-mail-worker.sh
           gcloud run jobs execute "$job" "${common[@]}" --wait
       - name: Publish immutable release images
