@@ -247,7 +247,40 @@ jobs:
     with:
       target: production
 
+  request-witness:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      witness_run: ${{ steps.witness.outputs.run }}
+    steps:
+      - id: witness
+        name: Request the protected staging identity to recheck the serving release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_RUN: ${{ inputs.staging_run }}
+        run: |
+          set -euo pipefail
+          [[ $RECOVERY_RUN =~ ^[0-9]+$ ]]
+          api="repos/$GITHUB_REPOSITORY/actions/workflows/verify.yml/dispatches"
+          response=$(gh api -X POST "$api" -f ref=main -f "inputs[promotion_run]=$GITHUB_RUN_ID" -f "inputs[recovery_run]=$RECOVERY_RUN" -F return_run_details=true)
+          witness=$(jq -er '.workflow_run_id|select(type=="number")' <<<"$response")
+          echo "run=$witness" >> "$GITHUB_OUTPUT"
+          for attempt in {1..60}; do
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$witness/jobs")
+            if jq -e 'any(.jobs[];.name=="witness" and .status=="completed")' <<<"$result" >/dev/null; then
+              jq -e 'any(.jobs[];.name=="witness" and .conclusion=="success")' <<<"$result" >/dev/null
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
   recover-production:
+    needs: request-witness
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
     permissions:
       actions: read
@@ -283,6 +316,12 @@ jobs:
           path: accepted
           github-token: ${{ github.token }}
           run-id: ${{ inputs.staging_run }}
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.request-witness.outputs.witness_run }}
+          name: matrixkeep-live-witness-${{ github.run_id }}
+          path: witness
       - id: source
         run: |
           set -euo pipefail
