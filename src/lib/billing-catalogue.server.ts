@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { supabaseAdmin as db } from "../integrations/supabase/client.server";
-import { plans } from "./plans";
+import { resolvePlans } from "./effective-plans";
 import { createStripeClient, stripeEnvironment } from "./stripe.server";
 
 export async function withBillingLock<T>(key: string, work: (token: string) => Promise<T>) {
@@ -16,11 +16,11 @@ export async function withBillingLock<T>(key: string, work: (token: string) => P
 
 export async function cataloguePlan(key: string) {
   const { data, error } = await db
-    .rpc("published_plan_catalogue")
+    .rpc("effective_plan_catalogue")
     .eq("plan_key", key)
     .maybeSingle();
   if (error) throw new Error("Plan catalogue unavailable");
-  return data ?? plans.find((p) => p.key === key);
+  return resolvePlans(data ? [data] : []).find((p) => p.key === key);
 }
 
 async function rememberPrice(

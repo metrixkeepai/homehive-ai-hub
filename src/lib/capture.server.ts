@@ -1,3 +1,4 @@
+import { OperationFailure } from "./ai-operation-error";
 import { z } from "zod";
 
 const SECTIONS = [
@@ -262,9 +263,9 @@ export async function runExtraction(
     const { AIProviderError } = await import("./openai.server");
     return {
       error:
-        error instanceof AIProviderError
+        error instanceof AIProviderError || error instanceof OperationFailure
           ? error.message
-          : "Extraction is unavailable or its quota has been reached. Please try again later.",
+          : "AI processing is temporarily unavailable.",
     };
   }
 }

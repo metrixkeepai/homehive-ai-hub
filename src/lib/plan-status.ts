@@ -13,51 +13,30 @@ export function useInactivePlans() {
   return new Set(q.data ?? []);
 }
 
-import { plans, type PlanDef } from "./plans";
+import { resolvePlans } from "./effective-plans";
+import { planByKey } from "./plans";
+import type { QueryClient } from "@tanstack/react-query";
 export function usePublishedPlans() {
   const query = useQuery({
     queryKey: ["published-plan-catalogue"],
-    staleTime: 15000,
+    staleTime: 0,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("published_plan_catalogue");
+      const { data, error } = await supabase.rpc("effective_plan_catalogue");
       if (error) throw error;
-      const catalogue = new Map(plans.map((p) => [p.key, p]));
-      for (const row of data ?? []) {
-        const base = catalogue.get(row.plan_key);
-        const cap = {
-          users: "",
-          places: "",
-          assets: "",
-          storage: "",
-          docs: "",
-          captures: "",
-          sera: "",
-          ...base?.cap,
-        };
-        if (row.capacity && typeof row.capacity === "object")
-          for (const k of Object.keys(cap) as (keyof typeof cap)[]) {
-            const value = (row.capacity as Record<string, unknown>)[k];
-            if (typeof value === "string") cap[k] = value;
-          }
-        catalogue.set(row.plan_key, {
-          positioning: "",
-          outcome: "",
-          bestFor: "",
-          agents: [],
-          support: "",
-          limits: { assets: 0, users: 0, places: 0, docs: 0 },
-          ...base,
-          key: row.plan_key,
-          name: row.name,
-          audience: row.audience as PlanDef["audience"],
-          monthly: row.monthly,
-          yearly: row.yearly,
-          cap,
-          benefits: row.benefits,
-        });
-      }
-      return [...catalogue.values()];
+      return resolvePlans(data ?? []);
     },
   });
   return query;
+}
+
+export function useCurrentPlan(key?: string | null) {
+  const catalogue = usePublishedPlans();
+  return catalogue.data?.find((p) => p.key === key) ?? planByKey(key);
+}
+export async function refreshPlans(client: QueryClient) {
+  await Promise.all(
+    [["admin", "plans"], ["published-plan-catalogue"], ["my-ai-allowances"], ["plan-status"]].map(
+      (queryKey) => client.invalidateQueries({ queryKey }),
+    ),
+  );
 }

@@ -393,6 +393,13 @@
       "when": 1795785231175,
       "tag": "0055_align_ai_and_sera_function_signatures",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1795785232175,
+      "tag": "0056_classify_ai_claim",
+      "breakpoints": true
     }
   ]
 }

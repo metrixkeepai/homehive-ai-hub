@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { readMigrationFiles } from "drizzle-orm/migrator";
+import { createHash } from "node:crypto";
 if (!process.env.DATABASE_MIGRATION_URL || !["staging", "production"].includes(process.env.APP_ENV))
   throw new Error("Set DATABASE_MIGRATION_URL and an explicit APP_ENV in the correct environment.");
 if (process.env.EXPECTED_SUPABASE_REF) {
@@ -28,7 +29,25 @@ try {
     await sql`SELECT to_regclass('public.profiles') IS NOT NULL AS profiles, to_regclass('drizzle.__drizzle_migrations') IS NOT NULL AS tracked`;
   if (existing.profiles && !existing.tracked)
     throw new Error("Existing untracked schema: reconcile migration history before applying.");
-  await migrate(drizzle(sql), { migrationsFolder: "drizzle/migrations" });
+  const config = { migrationsFolder: "drizzle/migrations" };
+  let migrations = readMigrationFiles(config);
+  if (existing.tracked) {
+    // The Cloud Run release shipped these definitions in its original 48 files.
+    // Main restored the same features later in 0048–0055. Replaying those files
+    // against the deployed lineage attempts to recreate existing tables/functions.
+    const rows = await sql`select created_at,hash from drizzle.__drizzle_migrations
+      where created_at <= 1795689602000 order by created_at`;
+    const signature = createHash("sha256")
+      .update(rows.map((row) => row.created_at + ":" + row.hash).join(","))
+      .digest("hex");
+    if (signature === "dcc9add4e51970a523e511643fd105b3458fc0785f1677330222a124307ac892") {
+      migrations = migrations.filter(
+        (m) => m.folderMillis <= 1795689602000 || m.folderMillis > 1795785231175,
+      );
+    }
+  }
+  const db = drizzle(sql);
+  await db.dialect.migrate(migrations, db.session, config);
   console.info(JSON.stringify({ event: "migrations_applied", environment: process.env.APP_ENV }));
 } catch (error) {
   console.error(
