@@ -32,7 +32,15 @@ mail_identity="matrixkeep-mail@$GCP_PROJECT_ID.iam.gserviceaccount.com"
 gcloud run jobs deploy "$job" "${common[@]}" --image="$repo@$digest" \
   --service-account="$mail_identity" --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=15m \
   --set-env-vars="APP_ENV=staging,MATRIXKEEP_MAIL_QA_RECIPIENT=$MATRIXKEEP_MAIL_QA_RECIPIENT" --set-secrets="$(IFS=,; echo "${mail_secrets[*]}")"
-gcloud run jobs execute "$job" "${common[@]}" --wait
+if ! gcloud run jobs execute "$job" "${common[@]}" --wait; then
+  execution=$(gcloud run jobs describe "$job" "${common[@]}" --format='value(status.latestCreatedExecution.name)')
+  if [[ $execution == "$job"-* ]]; then
+    endpoint="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job/executions/$execution/tasks"
+    curl --silent --show-error --fail -H "Authorization: Bearer $(gcloud auth print-access-token)" "$endpoint" |
+      jq -r '.tasks[] | "Mail execution exit code: \(.lastAttemptResult.exitCode // "unavailable")"'
+  fi
+  exit 1
+fi
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
