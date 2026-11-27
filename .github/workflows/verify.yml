@@ -12,8 +12,23 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      website_workflow_install: ${{ steps.install.outputs.only }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: install
+        name: Identify website-only workflow installation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # The one-time installation includes the reviewed CI repair. Never deploy
+          # main's application or start its migrator on this installation push.
+          if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
+            echo 'only=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '24.19.0'
@@ -64,7 +79,7 @@ jobs:
 
   staging:
     needs: verify
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/matrixkeep-cloud-run')
+    if: needs.verify.outputs.website_workflow_install != 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/matrixkeep-cloud-run')
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 40
