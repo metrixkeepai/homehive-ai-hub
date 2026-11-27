@@ -1,0 +1,1231 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-27T13:02:13.729196Z",
+  "summary": {
+    "asset_json_files_discovered": 49,
+    "unique_underlying_marketing_assets": 49,
+    "image_binaries_retrieved": 49,
+    "image_binaries_stored_locally": 49,
+    "video_resources_retrieved": 0,
+    "animation_resources_retrieved": 0,
+    "unresolved_assets": 0,
+    "remaining_runtime_lovable_asset_references": 0,
+    "original_descriptor_files_retained_for_provenance": 49,
+    "total_binary_asset_size_bytes": 4477264,
+    "remaining_external_media_dependencies": []
+  },
+  "notes": [
+    "Original descriptors are retained for provenance and previous-version compatibility; the runtime registry does not import them.",
+    "All motion is implemented with existing React and CSS code. No external video or animation binaries were found.",
+    "Google Fonts remains a separate external typography dependency, not a marketing media dependency."
+  ],
+  "assets": [
+    {
+      "asset_id": "3a37cfb1-8c77-4cfd-81e5-890436cb1e37",
+      "original_descriptor_path": "src/assets/marketing/appliance.asset.json",
+      "original_filename": "matrixkeep-appliance.webp",
+      "original_relative_url": "/__l5e/assets-v1/3a37cfb1-8c77-4cfd-81e5-890436cb1e37/matrixkeep-appliance.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 44740,
+      "actual_local_destination_path": "public/images/marketing/product/matrixkeep-appliance.webp",
+      "public_url": "/images/marketing/product/matrixkeep-appliance.webp",
+      "actual_binary_file_size": 44740,
+      "sha256": "3e8b73f24093c7e9b67800ab9805969ca53db3a3cdf6c02193bbec25bd68f668",
+      "pixel_dimensions": {
+        "width": 627,
+        "height": 627
+      },
+      "associated_website_pages": [
+        "/",
+        "/individual",
+        "/features",
+        "/ai-agents",
+        "/sera"
+      ],
+      "associated_sections": [
+        "appliance demonstrations and scroll stories"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "a7e3f4d5-be8e-4aa4-8f6c-cb006e269e7b",
+      "original_descriptor_path": "src/assets/marketing/cafe.asset.json",
+      "original_filename": "matrixkeep-cafe.webp",
+      "original_relative_url": "/__l5e/assets-v1/a7e3f4d5-be8e-4aa4-8f6c-cb006e269e7b/matrixkeep-cafe.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 35414,
+      "actual_local_destination_path": "public/images/marketing/business/matrixkeep-cafe.webp",
+      "public_url": "/images/marketing/business/matrixkeep-cafe.webp",
+      "actual_binary_file_size": 35414,
+      "sha256": "3256532d4eebc25d03c064974d991cf23b2685f4c98f0b74c4221a2b12a6e7d7",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/",
+        "/business"
+      ],
+      "associated_sections": [
+        "business demonstrations",
+        "audience introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "74bc9a03-c43b-4f68-86b4-37587a20e252",
+      "original_descriptor_path": "src/assets/marketing/coffee.asset.json",
+      "original_filename": "matrixkeep-coffee.webp",
+      "original_relative_url": "/__l5e/assets-v1/74bc9a03-c43b-4f68-86b4-37587a20e252/matrixkeep-coffee.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 72570,
+      "actual_local_destination_path": "public/images/marketing/product/matrixkeep-coffee.webp",
+      "public_url": "/images/marketing/product/matrixkeep-coffee.webp",
+      "actual_binary_file_size": 72570,
+      "sha256": "c68d527f786427c4df4ab09886d49a45e2a445b7525ab232937c69ac620287bd",
+      "pixel_dimensions": {
+        "width": 627,
+        "height": 627
+      },
+      "associated_website_pages": [
+        "/",
+        "/business",
+        "/digital-passport"
+      ],
+      "associated_sections": [
+        "espresso machine demonstrations and passport stories"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "f30410ac-35aa-443e-8977-780053c596c4",
+      "original_descriptor_path": "src/assets/marketing/construction.asset.json",
+      "original_filename": "matrixkeep-construction.webp",
+      "original_relative_url": "/__l5e/assets-v1/f30410ac-35aa-443e-8977-780053c596c4/matrixkeep-construction.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 39936,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-construction.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-construction.webp",
+      "actual_binary_file_size": 39936,
+      "sha256": "1901e37281928a4532e4740de82d632be0e731250fb9c6f3ee3ab8a5ab2ce83f",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 408
+      },
+      "associated_website_pages": [
+        "/industries/construction"
+      ],
+      "associated_sections": [
+        "industry detail"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "5623e069-71d1-470d-9bc8-0a5bf9da5f7b",
+      "original_descriptor_path": "src/assets/marketing/dental.asset.json",
+      "original_filename": "matrixkeep-dental.webp",
+      "original_relative_url": "/__l5e/assets-v1/5623e069-71d1-470d-9bc8-0a5bf9da5f7b/matrixkeep-dental.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 22194,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-dental.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-dental.webp",
+      "actual_binary_file_size": 22194,
+      "sha256": "c4f49006fb8b846211a7b7915c8228546af13ad8527c84446e0b387f2a328050",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 408
+      },
+      "associated_website_pages": [
+        "/",
+        "/industries/dental"
+      ],
+      "associated_sections": [
+        "shared product demonstrations",
+        "industry detail"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "a50f2655-83ea-4fd8-ac1d-2d7408968a22",
+      "original_descriptor_path": "src/assets/marketing/education.asset.json",
+      "original_filename": "matrixkeep-education.webp",
+      "original_relative_url": "/__l5e/assets-v1/a50f2655-83ea-4fd8-ac1d-2d7408968a22/matrixkeep-education.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 24386,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-education.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-education.webp",
+      "actual_binary_file_size": 24386,
+      "sha256": "09b4b30dfce2f097a2a74645fbeb2ca7ec0d34501675cd18ee36ca85d6159cd5",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/industries/education"
+      ],
+      "associated_sections": [
+        "industry detail"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "2d4d7243-e19c-41a6-878f-84e234cd8379",
+      "original_descriptor_path": "src/assets/marketing/enterprise.asset.json",
+      "original_filename": "matrixkeep-enterprise.webp",
+      "original_relative_url": "/__l5e/assets-v1/2d4d7243-e19c-41a6-878f-84e234cd8379/matrixkeep-enterprise.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 27278,
+      "actual_local_destination_path": "public/images/marketing/enterprise/matrixkeep-enterprise.webp",
+      "public_url": "/images/marketing/enterprise/matrixkeep-enterprise.webp",
+      "actual_binary_file_size": 27278,
+      "sha256": "04c55526a9632b3c943c9337568133beb62c4649a5a1d7a2b5453d5bd88628d2",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/",
+        "/enterprise",
+        "/contact",
+        "/partners"
+      ],
+      "associated_sections": [
+        "business demonstrations",
+        "enterprise introduction",
+        "contact and partner sections"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "4a50e00b-7fdb-41d8-8e17-fa445ae9b764",
+      "original_descriptor_path": "src/assets/marketing/family.asset.json",
+      "original_filename": "matrixkeep-family.webp",
+      "original_relative_url": "/__l5e/assets-v1/4a50e00b-7fdb-41d8-8e17-fa445ae9b764/matrixkeep-family.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 24832,
+      "actual_local_destination_path": "public/images/marketing/individuals/matrixkeep-family.webp",
+      "public_url": "/images/marketing/individuals/matrixkeep-family.webp",
+      "actual_binary_file_size": 24832,
+      "sha256": "0ae50a4f1f02402e6a730f633911736d6ef050a8c753149b188eea84ab087919",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/",
+        "/individual",
+        "/about"
+      ],
+      "associated_sections": [
+        "household demonstrations",
+        "audience introduction",
+        "company scroll story"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "0cf65c3a-77c6-4c32-8aed-7e6a1e001265",
+      "original_descriptor_path": "src/assets/marketing/it.asset.json",
+      "original_filename": "matrixkeep-it.webp",
+      "original_relative_url": "/__l5e/assets-v1/0cf65c3a-77c6-4c32-8aed-7e6a1e001265/matrixkeep-it.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 56010,
+      "actual_local_destination_path": "public/images/marketing/product/matrixkeep-it.webp",
+      "public_url": "/images/marketing/product/matrixkeep-it.webp",
+      "actual_binary_file_size": 56010,
+      "sha256": "b410f1fc4ead28209a5527730b622e27531ce2b2a096ca39d2818bfe39295b77",
+      "pixel_dimensions": {
+        "width": 627,
+        "height": 627
+      },
+      "associated_website_pages": [
+        "/",
+        "/business",
+        "/sera"
+      ],
+      "associated_sections": [
+        "workstation and intelligence demonstrations"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "bb17cfb8-7590-468e-96c6-7c968a4356c2",
+      "original_descriptor_path": "src/assets/marketing/manufacturing.asset.json",
+      "original_filename": "matrixkeep-manufacturing.webp",
+      "original_relative_url": "/__l5e/assets-v1/bb17cfb8-7590-468e-96c6-7c968a4356c2/matrixkeep-manufacturing.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 33690,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-manufacturing.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-manufacturing.webp",
+      "actual_binary_file_size": 33690,
+      "sha256": "1136f50951f1e05eb777191c81d0b9486a248c49d20c7ff4a170032233f24d15",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/",
+        "/industries/manufacturing"
+      ],
+      "associated_sections": [
+        "machinery passport demonstration",
+        "industry detail"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "1659268c-cef8-406c-9d71-14179129f01a",
+      "original_descriptor_path": "src/assets/marketing/retail.asset.json",
+      "original_filename": "matrixkeep-retail.webp",
+      "original_relative_url": "/__l5e/assets-v1/1659268c-cef8-406c-9d71-14179129f01a/matrixkeep-retail.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 44014,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-retail.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-retail.webp",
+      "actual_binary_file_size": 44014,
+      "sha256": "731601ceeabf8843515947464f64a5072bd4f34ce1b352e9ad9892bb589b9878",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 408
+      },
+      "associated_website_pages": [
+        "/industries/retail"
+      ],
+      "associated_sections": [
+        "industry detail"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "eeda3891-2864-4a70-a727-5df3152e9fb0",
+      "original_descriptor_path": "src/assets/marketing/scene-about.webp.asset.json",
+      "original_filename": "scene-about.webp",
+      "original_relative_url": "/__l5e/assets-v1/eeda3891-2864-4a70-a727-5df3152e9fb0/scene-about.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 36024,
+      "actual_local_destination_path": "public/images/marketing/product/scene-about.webp",
+      "public_url": "/images/marketing/product/scene-about.webp",
+      "actual_binary_file_size": 36024,
+      "sha256": "3ecc8f34542d3222acef862e5006f4ec7690da411a808842f8a0898c12e76921",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/about"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "04841b0a-6d10-4ff2-8e4f-19e3e16ac89a",
+      "original_descriptor_path": "src/assets/marketing/scene-ai-agents.webp.asset.json",
+      "original_filename": "scene-ai-agents.webp",
+      "original_relative_url": "/__l5e/assets-v1/04841b0a-6d10-4ff2-8e4f-19e3e16ac89a/scene-ai-agents.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 28758,
+      "actual_local_destination_path": "public/images/marketing/product/scene-ai-agents.webp",
+      "public_url": "/images/marketing/product/scene-ai-agents.webp",
+      "actual_binary_file_size": 28758,
+      "sha256": "730facd66a3543e0eef7cb434dc0dffc9d80b2d1ca199f4167b068c555976337",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/ai-agents"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "9abf28ed-2a8c-4192-8e48-da41db734c44",
+      "original_descriptor_path": "src/assets/marketing/scene-automotive-fleet.webp.asset.json",
+      "original_filename": "scene-automotive-fleet.webp",
+      "original_relative_url": "/__l5e/assets-v1/9abf28ed-2a8c-4192-8e48-da41db734c44/scene-automotive-fleet.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 27006,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-automotive-fleet.webp",
+      "public_url": "/images/marketing/industries/scene-automotive-fleet.webp",
+      "actual_binary_file_size": 27006,
+      "sha256": "483e4459f6c883cd52f495ea8057bc8cc26e9cf67e1eb04cf35c8a60e5709c15",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/automotive-fleet"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "8b3f8b43-c713-4d51-87a1-90158914959e",
+      "original_descriptor_path": "src/assets/marketing/scene-business-asset-management.webp.asset.json",
+      "original_filename": "scene-business-asset-management.webp",
+      "original_relative_url": "/__l5e/assets-v1/8b3f8b43-c713-4d51-87a1-90158914959e/scene-business-asset-management.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 21050,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-business-asset-management.webp",
+      "public_url": "/images/marketing/use-cases/scene-business-asset-management.webp",
+      "actual_binary_file_size": 21050,
+      "sha256": "9cac0d7cf7d96fec36c19b00c3092ac1058e6a258b48c3c081de3849bb4dfed5",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/business-asset-management"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "b93c914a-5042-4fe3-8e76-19175372f436",
+      "original_descriptor_path": "src/assets/marketing/scene-business.webp.asset.json",
+      "original_filename": "scene-business.webp",
+      "original_relative_url": "/__l5e/assets-v1/b93c914a-5042-4fe3-8e76-19175372f436/scene-business.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 156016,
+      "actual_local_destination_path": "public/images/marketing/hero/scene-business.webp",
+      "public_url": "/images/marketing/hero/scene-business.webp",
+      "actual_binary_file_size": 156016,
+      "sha256": "a906c041845aed87d63740e13db21ac21ad77e19dcfab013be4c8361e3e4480e",
+      "pixel_dimensions": {
+        "width": 1536,
+        "height": 1024
+      },
+      "associated_website_pages": [
+        "/"
+      ],
+      "associated_sections": [
+        "cinematic scene"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "0ad3793f-dd50-47df-bff2-648aabc0a15c",
+      "original_descriptor_path": "src/assets/marketing/scene-compliance-evidence.webp.asset.json",
+      "original_filename": "scene-compliance-evidence.webp",
+      "original_relative_url": "/__l5e/assets-v1/0ad3793f-dd50-47df-bff2-648aabc0a15c/scene-compliance-evidence.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 26040,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-compliance-evidence.webp",
+      "public_url": "/images/marketing/use-cases/scene-compliance-evidence.webp",
+      "actual_binary_file_size": 26040,
+      "sha256": "b958e198c58fd5a447a3b5a5e2e7fc28bcf2d259c2b1e6f063e8e561cba367b1",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/compliance-evidence"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "5ad6c669-c882-4b67-b60e-9bb70d95b079",
+      "original_descriptor_path": "src/assets/marketing/scene-construction.webp.asset.json",
+      "original_filename": "scene-construction.webp",
+      "original_relative_url": "/__l5e/assets-v1/5ad6c669-c882-4b67-b60e-9bb70d95b079/scene-construction.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 45420,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-construction.webp",
+      "public_url": "/images/marketing/industries/scene-construction.webp",
+      "actual_binary_file_size": 45420,
+      "sha256": "49787d0655a395696520f7eb7803f02aa0c63a430b371aed43439c4a430560d1",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/construction"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "3f9e9183-c9bc-4c14-b9ea-9e006bee0e74",
+      "original_descriptor_path": "src/assets/marketing/scene-dental.webp.asset.json",
+      "original_filename": "scene-dental.webp",
+      "original_relative_url": "/__l5e/assets-v1/3f9e9183-c9bc-4c14-b9ea-9e006bee0e74/scene-dental.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 23120,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-dental.webp",
+      "public_url": "/images/marketing/industries/scene-dental.webp",
+      "actual_binary_file_size": 23120,
+      "sha256": "97be79764990136ce43881fcc14324587d7070c17f7fe2cc101e590caf8ce000",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/dental"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "faa373bd-d51d-4845-86bf-e90f2d762cd6",
+      "original_descriptor_path": "src/assets/marketing/scene-digital-passport.webp.asset.json",
+      "original_filename": "scene-digital-passport.webp",
+      "original_relative_url": "/__l5e/assets-v1/faa373bd-d51d-4845-86bf-e90f2d762cd6/scene-digital-passport.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 44106,
+      "actual_local_destination_path": "public/images/marketing/digital-passport/scene-digital-passport.webp",
+      "public_url": "/images/marketing/digital-passport/scene-digital-passport.webp",
+      "actual_binary_file_size": 44106,
+      "sha256": "32e776e5fdda2e445d2d271254400964f58ca3b7a3f075c754077c0703926017",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/digital-passport"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "b3744ba4-c8df-4ae4-b93c-c4aec4819275",
+      "original_descriptor_path": "src/assets/marketing/scene-education.webp.asset.json",
+      "original_filename": "scene-education.webp",
+      "original_relative_url": "/__l5e/assets-v1/b3744ba4-c8df-4ae4-b93c-c4aec4819275/scene-education.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 27208,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-education.webp",
+      "public_url": "/images/marketing/industries/scene-education.webp",
+      "actual_binary_file_size": 27208,
+      "sha256": "349204b2ed51f826ba9f68e80eaa916c001115a84365b00b9937ff9057e08617",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/education"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "1048511c-b51f-49b1-a104-bf7e890e681a",
+      "original_descriptor_path": "src/assets/marketing/scene-equipment-logistics.webp.asset.json",
+      "original_filename": "scene-equipment-logistics.webp",
+      "original_relative_url": "/__l5e/assets-v1/1048511c-b51f-49b1-a104-bf7e890e681a/scene-equipment-logistics.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 29868,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-equipment-logistics.webp",
+      "public_url": "/images/marketing/use-cases/scene-equipment-logistics.webp",
+      "actual_binary_file_size": 29868,
+      "sha256": "c9c8f40a6312ea90f3eec35f5f450222d35c8f9093eb286c1826d0a6a08860cf",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/equipment-logistics"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "8b5a41bc-580d-4090-90b1-8b2060c70534",
+      "original_descriptor_path": "src/assets/marketing/scene-features.webp.asset.json",
+      "original_filename": "scene-features.webp",
+      "original_relative_url": "/__l5e/assets-v1/8b5a41bc-580d-4090-90b1-8b2060c70534/scene-features.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 32086,
+      "actual_local_destination_path": "public/images/marketing/product/scene-features.webp",
+      "public_url": "/images/marketing/product/scene-features.webp",
+      "actual_binary_file_size": 32086,
+      "sha256": "6d0916e62aab1f5da62c4da4cac7133cbe345a45a832b24e79ff8f56f78b8574",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/features"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "220d4516-03e7-4656-8cba-4ab5c3c9ca80",
+      "original_descriptor_path": "src/assets/marketing/scene-healthcare.webp.asset.json",
+      "original_filename": "scene-healthcare.webp",
+      "original_relative_url": "/__l5e/assets-v1/220d4516-03e7-4656-8cba-4ab5c3c9ca80/scene-healthcare.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 23906,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-healthcare.webp",
+      "public_url": "/images/marketing/industries/scene-healthcare.webp",
+      "actual_binary_file_size": 23906,
+      "sha256": "b7813fe3d57261e4d34e7db18600d1b09c1f58f5bd43c32e04ed58311aa892e6",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/healthcare"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "b5c8f41b-f86f-49c3-b84e-f357128c6d54",
+      "original_descriptor_path": "src/assets/marketing/scene-home-inventory.webp.asset.json",
+      "original_filename": "scene-home-inventory.webp",
+      "original_relative_url": "/__l5e/assets-v1/b5c8f41b-f86f-49c3-b84e-f357128c6d54/scene-home-inventory.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 24578,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-home-inventory.webp",
+      "public_url": "/images/marketing/use-cases/scene-home-inventory.webp",
+      "actual_binary_file_size": 24578,
+      "sha256": "ceb6688a9cadd11dd950d697a76068e19bbf82422405368c97dd5229609c83aa",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/home-inventory"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "f1dbd0ad-a540-4dee-be0d-3b7f3cbd2bec",
+      "original_descriptor_path": "src/assets/marketing/scene-homeowners-families.webp.asset.json",
+      "original_filename": "scene-homeowners-families.webp",
+      "original_relative_url": "/__l5e/assets-v1/f1dbd0ad-a540-4dee-be0d-3b7f3cbd2bec/scene-homeowners-families.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 29738,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-homeowners-families.webp",
+      "public_url": "/images/marketing/industries/scene-homeowners-families.webp",
+      "actual_binary_file_size": 29738,
+      "sha256": "414512f337fa23a8b0162dead045e917b9ad2f2fab5f819395bbdfc38c3fc056",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/homeowners-families"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "a187b6ed-7207-40e2-97af-0aaf8d884246",
+      "original_descriptor_path": "src/assets/marketing/scene-hospitality.webp.asset.json",
+      "original_filename": "scene-hospitality.webp",
+      "original_relative_url": "/__l5e/assets-v1/a187b6ed-7207-40e2-97af-0aaf8d884246/scene-hospitality.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 35442,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-hospitality.webp",
+      "public_url": "/images/marketing/industries/scene-hospitality.webp",
+      "actual_binary_file_size": 35442,
+      "sha256": "df2debe1a91cd51ae74b6463d5e6b754970173417d65a1f47dd41751bf875c44",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/hospitality"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "2db3bac2-ad6f-4766-b5bc-c7adf8b2da41",
+      "original_descriptor_path": "src/assets/marketing/scene-how-it-works.webp.asset.json",
+      "original_filename": "scene-how-it-works.webp",
+      "original_relative_url": "/__l5e/assets-v1/2db3bac2-ad6f-4766-b5bc-c7adf8b2da41/scene-how-it-works.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 26760,
+      "actual_local_destination_path": "public/images/marketing/product/scene-how-it-works.webp",
+      "public_url": "/images/marketing/product/scene-how-it-works.webp",
+      "actual_binary_file_size": 26760,
+      "sha256": "0a36672b405dec969cc9df49ad8e2c31f98e0478b30958501a992c4fa60a2e85",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/how-it-works"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "77d0814f-6581-4043-9556-9eb305ab35ef",
+      "original_descriptor_path": "src/assets/marketing/scene-important-documents.webp.asset.json",
+      "original_filename": "scene-important-documents.webp",
+      "original_relative_url": "/__l5e/assets-v1/77d0814f-6581-4043-9556-9eb305ab35ef/scene-important-documents.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 30888,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-important-documents.webp",
+      "public_url": "/images/marketing/use-cases/scene-important-documents.webp",
+      "actual_binary_file_size": 30888,
+      "sha256": "5777cfbcc71414b4445fc6fea2b3f7a3c8fdf853b11b04d7fbffcc5060a40f6c",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/important-documents"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "26a5996c-d9e2-4ff5-8f45-6c48277fe2da",
+      "original_descriptor_path": "src/assets/marketing/scene-insurance-claims.webp.asset.json",
+      "original_filename": "scene-insurance-claims.webp",
+      "original_relative_url": "/__l5e/assets-v1/26a5996c-d9e2-4ff5-8f45-6c48277fe2da/scene-insurance-claims.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 23068,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-insurance-claims.webp",
+      "public_url": "/images/marketing/use-cases/scene-insurance-claims.webp",
+      "actual_binary_file_size": 23068,
+      "sha256": "6ac050126b332b88ad4df2b28963855bb49470a1560189b71a11eca3c85a5ad9",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/insurance-claims"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "45183116-165d-44ff-bc08-84ee4788783a",
+      "original_descriptor_path": "src/assets/marketing/scene-intelligence.webp.asset.json",
+      "original_filename": "scene-intelligence.webp",
+      "original_relative_url": "/__l5e/assets-v1/45183116-165d-44ff-bc08-84ee4788783a/scene-intelligence.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 35862,
+      "actual_local_destination_path": "public/images/marketing/hero/scene-intelligence.webp",
+      "public_url": "/images/marketing/hero/scene-intelligence.webp",
+      "actual_binary_file_size": 35862,
+      "sha256": "173dcdc09ec36d42a40a835af40183fbf17fdfe561bb0e55ebbebb749589a97a",
+      "pixel_dimensions": {
+        "width": 1536,
+        "height": 338
+      },
+      "associated_website_pages": [
+        "/"
+      ],
+      "associated_sections": [
+        "cinematic scene"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "c2443f75-fa1f-42c7-a44d-4aa849131a74",
+      "original_descriptor_path": "src/assets/marketing/scene-life.webp.asset.json",
+      "original_filename": "scene-life.webp",
+      "original_relative_url": "/__l5e/assets-v1/c2443f75-fa1f-42c7-a44d-4aa849131a74/scene-life.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 149932,
+      "actual_local_destination_path": "public/images/marketing/hero/scene-life.webp",
+      "public_url": "/images/marketing/hero/scene-life.webp",
+      "actual_binary_file_size": 149932,
+      "sha256": "ed19d08120ba4f76e330177e8a4d5034e3c92050654f3fe9970ee8a0ccc9c13a",
+      "pixel_dimensions": {
+        "width": 1536,
+        "height": 1024
+      },
+      "associated_website_pages": [
+        "/"
+      ],
+      "associated_sections": [
+        "cinematic scene"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "03db041b-796d-4330-9c2f-99d4282fc6bb",
+      "original_descriptor_path": "src/assets/marketing/scene-manufacturing.webp.asset.json",
+      "original_filename": "scene-manufacturing.webp",
+      "original_relative_url": "/__l5e/assets-v1/03db041b-796d-4330-9c2f-99d4282fc6bb/scene-manufacturing.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 31278,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-manufacturing.webp",
+      "public_url": "/images/marketing/industries/scene-manufacturing.webp",
+      "actual_binary_file_size": 31278,
+      "sha256": "06291cd514394e5dbfabea90d60aaa028d8c5aae1cd8c60e73d3d390f7cc0e9d",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/manufacturing"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "3cd92a92-48af-412e-a0b6-bde5564378b7",
+      "original_descriptor_path": "src/assets/marketing/scene-multi-location.webp.asset.json",
+      "original_filename": "scene-multi-location.webp",
+      "original_relative_url": "/__l5e/assets-v1/3cd92a92-48af-412e-a0b6-bde5564378b7/scene-multi-location.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 34492,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-multi-location.webp",
+      "public_url": "/images/marketing/use-cases/scene-multi-location.webp",
+      "actual_binary_file_size": 34492,
+      "sha256": "09db991bef43be477fc1d1bd7f6a5e762a60e97f2b45a36a4735ea1fefc4faff",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/multi-location"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "50e383ed-5329-4a09-9712-4a5f94cb696f",
+      "original_descriptor_path": "src/assets/marketing/scene-offices.webp.asset.json",
+      "original_filename": "scene-offices.webp",
+      "original_relative_url": "/__l5e/assets-v1/50e383ed-5329-4a09-9712-4a5f94cb696f/scene-offices.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 32836,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-offices.webp",
+      "public_url": "/images/marketing/industries/scene-offices.webp",
+      "actual_binary_file_size": 32836,
+      "sha256": "a03130fdb654c5c8ecad6075549510e712b9b0cd461790eb4ca41fa835939341",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/offices"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "8f6a91d3-e8a0-48f5-b5b5-c0a80d32506a",
+      "original_descriptor_path": "src/assets/marketing/scene-partners.webp.asset.json",
+      "original_filename": "scene-partners.webp",
+      "original_relative_url": "/__l5e/assets-v1/8f6a91d3-e8a0-48f5-b5b5-c0a80d32506a/scene-partners.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 35208,
+      "actual_local_destination_path": "public/images/marketing/product/scene-partners.webp",
+      "public_url": "/images/marketing/product/scene-partners.webp",
+      "actual_binary_file_size": 35208,
+      "sha256": "da97c3fff75e8597fb240a33b04cbeaca78d321d1bb4840023f96dcb7901239c",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/partners"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "30e77a0f-a474-4667-8ab2-4d0723d23a1b",
+      "original_descriptor_path": "src/assets/marketing/scene-passport-transfer.webp.asset.json",
+      "original_filename": "scene-passport-transfer.webp",
+      "original_relative_url": "/__l5e/assets-v1/30e77a0f-a474-4667-8ab2-4d0723d23a1b/scene-passport-transfer.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 17026,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-passport-transfer.webp",
+      "public_url": "/images/marketing/use-cases/scene-passport-transfer.webp",
+      "actual_binary_file_size": 17026,
+      "sha256": "397dddd42e2cc99b719ea713d732b771d7825d27824421ca6e714d4c31e46f9e",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/passport-transfer"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "79b11783-5a78-4e68-97b3-a2772bd4a7cb",
+      "original_descriptor_path": "src/assets/marketing/scene-property-asset-intelligence.webp.asset.json",
+      "original_filename": "scene-property-asset-intelligence.webp",
+      "original_relative_url": "/__l5e/assets-v1/79b11783-5a78-4e68-97b3-a2772bd4a7cb/scene-property-asset-intelligence.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 25626,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-property-asset-intelligence.webp",
+      "public_url": "/images/marketing/use-cases/scene-property-asset-intelligence.webp",
+      "actual_binary_file_size": 25626,
+      "sha256": "0453dbe6ae9f7acff6ea6d9458e9d933f5d47b55d43c521ff52d969937ea6dd9",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/property-asset-intelligence"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "b3299890-99eb-4bee-ab80-c53174b2a4ed",
+      "original_descriptor_path": "src/assets/marketing/scene-property.webp.asset.json",
+      "original_filename": "scene-property.webp",
+      "original_relative_url": "/__l5e/assets-v1/b3299890-99eb-4bee-ab80-c53174b2a4ed/scene-property.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 43128,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-property.webp",
+      "public_url": "/images/marketing/industries/scene-property.webp",
+      "actual_binary_file_size": 43128,
+      "sha256": "30878af26b2d8b06b9ce6384f5abecca5500573197ba59f6eaf17be50f4312f4",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/property"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "e6920060-598f-4ee3-a234-36ff93f2fc86",
+      "original_descriptor_path": "src/assets/marketing/scene-renewal-tracking.webp.asset.json",
+      "original_filename": "scene-renewal-tracking.webp",
+      "original_relative_url": "/__l5e/assets-v1/e6920060-598f-4ee3-a234-36ff93f2fc86/scene-renewal-tracking.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 20094,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-renewal-tracking.webp",
+      "public_url": "/images/marketing/use-cases/scene-renewal-tracking.webp",
+      "actual_binary_file_size": 20094,
+      "sha256": "8a971d7b36d070b3aaabe94e6e00bcf899661621f1f59ecb718581b5b01687ea",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/renewal-tracking"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "2dce1d7e-2ac8-44cd-b4c4-fea97fdaa219",
+      "original_descriptor_path": "src/assets/marketing/scene-retail.webp.asset.json",
+      "original_filename": "scene-retail.webp",
+      "original_relative_url": "/__l5e/assets-v1/2dce1d7e-2ac8-44cd-b4c4-fea97fdaa219/scene-retail.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 44008,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-retail.webp",
+      "public_url": "/images/marketing/industries/scene-retail.webp",
+      "actual_binary_file_size": 44008,
+      "sha256": "f7312f41cde621f473ae3b8a5d86782621ff9047ac5688290f3fb6758e3984d1",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/retail"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "e84ccb7a-ccb2-4259-85ec-225bec3fc904",
+      "original_descriptor_path": "src/assets/marketing/scene-security.webp.asset.json",
+      "original_filename": "scene-security.webp",
+      "original_relative_url": "/__l5e/assets-v1/e84ccb7a-ccb2-4259-85ec-225bec3fc904/scene-security.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 27994,
+      "actual_local_destination_path": "public/images/marketing/product/scene-security.webp",
+      "public_url": "/images/marketing/product/scene-security.webp",
+      "actual_binary_file_size": 27994,
+      "sha256": "85cdbd1e3b762905670b1464666a61c500b4018e21bd77d1eaa7409a186ea519",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/security"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "b7ed7ad1-ab45-42b2-a726-ed96b8e04b7e",
+      "original_descriptor_path": "src/assets/marketing/scene-sera.webp.asset.json",
+      "original_filename": "scene-sera.webp",
+      "original_relative_url": "/__l5e/assets-v1/b7ed7ad1-ab45-42b2-a726-ed96b8e04b7e/scene-sera.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 31108,
+      "actual_local_destination_path": "public/images/marketing/sera/scene-sera.webp",
+      "public_url": "/images/marketing/sera/scene-sera.webp",
+      "actual_binary_file_size": 31108,
+      "sha256": "c5d5841bee556e1877f8d83ac5bee20623bbdeed180e9ee2827660f0e52e312f",
+      "pixel_dimensions": {
+        "width": 380,
+        "height": 508
+      },
+      "associated_website_pages": [
+        "/sera"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "64344c44-3bfe-4f9e-b740-d9c0f671bb6b",
+      "original_descriptor_path": "src/assets/marketing/scene-vehicles-fleet.webp.asset.json",
+      "original_filename": "scene-vehicles-fleet.webp",
+      "original_relative_url": "/__l5e/assets-v1/64344c44-3bfe-4f9e-b740-d9c0f671bb6b/scene-vehicles-fleet.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 40848,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-vehicles-fleet.webp",
+      "public_url": "/images/marketing/use-cases/scene-vehicles-fleet.webp",
+      "actual_binary_file_size": 40848,
+      "sha256": "233cb928749a4706f8f717398bb1a45fc8005e741722a30b0c2f102783c91a84",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/vehicles-fleet"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "a26a9fd2-b372-4ec4-8a95-c6b442524408",
+      "original_descriptor_path": "src/assets/marketing/scene-warehousing-logistics.webp.asset.json",
+      "original_filename": "scene-warehousing-logistics.webp",
+      "original_relative_url": "/__l5e/assets-v1/a26a9fd2-b372-4ec4-8a95-c6b442524408/scene-warehousing-logistics.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 45318,
+      "actual_local_destination_path": "public/images/marketing/industries/scene-warehousing-logistics.webp",
+      "public_url": "/images/marketing/industries/scene-warehousing-logistics.webp",
+      "actual_binary_file_size": 45318,
+      "sha256": "8b1e075b28d684067d2c606375ac24b63e093b723d4b2b6d263ce2c2bf20a982",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/industries/warehousing-logistics"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "2070b3bb-b21f-4435-a537-0758322252e0",
+      "original_descriptor_path": "src/assets/marketing/scene-warranty-tracking.webp.asset.json",
+      "original_filename": "scene-warranty-tracking.webp",
+      "original_relative_url": "/__l5e/assets-v1/2070b3bb-b21f-4435-a537-0758322252e0/scene-warranty-tracking.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 22866,
+      "actual_local_destination_path": "public/images/marketing/use-cases/scene-warranty-tracking.webp",
+      "public_url": "/images/marketing/use-cases/scene-warranty-tracking.webp",
+      "actual_binary_file_size": 22866,
+      "sha256": "a6c573ae45a9c1e3bfb8d26ada4957b624d2f1e8835ad81423d9ec3f5b52b47d",
+      "pixel_dimensions": {
+        "width": 358,
+        "height": 358
+      },
+      "associated_website_pages": [
+        "/use-cases/warranty-tracking"
+      ],
+      "associated_sections": [
+        "page introduction"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "40853b0d-f6b9-49ff-ac3d-ca8c562925e2",
+      "original_descriptor_path": "src/assets/marketing/vehicle.asset.json",
+      "original_filename": "matrixkeep-vehicle.webp",
+      "original_relative_url": "/__l5e/assets-v1/40853b0d-f6b9-49ff-ac3d-ca8c562925e2/matrixkeep-vehicle.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 123212,
+      "actual_local_destination_path": "public/images/marketing/product/matrixkeep-vehicle.webp",
+      "public_url": "/images/marketing/product/matrixkeep-vehicle.webp",
+      "actual_binary_file_size": 123212,
+      "sha256": "3fe977000049f3f2b6f45fd0464132193cd21fc55ac5655541c26964abdf9dd3",
+      "pixel_dimensions": {
+        "width": 627,
+        "height": 627
+      },
+      "associated_website_pages": [
+        "/",
+        "/individual",
+        "/how-it-works"
+      ],
+      "associated_sections": [
+        "vehicle demonstrations and scroll story"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "cbda18d8-ad0c-4195-a23e-6a17a379f912",
+      "original_descriptor_path": "src/assets/marketing/warehouse.asset.json",
+      "original_filename": "matrixkeep-warehouse.webp",
+      "original_relative_url": "/__l5e/assets-v1/cbda18d8-ad0c-4195-a23e-6a17a379f912/matrixkeep-warehouse.webp",
+      "original_content_type": "image/webp",
+      "expected_binary_file_size": 50438,
+      "actual_local_destination_path": "public/images/marketing/industries/matrixkeep-warehouse.webp",
+      "public_url": "/images/marketing/industries/matrixkeep-warehouse.webp",
+      "actual_binary_file_size": 50438,
+      "sha256": "8a9d6a4352bed36d1c159ef7d45c1b492053c99f28c344d59f91fa1adc656be6",
+      "pixel_dimensions": {
+        "width": 429,
+        "height": 407
+      },
+      "associated_website_pages": [
+        "/industries",
+        "/enterprise"
+      ],
+      "associated_sections": [
+        "industry introduction and scroll story",
+        "enterprise operations section"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    },
+    {
+      "asset_id": "7ea78c4b-f4f8-49c9-9643-d46061d590c9",
+      "original_descriptor_path": "src/assets/marketing/world.asset.json",
+      "original_filename": "matrixkeep-world.png",
+      "original_relative_url": "/__l5e/assets-v1/7ea78c4b-f4f8-49c9-9643-d46061d590c9/matrixkeep-world.png",
+      "original_content_type": "image/png",
+      "expected_binary_file_size": 2549844,
+      "actual_local_destination_path": "public/images/marketing/product/matrixkeep-world.png",
+      "public_url": "/images/marketing/product/matrixkeep-world.png",
+      "actual_binary_file_size": 2549844,
+      "sha256": "7d9bc93c99105eee5b573d7ce3215060d1a972ddff6bd258765ae7305d6e7b18",
+      "pixel_dimensions": {
+        "width": 1536,
+        "height": 1024
+      },
+      "associated_website_pages": [
+        "/",
+        "/use-cases",
+        "/partners"
+      ],
+      "associated_sections": [
+        "passport and room demonstrations",
+        "use-case introduction",
+        "partner scroll story"
+      ],
+      "export_status": "retrieved_stored_and_verified",
+      "remaining_external_dependencies": []
+    }
+  ]
+}

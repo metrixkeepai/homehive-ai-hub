@@ -25,8 +25,8 @@ export const Route = createFileRoute("/industries/")({
   component: () => (
     <StoryIndex
       kind="industries"
-      title="Built for the way your industry works."
-      lead="Every sector has its own equipment, checks and renewals. MatrixKeep keeps them all in one living record."
+      title="Different industries. One intelligent approach."
+      lead="Discover how MatrixKeep helps organisations manage assets, evidence and operational information."
       items={industries}
     />
   ),

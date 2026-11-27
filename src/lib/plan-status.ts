@@ -14,16 +14,18 @@ export function useInactivePlans() {
 }
 
 import { plans, type PlanDef } from "./plans";
-export function usePublishedPlans() {
+export function usePublishedPlans({ publishedOnly = false } = {}) {
   const query = useQuery({
-    queryKey: ["published-plan-catalogue"],
+    queryKey: publishedOnly
+      ? ["published-plan-catalogue", "public-only"]
+      : ["published-plan-catalogue"],
     staleTime: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("published_plan_catalogue");
       if (error) throw error;
-      const catalogue = new Map(plans.map((p) => [p.key, p]));
+      const catalogue = new Map<string, PlanDef>(publishedOnly ? [] : plans.map((p) => [p.key, p]));
       for (const row of data ?? []) {
-        const base = catalogue.get(row.plan_key);
+        const base = plans.find((plan) => plan.key === row.plan_key);
         const cap = {
           users: "",
           places: "",

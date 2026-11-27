@@ -575,22 +575,20 @@ export function MarketingPricing({
   const [yearly, setYearly] = useState(false);
   const Heading = comparison ? "h1" : "h2";
   const PlanHeading = comparison ? "h2" : "h3";
-  const catalogue = usePublishedPlans();
+  const catalogue = usePublishedPlans({ publishedOnly: true });
   const inactive = useInactivePlans();
-  const list = (catalogue.data ?? plans).filter(
+  const list = (catalogue.data ?? []).filter(
     (p) => p.audience === audience && !inactive.has(p.key),
   );
   return (
     <section className="mk-container mk-section" id="plans">
       <p className="mk-eyebrow">Plans for your world</p>
       <Heading>
-        Invest a little.
+        Powerful intelligence.
         <br />
-        Stay in control of much more.
+        <span className="mk-gradient-text">Simple pricing.</span>
       </Heading>
-      <p className="mk-lead">
-        Start with what matters today. Choose more space and capabilities as your needs grow.
-      </p>
+      <p className="mk-lead">Choose the MatrixKeep plan that fits your life or business.</p>
       <div className="mk-pricing-controls">
         <div className="mk-tabs" role="group" aria-label="Pricing audience">
           {(["individual", "business", "enterprise"] as const).map((a) => (
@@ -621,19 +619,19 @@ export function MarketingPricing({
       </div>
       {catalogue.isPending && (
         <p role="status" className="pb-6 text-xs text-muted-foreground">
-          Showing the existing plan catalogue while checking published updates…
+          Loading published plans…
         </p>
       )}
       {catalogue.isError && (
         <div role="alert" className="mk-catalogue-notice">
-          <p>
-            Published updates are unavailable. Existing catalogue prices are shown below; confirm
-            the current plan in your account before subscribing.
-          </p>
+          <p>Published plans could not be loaded.</p>
           <Button variant="outline" onClick={() => void catalogue.refetch()} className="mt-3">
             Try again
           </Button>
         </div>
+      )}
+      {catalogue.isSuccess && list.length === 0 && (
+        <p role="status">No published plans are available for this audience.</p>
       )}
       <div className="mk-price-grid">
         {list.map((p) => {

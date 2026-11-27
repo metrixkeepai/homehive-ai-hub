@@ -21,11 +21,14 @@ import { photos } from "./media";
 import { PassportDemo, SeraDemo, RoiCalculator, MarketingPricing } from "./Demos";
 import { Journey, IndustryShowcase, Trust, Intelligence } from "./Sections";
 import { commonFaq } from "./content";
+import { ScrollStory } from "./ScrollStory";
+import { audienceStories } from "./stories";
 const content = {
   individual: {
     eyebrow: "MatrixKeep for Individuals & Families",
-    title: "Give everything you’ve worked for an intelligent digital memory.",
-    lead: "Your home. Your belongings. Your vehicles. Your important documents. One intelligent digital home for everything you own and everything you need to remember.",
+    title: "Your life. Less complicated.",
+    lead: "Your belongings, warranties, documents and important dates — intelligently organised in one place.",
+    caption: "More peace of mind. Less to remember.",
     image: photos.family,
     cta: "Start Free",
     to: "/auth",
@@ -38,8 +41,9 @@ const content = {
   },
   business: {
     eyebrow: "MatrixKeep for Small & Medium Businesses",
-    title: "Run your business. Let MatrixKeep remember the details.",
-    lead: "Every piece of equipment. Every invoice. Every warranty. Every contract. Every location. Bring your business knowledge together without the complexity of traditional enterprise software.",
+    title: "Run your business. Not your paperwork.",
+    lead: "Manage equipment, locations, warranties, maintenance and important records through one intelligent platform.",
+    caption: "Less administration. Greater visibility. Better-informed decisions.",
     image: photos.cafe,
     cta: "Explore Business Plans",
     to: "/pricing",
@@ -52,8 +56,9 @@ const content = {
   },
   enterprise: {
     eyebrow: "MatrixKeep Enterprise",
-    title: "Enterprise Asset Intelligence. Built for Operational Assurance.",
-    lead: "Explore how connected asset records, supporting evidence and lifecycle information can turn fragmented operational knowledge into structured intelligence, with responsible AI and human oversight.",
+    title: "Clarity across every asset. Confidence across every operation.",
+    lead: "Connect asset information, evidence, locations and operational responsibilities in one intelligent workspace.",
+    caption: "Roadmap assurance capabilities are discussed during consultation.",
     image: photos.enterprise,
     cta: "Book an Enterprise Consultation",
     to: "/contact",
@@ -158,6 +163,7 @@ export function AudiencePage({ audience }: { audience: keyof typeof content }) {
             <p className="mk-eyebrow">{c.eyebrow}</p>
             <h1>{c.title}</h1>
             <p className="mk-lead">{c.lead}</p>
+            <p className="mk-hero-caption">{c.caption}</p>
             <div className="mk-actions">
               <Button asChild>
                 <Link to={c.to}>
@@ -181,6 +187,7 @@ export function AudiencePage({ audience }: { audience: keyof typeof content }) {
           }
         />
       </section>
+      <ScrollStory data={audienceStories[audience]} />
       {!enterprise && <EnvironmentExplorer personal={!business} />}
       <section className="mk-container mk-section mk-split">
         <Reveal>

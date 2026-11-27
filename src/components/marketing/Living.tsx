@@ -53,7 +53,7 @@ export function LivingSurface({ children }: { children: ReactNode }) {
       { threshold: 0.06 },
     );
     el.querySelectorAll(
-      "main section, .mk-problem-photo, .mk-passport, .mk-worlds article, .mk-industries a",
+      "main section, .mk-bridge, .mk-problem-photo, .mk-passport, .mk-worlds article, .mk-industries a",
     ).forEach((s) => observer.observe(s));
     let frame = 0;
     const scroll = () => {
@@ -61,6 +61,13 @@ export function LivingSurface({ children }: { children: ReactNode }) {
       frame = requestAnimationFrame(() => {
         el.querySelectorAll<HTMLElement>(".mk-in-view").forEach((s) => {
           const r = s.getBoundingClientRect();
+          s.style.setProperty(
+            "--p",
+            Math.max(
+              0,
+              Math.min(1, (window.innerHeight - r.top) / (window.innerHeight + r.height)),
+            ).toFixed(3),
+          );
           s.style.setProperty(
             "--travel",
             `${Math.max(-18, Math.min(18, (window.innerHeight / 2 - r.top - r.height / 2) * 0.035))}px`,
@@ -117,10 +124,11 @@ const heroScenes = [
   {
     key: "life",
     label: "For life",
-    title: "Your entire world. Intelligently connected.",
+    title: "Protect the life you've built.",
+    caption: "Everything you own, organised when you need it most.",
     image: scenes["life"] ?? photos.world,
     to: "/individual",
-    cta: "Explore Individuals",
+    cta: "Explore for Individuals",
     objects: ["Television", "Refrigerator", "Laptop", "Home documents", "Washing machine"],
     record: "Living room television",
     value: "£1,300",
@@ -131,10 +139,11 @@ const heroScenes = [
   {
     key: "business",
     label: "For business",
-    title: "Everything your team needs to know.",
+    title: "Run your business. Not your paperwork.",
+    caption: "Every asset. Every location. Every important record. One intelligent workspace.",
     image: scenes["business"] ?? photos.cafe,
     to: "/business",
-    cta: "Explore Business",
+    cta: "Explore for Business",
     objects: ["Espresso machine", "Refrigeration", "Point of sale", "Business laptop"],
     record: "Commercial espresso machine",
     value: "£4,800",
@@ -145,10 +154,12 @@ const heroScenes = [
   {
     key: "intelligence",
     label: "Intelligence",
-    title: "Real-world assets. Intelligent digital passports.",
+    title: "From physical assets to digital intelligence.",
+    caption:
+      "Discover how MatrixKeep connects information, evidence and insights around everything you own.",
     image: scenes["intelligence"] ?? photos.it,
     to: "/how-it-works",
-    cta: "See How It Works",
+    cta: "Discover MatrixKeep AI",
     objects: ["Capture", "Recognise", "Connect evidence", "Assemble passport"],
     record: "Business workstation",
     value: "£1,850",
@@ -157,8 +168,15 @@ const heroScenes = [
     date: "Sera · Evidence ready to review",
   },
 ] as const;
+const heroPhrases = [
+  "Protect what you own.",
+  "Simplify your life.",
+  "Empower your business.",
+  "Stay one step ahead.",
+];
 export function CinematicHero() {
   const [index, setIndex] = useState(0);
+  const [phrase, setPhrase] = useState(0);
   const [object, setObject] = useState(0);
   const [stopped, setStopped] = useState(false);
   const { paused } = useContext(MotionContext);
@@ -173,6 +191,11 @@ export function CinematicHero() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  useEffect(() => {
+    if (paused || !visible) return;
+    const t = setInterval(() => setPhrase((i) => (i + 1) % heroPhrases.length), 2800);
+    return () => clearInterval(t);
+  }, [paused, visible]);
   useEffect(() => {
     if (paused || stopped || !visible) return;
     const timer = setInterval(() => {
@@ -300,20 +323,23 @@ export function CinematicHero() {
       <div className="mk-container mk-cinema-body">
         <div className="mk-cinema-copy">
           <p className="mk-hero-kicker">
-            <Sparkles className="size-4" /> MATRIXKEEP · ASSET INTELLIGENCE
+            <Sparkles className="size-4" /> AI INTELLIGENCE FOR LIFE & BUSINESS
           </p>
-          <h1>
-            Everything you own.
-            <br />
-            Everything you operate.
-            <br />
-            <em>Nothing important forgotten.</em>
+          <h1 className="mk-hero-master">
+            <span>Everything you value.</span>
+            <em className="mk-gradient-text">Intelligently connected.</em>
           </h1>
-          <p className="mk-lead">
-            Assets, documents, warranties, insurance, maintenance and operational obligations.
-            Intelligently connected.
+          <p className="mk-rotator" aria-live="off">
+            {heroPhrases.map((t, i) => (
+              <span key={t} className={i === phrase ? "is-active" : ""} aria-hidden={i !== phrase}>
+                {t}
+              </span>
+            ))}
           </p>
-          <p className="mk-cinema-tagline">Own smarter. Operate better. Stay ahead.</p>
+          <p className="mk-lead">
+            Manage your assets, warranties, documents, insurance and maintenance in one intelligent
+            AI-powered platform.
+          </p>
           <div className="mk-actions">
             <Button asChild>
               <Link to="/auth">
@@ -321,8 +347,8 @@ export function CinematicHero() {
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to={scene.to}>
-                {scene.cta}
+              <Link to="/business">
+                Explore for Business
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -333,7 +359,11 @@ export function CinematicHero() {
             <span>
               0{index + 1} / 03 · {scene.label}
             </span>
-            <h2>{scene.title}</h2>
+            <h2 className="mk-scene-title">{scene.title}</h2>
+            <p className="mk-scene-caption">{scene.caption}</p>
+            <Link to={scene.to} className="mk-scene-link">
+              {scene.cta} <ArrowRight className="size-3" />
+            </Link>
           </div>
           <div className="mk-object-points" role="group" aria-label="Explore scene assets">
             {scene.objects.map((name, i) => (
