@@ -216,7 +216,10 @@ jobs:
         run: |
           set -euo pipefail
           [[ $WEBSITE_SHA == 25bcf726503b7d8dbbe90a3e82064a9daf5c0297 && $CONFLICT == false && $STAGING_RUN =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
-          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN" | jq -e --arg workflow_sha "$GITHUB_SHA" '.path==".github/workflows/verify.yml" and .event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$workflow_sha and .conclusion=="success"' >/dev/null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN" | jq -e '
+            .path==".github/workflows/verify.yml" and .event=="push" and
+            .head_branch=="release/matrixkeep-cloud-run" and
+            .head_sha=="91d0efaa548e07d396e38237cdb4c1741904f1b4" and .conclusion=="success"' >/dev/null
           gh run download "$STAGING_RUN" --name matrixkeep-website-staging --dir accepted
       - uses: google-github-actions/auth@v3
         with:

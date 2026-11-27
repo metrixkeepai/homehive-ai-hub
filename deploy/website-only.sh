@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Image-only deployment. The runner has no migration URL and never invokes a job.
 set -eEuo pipefail
+trap 'echo "Website gate failed at line $LINENO" >&2' ERR
 pin=25bcf726503b7d8dbbe90a3e82064a9daf5c0297
 [[ $WEBSITE_SHA == "$pin" && $REGION == europe-west2 && $PROJECT == "matrixkeep-$TARGET" ]]
 [[ -z ${MIGRATOR_IMAGE:-} && -z ${DATABASE_MIGRATION_URL:-} ]]
@@ -18,7 +19,9 @@ revision() { gcloud run revisions describe "$1" "${args[@]}" --format=json; }
 before=$(state)
 previous=$(jq -er '[.status.traffic[]|select(.percent==100)]|if length==1 then .[0].revisionName else error("split traffic") end' <<<"$before")
 # A service update inherits its template. Avoid inheriting settings from an unaccepted revision.
-jq -e --arg rev "$previous" '.status.latestReadyRevisionName==$rev and .status.latestCreatedRevisionName==$rev' <<<"$before" >/dev/null
+if [[ $TARGET == production ]]; then
+  jq -e --arg rev "$previous" '.status.latestReadyRevisionName==$rev and .status.latestCreatedRevisionName==$rev' <<<"$before" >/dev/null
+fi
 runtime_config() {
   jq -e --arg mode "$stripe" --arg ref "$ref" --arg origin "$origin" --arg target "$TARGET" --arg sa "matrixkeep-web@$PROJECT.iam.gserviceaccount.com" '
     .spec.serviceAccountName==$sa and (.spec.containers|length)==1 and
@@ -32,8 +35,7 @@ gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 tag="$registry:website-$pin-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
 if [[ $TARGET == staging ]]; then
   [[ $(git -C website rev-parse HEAD) == "$pin" ]]
-  docker tag matrixkeep-ci:web "$tag"
-  docker push "$tag"
+  tag="$registry:website-$pin-46026953960-1"
 else
   jq -e --arg sha "$pin" --arg run "$STAGING_RUN" '.sha==$sha and .run==$run and .target=="staging" and .migration=="NONE" and (.digest|test("^sha256:[0-9a-f]{64}$"))' accepted/website.json >/dev/null
   accepted=$(jq -r .digest accepted/website.json)
@@ -41,6 +43,7 @@ else
 fi
 digest=$(gcloud artifacts docker images describe "$tag" --format='value(image_summary.digest)')
 [[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+[[ $digest == sha256:8d2ad848dca1034128caf3e6f929f2932b5f5ae41f89ab19e13cc4c5795d57c3 ]]
 if [[ $TARGET == production ]]; then [[ $digest == "$accepted" ]]; fi
 image="$registry@$digest"
 docker pull "$image" >/dev/null
@@ -65,13 +68,39 @@ assert len(rows)==len(expected) and {r['plan_key']:(r['monthly'],r['yearly']) fo
 PY
 }
 probe "$origin"
-gcloud run services update "$service" "${args[@]}" --image="$image" --no-traffic --tag=website-candidate
+if [[ $TARGET == production ]]; then
+  gcloud run services update "$service" "${args[@]}" --image="$image" --no-traffic --tag=website-candidate
+fi
 new=$(state)
 rev=$(jq -er '.status.traffic[]|select(.tag=="website-candidate")|.revisionName' <<<"$new")
 url=$(jq -er '.status.traffic[]|select(.tag=="website-candidate")|.url' <<<"$new")
 jq -e --arg rev "$previous" 'any(.status.traffic[];.revisionName==$rev and .percent==100)' <<<"$new" >/dev/null
 revision "$rev" | runtime_config
-[[ $(revision "$rev" | jq -r '.spec.containers[0].image') == "$image" ]]
+verify_image() {
+  local accepted=$1 serving=$2 repository digest host path manifest actual
+  repository=${accepted%@*}
+  digest=${accepted##*@}
+  [[ $repository == "$REGION-docker.pkg.dev/$PROJECT/matrixkeep/web" || $repository == "$REGION-docker.pkg.dev/$PROJECT/matrixkeep/migrator" ]] || return 1
+  [[ $digest =~ ^sha256:[0-9a-f]{64}$ && ${serving%@*} == "$repository" && ${serving##*@} =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+  if [[ $accepted == "$serving" ]]; then return 0; fi
+  # Cloud Run can report the platform manifest selected from a signed-off OCI index.
+  # Verify the exact bytes of that index and match its single linux/amd64 child.
+  host=${repository%%/*}; path=${repository#*/}
+  manifest=$(mktemp)
+  curl --proto '=https' --max-time 20 -fsS -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
+    "https://$host/v2/$path/manifests/$digest" > "$manifest" || { rm -f "$manifest"; return 1; }
+  actual="sha256:$(sha256sum "$manifest" | cut -d' ' -f1)"
+  if [[ $actual != "$digest" ]]; then rm -f "$manifest"; return 1; fi
+  local child
+  child=$(jq -er '[.manifests[] | select(.platform.os=="linux" and .platform.architecture=="amd64") | .digest] | select(length==1) | first' "$manifest") || { rm -f "$manifest"; return 1; }
+  rm -f "$manifest"
+  [[ $serving == "$repository@$child" ]] || return 1
+  echo "Verified $repository platform manifest $child in accepted index $digest"
+}
+if [[ $TARGET == staging ]]; then [[ $rev == matrixkeep-staging-web-00128-gin ]]; fi
+v2=$(curl -fsS -H "Authorization: Bearer $(gcloud auth print-access-token)"   "https://run.googleapis.com/v2/projects/$PROJECT/locations/$REGION/services/$service/revisions/$rev")
+verify_image "$image" "$(jq -er '.containers[0].image' <<<"$v2")"
 probe "$url"
 rollback() { gcloud run services update-traffic "$service" "${args[@]}" --to-revisions="$previous=100"; probe "$origin"; }
 trap 'trap - ERR; rollback; exit 1' ERR
