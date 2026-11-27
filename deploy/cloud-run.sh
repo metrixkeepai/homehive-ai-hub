@@ -138,6 +138,28 @@ if [[ -n $existing ]]; then
 fi
 tag="qa-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 deploy_revision() {
+  if [[ $subject == *"[runtime-parity]"* ]]; then
+    # Keep the serving service's live/sandbox, mail, auth and connector configuration.
+    # Cloud Run updates inherit the latest template, so first verify it serves traffic.
+    if [[ -z ${parity_revision:-} ]]; then
+      state=$(gcloud run services describe "$service" "${common[@]}" --format=json)
+      jq -e '.status.latestReadyRevisionName as $r | .status.latestCreatedRevisionName==$r and any(.status.traffic[];.revisionName==$r and .percent==100)' <<<"$state" >/dev/null
+      gcloud run services update "$service" "${common[@]}" --image="$IMAGE" --no-traffic --tag="$tag" --update-labels="source-commit=$GITHUB_SHA"
+      state=$(gcloud run services describe "$service" "${common[@]}" --format=json)
+      revision=$(jq -er --arg tag "$tag" '.status.traffic[]|select(.tag==$tag)|.revisionName' <<<"$state")
+      candidate=$(jq -er --arg tag "$tag" '.status.traffic[]|select(.tag==$tag)|.url' <<<"$state")
+      parity_revision=$revision
+      gcloud run revisions describe "$revision" "${common[@]}" --format=json |
+        jq -ce --arg target "$APP_ENV" --arg sha "$GITHUB_SHA" --arg region "$REGION" '
+          .spec.containers[0] as $c |
+          ($c.env|map(select(.name|IN("APP_ENV","STRIPE_ENVIRONMENT","HTTPS_VERIFIED","PAYMENTS_ENABLED")))|map({key:.name,value:.value})|from_entries) as $flags |
+          select($flags.APP_ENV==$target and $flags.HTTPS_VERIFIED=="true" and $flags.PAYMENTS_ENABLED=="true" and
+            $flags.STRIPE_ENVIRONMENT==(if $target=="production" then "live" else "sandbox" end)) |
+          {sha:$sha,revision:.metadata.name,region:$region,digest:.status.imageDigest,identity:.spec.serviceAccountName,
+           flags:$flags,names:[$c.env[].name]|sort,bindings:[$c.env[]|select(.valueFrom.secretKeyRef)|{name,ref:.valueFrom.secretKeyRef}]}'
+    fi
+    return
+  fi
   gcloud run deploy "$service" "${common[@]}" --image="$IMAGE" --service-account="$runtime" \
     --set-env-vars="$env_flags,HTTPS_VERIFIED=$1" --set-secrets="$secret_flags" \
     --labels="source-commit=$GITHUB_SHA" --tag="$tag" "${traffic[@]}" --allow-unauthenticated \
