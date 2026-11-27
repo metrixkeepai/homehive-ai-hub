@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      website_sha:
+        description: Website only (leave empty for normal releases)
+        type: string
+        required: false
       mail_only:
         description: Promote the accepted main mail worker and migration for production QA
         type: boolean
@@ -29,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
+    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -106,7 +110,7 @@ jobs:
           if-no-files-found: error
 
   serving-acceptance:
-    if: github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
+    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -155,7 +159,7 @@ jobs:
         run: bash deploy/billing-acceptance.sh
 
   mail:
-    if: github.ref == 'refs/heads/main' && inputs.mail_only
+    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -186,3 +190,44 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
       - run: bash deploy/production-mail-worker.sh
+
+  website-production:
+    if: github.ref == 'refs/heads/main' && inputs.website_sha != ''
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      WEBSITE_SHA: ${{ inputs.website_sha }}
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
+      TARGET: production
+      STAGING_RUN: ${{ inputs.staging_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact protected staging run and acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCEPTANCE: ${{ inputs.acceptance }}
+          CONFLICT: ${{ inputs.mail_only || inputs.billing_acceptance || inputs.acceptance_only }}
+        run: |
+          set -euo pipefail
+          [[ $WEBSITE_SHA == 25bcf726503b7d8dbbe90a3e82064a9daf5c0297 && $CONFLICT == false && $STAGING_RUN =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN" | jq -e --arg workflow_sha "$GITHUB_SHA" '.path==".github/workflows/verify.yml" and .event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$workflow_sha and .conclusion=="success"' >/dev/null
+          gh run download "$STAGING_RUN" --name matrixkeep-website-staging --dir accepted
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Deploy only the web image
+        working-directory: .
+        run: bash deploy/website-only.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-website-${{ env.TARGET }}
+          path: website.json
+          if-no-files-found: error
