@@ -63,7 +63,10 @@ export function LivingSurface({ children }: { children: ReactNode }) {
           const r = s.getBoundingClientRect();
           s.style.setProperty(
             "--p",
-            Math.max(0, Math.min(1, (window.innerHeight - r.top) / (window.innerHeight + r.height))).toFixed(3),
+            Math.max(
+              0,
+              Math.min(1, (window.innerHeight - r.top) / (window.innerHeight + r.height)),
+            ).toFixed(3),
           );
           s.style.setProperty(
             "--travel",
@@ -152,7 +155,8 @@ const heroScenes = [
     key: "intelligence",
     label: "Intelligence",
     title: "From physical assets to digital intelligence.",
-    caption: "Discover how MatrixKeep connects information, evidence and insights around everything you own.",
+    caption:
+      "Discover how MatrixKeep connects information, evidence and insights around everything you own.",
     image: scenes["intelligence"] ?? photos.it,
     to: "/how-it-works",
     cta: "Discover MatrixKeep AI",
