@@ -23,8 +23,16 @@ gcloud auth configure-docker "$region-docker.pkg.dev" --quiet
 digest=$(gcloud artifacts docker images describe "$registry/web:$sha" --format='value(image_summary.digest)')
 [[ $digest =~ ^sha256:[0-9a-f]{64}$ && $digest == "$(jq -er .digest "$request")" ]]
 image="$registry/web@$digest"
-[[ $(jq -er '.spec.containers[0].image' <<<"$meta") == "$image" ]]
+# Recover the original submitted index for this exact revision from its deploy log.
+# Cloud Run stores the resolved platform manifest in its revision spec.
+job_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/attempts/$attempt/jobs" | jq -er '.jobs[] | select(.name=="staging") | .id')
+gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$job_id/logs" > "$RUNNER_TEMP/original-deploy.log"
+jq -Rse --arg sha "$sha" --arg image "$image" --arg rev "$rev" '
+  split("\n") | any(.[]; (sub("^[^{]*";"")|fromjson?) | .sha==$sha and .image==$image and .revision==$rev)
+' "$RUNNER_TEMP/original-deploy.log" >/dev/null
 child=$(jq -er .status.imageDigest <<<"$meta")
+declared=$(jq -er '.spec.containers[0].image' <<<"$meta")
+[[ $declared == "$child" || $declared == "$image" ]]
 docker pull "$image" >/dev/null
 [[ $(docker image inspect "$image" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}') == "$sha" ]]
 if [[ $child != "$image" ]]; then
@@ -37,9 +45,14 @@ job=matrixkeep-staging-migrate
 exec_name=$(gcloud run jobs describe "$job" "${args[@]}" --format='value(status.latestCreatedExecution.name)')
 execution=$(gcloud run jobs executions describe "$exec_name" "${args[@]}" --format=json)
 jq -e 'any(.status.conditions[];.type=="Completed" and .status=="True")' <<<"$execution" >/dev/null
-migrator=$(jq -er '.spec.template.spec.containers[0].image' <<<"$execution")
+executed=$(jq -er '.spec.template.spec.containers[0].image' <<<"$execution")
 md=$(gcloud artifacts docker images describe "$registry/migrator:$sha" --format='value(image_summary.digest)')
-[[ $md =~ ^sha256:[a-f0-9]{64}$ && $migrator == "$registry/migrator@$md" ]]
+[[ $md =~ ^sha256:[a-f0-9]{64}$ ]]
+migrator="$registry/migrator@$md"
+if [[ $executed != "$migrator" ]]; then
+  mig_child=$(docker buildx imagetools inspect "$migrator" --raw | jq -er '[.manifests[]|select(.platform.os=="linux" and .platform.architecture=="amd64")]|select(length==1)|.[0].digest')
+  [[ $executed == "$registry/migrator@$mig_child" ]]
+fi
 docker pull "$migrator" >/dev/null
 [[ $(docker image inspect "$migrator" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}') == "$sha" ]]
 origin="https://matrixkeep-staging-web-893477687403.europe-west2.run.app"
