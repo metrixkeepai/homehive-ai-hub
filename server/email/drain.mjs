@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import postgres from "postgres";
+import { readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { deliverEmail } from "./delivery.mjs";
@@ -45,7 +46,13 @@ if (
   (!qaRecipient || !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(qaRecipient))
 )
   throw Error("Staging mail requires one QA recipient");
-const sql = postgres(config.MAIL_DATABASE_URL, { ssl: "verify-full", max: 1 });
+const sql = postgres(config.MAIL_DATABASE_URL, {
+  ssl: {
+    ca: readFileSync(new URL("../../supabase-db-ca.crt", import.meta.url)),
+    rejectUnauthorized: true,
+  },
+  max: 1,
+});
 try {
   await sql`SET ROLE matrixkeep_mail_sender`;
   const messages =

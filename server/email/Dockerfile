@@ -4,5 +4,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y python3 ca-cert
 COPY package-lock.json /tmp/matrixkeep-package-lock.json
 RUN node -e "const p=require('/tmp/matrixkeep-package-lock.json').packages['node_modules/postgres'];require('fs').writeFileSync('package.json',JSON.stringify({dependencies:{postgres:p.version}}));require('fs').writeFileSync('package-lock.json',JSON.stringify({lockfileVersion:3,packages:{'':{dependencies:{postgres:p.version}},'node_modules/postgres':p}}))" && npm ci --omit=dev --ignore-scripts
 COPY server/email/ ./server/email/
+ADD --chmod=0444 https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt /app/supabase-db-ca.crt
 USER node
 CMD ["node","server/email/start.mjs"]
