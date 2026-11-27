@@ -56,7 +56,16 @@ const sections = [
 ] as const;
 export const Route = createFileRoute("/privacy")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://matrixkeep.com/privacy" }],
     meta: [
+      { property: "og:title", content: "Privacy Policy — MatrixKeep" },
+      {
+        property: "og:description",
+        content:
+          "How MatrixKeep handles personal information, connected services, evidence and AI requests.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Privacy Policy — MatrixKeep" },
       {
         name: "description",

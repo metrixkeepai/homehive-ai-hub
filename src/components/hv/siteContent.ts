@@ -36,7 +36,7 @@ export const industries: Story[] = [
     t: "Healthcare & clinics",
     icon: HeartPulse,
     short: "Equipment, calibration and compliance evidence.",
-    lead: "Keep every device, service record and certificate ready for inspection — and know which calibration is due before a patient is affected.",
+    lead: "Keep every device, service record and certificate ready for inspection — and review the calibration dates recorded for your equipment.",
     pains: [
       "Calibration dates live in spreadsheets",
       "Service contracts renew without review",
@@ -61,7 +61,10 @@ export const industries: Story[] = [
         "Photograph each device and its label — model and serial are read for you.",
       ],
       ["Attach evidence", "Certificates, invoices and service reports link to the right passport."],
-      ["Stay ahead", "Calibration and renewal dates become reminders for the right person."],
+      [
+        "Stay ahead",
+        "Review recorded calibration and renewal dates and download calendar reminders.",
+      ],
     ],
   },
   {
@@ -89,7 +92,10 @@ export const industries: Story[] = [
       ["Premises licence", "Renewal in 60 days"],
     ],
     steps: [
-      ["Scan each store", "Walk the floor and capture fixtures in minutes."],
+      [
+        "Scan each store",
+        "Use available capture methods and review the fixtures recorded for each store.",
+      ],
       ["Organise by location", "Every asset belongs to a store, so registers stay accurate."],
       ["Renew on your terms", "See leases and contracts before they auto-renew."],
     ],
@@ -101,7 +107,7 @@ export const industries: Story[] = [
     short: "Devices, classrooms and safety checks.",
     lead: "Know where every laptop, projector and piece of safety equipment is — and what checks are due this term.",
     pains: [
-      "Device loans are hard to trace",
+      "Equipment records are scattered",
       "Safety checks rely on memory",
       "Warranty claims are missed on broken kit",
     ],
@@ -119,9 +125,12 @@ export const industries: Story[] = [
       ["MIS licence", "Renews in 45 days"],
     ],
     steps: [
-      ["Record by room", "Every classroom becomes a room with its own items."],
-      ["Link the paperwork", "Invoices and certificates are matched automatically."],
-      ["Plan the term", "Checks and renewals arrive as clear reminders."],
+      ["Record by room", "Group saved classroom equipment by room and property."],
+      [
+        "Link the paperwork",
+        "Attach invoices and certificates to the relevant records after review.",
+      ],
+      ["Plan the term", "Review checks and renewals in the calendar and export reminders."],
     ],
   },
   {
@@ -140,7 +149,7 @@ export const industries: Story[] = [
       "Appliances and boilers",
       "Tenancy and insurance renewals",
       "Maintenance history per unit",
-      "Transferable property passports",
+      "Shareable property passport snapshots",
     ],
     feed: [
       ["Flat 2 — Gas safety", "Due in 21 days"],
@@ -151,7 +160,7 @@ export const industries: Story[] = [
     steps: [
       ["Add each property", "Units, rooms and appliances in one place."],
       ["Store certificates", "Upload once — expiry dates are calculated."],
-      ["Hand over cleanly", "Share or transfer a property passport at sale."],
+      ["Hand over cleanly", "Share a selected property passport snapshot for a handover."],
     ],
   },
   {
@@ -159,7 +168,7 @@ export const industries: Story[] = [
     t: "Construction & trades",
     icon: HardHat,
     short: "Plant, tools, vehicles and inspections.",
-    lead: "Track tools, plant and vans across sites, with inspection dates and proof of ownership when kit goes missing.",
+    lead: "Keep tools, plant and van records grouped by site, with saved inspection dates and purchase evidence.",
     pains: [
       "Tools disappear between sites",
       "Plant inspections are overdue",
@@ -209,7 +218,10 @@ export const industries: Story[] = [
       ["Walk-in fridge", "Warranty to 2027"],
     ],
     steps: [
-      ["Scan the kitchen", "Every appliance captured in one walk-through."],
+      [
+        "Scan the kitchen",
+        "Use supported photo or room capture, then confirm the equipment details.",
+      ],
       ["Track services", "Service intervals become reminders."],
       ["Avoid surprises", "Licences and contracts flagged in time."],
     ],
@@ -219,9 +231,9 @@ export const industries: Story[] = [
     t: "Offices & professional services",
     icon: Briefcase,
     short: "IT, furniture, leases and subscriptions.",
-    lead: "Every laptop, monitor and subscription accounted for — including who has it and when it renews.",
+    lead: "Organise laptops, monitors, purchase evidence and saved subscription dates in your business workspace.",
     pains: [
-      "Leavers keep company devices",
+      "Equipment knowledge leaves with staff",
       "Software renews unnoticed",
       "No clear asset register for audit",
     ],
@@ -230,7 +242,7 @@ export const industries: Story[] = [
       "Furniture and fit-out",
       "Software subscriptions",
       "Office lease and insurance",
-      "Team-assigned assets",
+      "Recorded equipment responsibilities",
     ],
     feed: [
       ["MacBook Pro — J. Patel", "Warranty to 2027"],
@@ -240,7 +252,7 @@ export const industries: Story[] = [
     ],
     steps: [
       ["Add your kit", "Snap devices or import invoices."],
-      ["Assign to people", "Know who holds what."],
+      ["Assign to people", "Record the equipment responsibilities relevant to your business."],
       ["Control renewals", "Subscriptions flagged before they charge."],
     ],
   },
@@ -270,8 +282,135 @@ export const industries: Story[] = [
     ],
     steps: [
       ["Passport each machine", "Model, serial and manuals together."],
-      ["Log maintenance", "Every service adds to the timeline."],
-      ["Stay compliant", "Inspections become reminders."],
+      ["Log maintenance", "Save each service record with the machine."],
+      [
+        "Review inspections",
+        "Review recorded inspection dates and keep independent checks for critical obligations.",
+      ],
+    ],
+  },
+  {
+    slug: "dental",
+    t: "Dental practices",
+    icon: HeartPulse,
+    short: "Treatment equipment, service history and inspection evidence.",
+    lead: "Keep dental chairs, autoclaves and imaging equipment connected to supplier invoices, warranties, service reports and saved inspection dates.",
+    pains: [
+      "Equipment history is split between suppliers",
+      "Service reports are hard to locate",
+      "Inspection documents need review",
+    ],
+    tracks: [
+      "Dental equipment identity",
+      "Supplier invoices and warranties",
+      "Service and maintenance records",
+      "Inspection evidence for professional review",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "warehousing-logistics",
+    t: "Warehousing & logistics",
+    icon: Truck,
+    short: "Handling equipment, vehicles and warehouse records.",
+    lead: "Bring warehouse assets, material-handling equipment, vehicle documents and recorded maintenance requirements into one location-aware workspace.",
+    pains: [
+      "Equipment manuals are scattered",
+      "Service dates live in separate spreadsheets",
+      "Vehicle evidence is hard to find",
+    ],
+    tracks: [
+      "Material-handling equipment",
+      "Warehouse asset records",
+      "Vehicle and servicing evidence",
+      "Location-specific documents",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "automotive-fleet",
+    t: "Automotive & fleet",
+    icon: Car,
+    short: "Vehicle evidence, insurance and service records.",
+    lead: "Organise vehicle identity, purchase evidence, MOT dates, insurance and recorded servicing history for your fleet.",
+    pains: [
+      "Service records are dispersed",
+      "Important vehicle dates need review",
+      "Insurance evidence is in different inboxes",
+    ],
+    tracks: [
+      "Vehicle identity and locations",
+      "MOT and insurance dates",
+      "Purchase and finance documents",
+      "Saved service history",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "homeowners-families",
+    t: "Homeowners & families",
+    icon: Home,
+    short: "Home belongings, warranties and important information.",
+    lead: "Bring household appliances, belongings, vehicles, receipts and saved maintenance dates into one digital home.",
+    pains: [
+      "Receipts are lost in drawers",
+      "Warranty terms are hard to find",
+      "Household knowledge relies on memory",
+    ],
+    tracks: [
+      "Room-by-room assets",
+      "Receipts and manuals",
+      "Warranty and maintenance records",
+      "Property and vehicle documents",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
     ],
   },
 ];
@@ -282,7 +421,7 @@ export const useCases: Story[] = [
     t: "Home inventory",
     icon: Home,
     short: "Everything you own, room by room.",
-    lead: "Walk through your home with your phone and get a complete, valued inventory — with photos, receipts and locations.",
+    lead: "Build a room-by-room home inventory using supported capture methods, then review saved photos, purchase values, receipts and locations.",
     pains: [
       "You don't know what you own or its value",
       "Receipts are lost",
@@ -302,7 +441,7 @@ export const useCases: Story[] = [
       ["Home value total", "£38,240"],
     ],
     steps: [
-      ["Scan rooms", "Photos become items automatically."],
+      ["Scan rooms", "Use supported capture and review the suggested items before saving."],
       ["Add proof", "Receipts and documents link to each item."],
       ["Know your value", "See totals by room and category."],
     ],
@@ -311,8 +450,8 @@ export const useCases: Story[] = [
     slug: "warranty-tracking",
     t: "Warranty tracking",
     icon: ShieldCheck,
-    short: "Never miss cover again.",
-    lead: "MatrixKeep reads warranty lengths from receipts and documents, calculates expiry dates and reminds you before cover ends.",
+    short: "Keep warranty evidence in context.",
+    lead: "MatrixKeep helps extract warranty information from supported sources and derive dates for review. Keep purchase evidence and track the cover you have recorded.",
     pains: [
       "Warranties expire unnoticed",
       "You pay for repairs that were covered",
@@ -334,7 +473,7 @@ export const useCases: Story[] = [
     steps: [
       ["Upload a receipt", "Purchase date and retailer are read."],
       ["Expiry calculated", "Warranty end date is worked out."],
-      ["Get reminded", "Act before cover ends."],
+      ["Review dates", "Review dates in the app and export a calendar reminder."],
     ],
   },
   {
@@ -342,7 +481,7 @@ export const useCases: Story[] = [
     t: "Renewal tracking",
     icon: CalendarClock,
     short: "Insurance, contracts and subscriptions.",
-    lead: "See every renewal coming — insurance, broadband, MOT, leases and subscriptions — before it auto-renews at a worse price.",
+    lead: "See every renewal coming — insurance, broadband, MOT, leases and subscriptions — so you have time to review your options.",
     pains: [
       "Auto-renewals at higher prices",
       "Missed MOT or licence dates",
@@ -372,17 +511,17 @@ export const useCases: Story[] = [
     t: "Insurance claims",
     icon: Umbrella,
     short: "Evidence ready when you need it.",
-    lead: "When something is stolen or damaged, have photos, values, receipts and serial numbers ready in one tap.",
+    lead: "Organise photos, recorded purchase values, receipts and serial numbers to help prepare the evidence your insurer requests.",
     pains: [
-      "Claims rejected for lack of proof",
-      "Values are guessed",
+      "Purchase evidence is difficult to find",
+      "Purchase values are incomplete",
       "Evidence is spread across devices",
     ],
     tracks: [
       "Photos and condition",
       "Proof of purchase",
       "Serial numbers",
-      "Current values",
+      "Recorded purchase values",
       "Shareable evidence",
     ],
     feed: [
@@ -393,7 +532,7 @@ export const useCases: Story[] = [
     ],
     steps: [
       ["Record items", "Photos and receipts as you buy."],
-      ["Keep it current", "Evidence strength shown per item."],
+      ["Keep it current", "Review missing or outdated supporting documents."],
       ["Claim with confidence", "Everything in one place."],
     ],
   },
@@ -424,7 +563,7 @@ export const useCases: Story[] = [
     steps: [
       ["Build the history", "Records collect as you live there."],
       ["Choose what to share", "Pick the items and documents."],
-      ["Hand over", "The next owner starts with the full story."],
+      ["Hand over", "The recipient can review the selected information you share."],
     ],
   },
   {
@@ -488,7 +627,7 @@ export const useCases: Story[] = [
     t: "Equipment & maintenance",
     icon: Truck,
     short: "Planned maintenance that happens.",
-    lead: "Turn service intervals into reminders, keep manuals with each machine and build a maintenance history automatically.",
+    lead: "Turn service intervals into reminders, keep manuals with each machine and build a history from the service records you save.",
     pains: ["Maintenance is reactive", "Manuals can't be found", "No record of who did what"],
     tracks: [
       "Service intervals",
@@ -505,8 +644,132 @@ export const useCases: Story[] = [
     ],
     steps: [
       ["Add equipment", "Capture model and manuals."],
-      ["Set intervals", "Reminders follow automatically."],
+      ["Set intervals", "Review recorded intervals and download calendar reminders."],
       ["Build history", "Every job logged."],
+    ],
+  },
+  {
+    slug: "business-asset-management",
+    t: "Business asset management",
+    icon: CalendarClock,
+    short: "Equipment identity, purchase evidence and location context.",
+    lead: "Organise business equipment, recorded purchase values, documents and locations in one workspace.",
+    pains: [
+      "Equipment lists are incomplete",
+      "Invoices are scattered",
+      "Location context is missing",
+    ],
+    tracks: [
+      "Equipment model and serial",
+      "Purchase evidence",
+      "Property and location assignment",
+      "Recorded responsibilities",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "compliance-evidence",
+    t: "Compliance evidence",
+    icon: CalendarClock,
+    short: "Supporting records for human-led operational review.",
+    lead: "Keep certificates, inspections and supporting equipment documents accessible for qualified people to review. MatrixKeep does not certify compliance.",
+    pains: [
+      "Certificates are difficult to retrieve",
+      "Important dates need independent checks",
+      "Evidence is disconnected from equipment",
+    ],
+    tracks: [
+      "Certificates and inspection documents",
+      "Recorded dates and source evidence",
+      "Equipment and location context",
+      "Human-led professional review",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "property-asset-intelligence",
+    t: "Property asset intelligence",
+    icon: Home,
+    short: "Properties, rooms, equipment and their evidence.",
+    lead: "Connect appliances, documents and saved maintenance history to the right property so each place has its own digital memory.",
+    pains: [
+      "Property records are mixed together",
+      "Appliance history is missing",
+      "Handover information is scattered",
+    ],
+    tracks: [
+      "Properties and rooms",
+      "Property-linked assets",
+      "Saved certificates and dates",
+      "Selected passport snapshots",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
+    ],
+  },
+  {
+    slug: "important-documents",
+    t: "Important documents",
+    icon: CalendarClock,
+    short: "Receipts, invoices, contracts and supporting records.",
+    lead: "Organise supported documents, review AI-extracted details and preserve their connection to the assets and dates they describe.",
+    pains: [
+      "Documents are difficult to find",
+      "Contract versions become confusing",
+      "Invoices are detached from assets",
+    ],
+    tracks: [
+      "Document categories",
+      "Reviewed extraction",
+      "Document versions and archives",
+      "Connected supporting evidence",
+    ],
+    feed: [
+      ["Purchase evidence", "Saved with the asset"],
+      ["Service history", "Recorded for review"],
+      ["Important date", "Check source document"],
+    ],
+    steps: [
+      [
+        "Capture relevant information",
+        "Use supported photos and document uploads, then review the suggested details.",
+      ],
+      ["Connect the evidence", "Link records to their property, location or asset."],
+      ["Review and act", "Check saved dates and source documents before deciding the next action."],
     ],
   },
 ];

@@ -1,9 +1,12 @@
 # Account experience updates
+
 - [x] Organise individual and business side menus into categories with collapsible navigation.
 - [x] Implement saved warranty and renewal tracking, real date-based statuses, editing and calendar reminders.
 - [x] Refresh sign-in and sign-up without replacing authentication.
 - [x] Verify signed-in tracking and both account menus; check sign-in/sign-up layouts.
+
 # Super Admin remaining spec
+
 - [x] Account usage & history on subscriber page (storage, documents, limits, overrides, subscription history)
 - [x] Billing section (overview + 9 sub-pages, Stripe-backed)
 - [x] Voucher engine upgrade
@@ -19,7 +22,9 @@
 - [x] Full add/edit/delete in Super Admin
 - [x] Feature switches gating features + upgrade prompts on locked features
 - [x] Country field and Individual-to-Business upgrade fixes
+
 # Digital passports
+
 - [x] Centred download window (format cards, report type, sections, privacy)
 - [x] Secure expiring share links, revoke, guest view
 - [x] Asset, vehicle and location passports
@@ -27,3 +32,13 @@
 - [x] Document intelligence: contract/renewal extraction, date calc, more file types
 - [x] Old Office/TIFF reading, multi-point reminders, duplicates, versions, rename/archive, document type filters
 - [ ] Automatic email and WhatsApp alerts — blocked: email domain / WhatsApp Business account
+
+# Public website transformation
+
+- [x] Isolated public design, navigation and photography
+- [x] Complete homepage and audience pages
+- [x] Product, industry, use-case and company marketing pages
+- [x] Passport, scripted Sera and business ROI demonstrations
+- [x] Existing catalogue pricing, metadata, responsive and interaction QA
+- [x] Report limitations and confirm protected systems unchanged
+- [ ] Clean production compilation — blocked by pre-existing generated database type/schema mismatches in protected account, billing and AI files; deliberately unchanged under public-only scope.

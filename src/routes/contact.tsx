@@ -1,80 +1,129 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Mail, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { SiteShell, PageHero } from "@/components/hv/Site";
-
-const t = "Contact — MatrixKeep";
-const d = "Talk to the MatrixKeep team about Business, Enterprise or partnerships.";
+import { marketingHead } from "@/components/marketing/content";
+import { photos } from "@/components/marketing/media";
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: t },
-      { name: "description", content: d },
-      { property: "og:title", content: t },
-      { property: "og:description", content: d },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () =>
+    marketingHead(
+      "Contact MatrixKeep | Business Demos, Enterprise & Pilot Enquiries",
+      "Talk to MatrixKeep about your business, enterprise requirements, demonstrations or pilot opportunities.",
+      "/contact",
+    ),
   component: Page,
 });
-
 const EMAIL = "hello@matrixkeep.com";
-
 function Page() {
-  const [f, setF] = useState({ name: "", org: "", topic: "Business", msg: "" });
+  const [f, setF] = useState({ name: "", org: "", topic: "Business demonstration", msg: "" });
   const href = `mailto:${EMAIL}?subject=${encodeURIComponent(`MatrixKeep ${f.topic} enquiry — ${f.name}`)}&body=${encodeURIComponent(`${f.msg}\n\n${f.name}${f.org ? `, ${f.org}` : ""}`)}`;
-  const inp = "w-full rounded-xl border bg-background px-4 py-3 text-sm";
   return (
     <SiteShell>
-      <PageHero eyebrow="Contact" title="Let’s talk." lead={d} />
-      <section className="mx-auto max-w-2xl px-6 py-20">
+      <PageHero
+        eyebrow="Contact & demonstrations"
+        title="Your world. Your requirements. Let’s talk."
+        lead="Discuss business plans, enterprise feasibility, a product demonstration or a potential pilot. Start with the information and equipment you want to bring together."
+        cta="Talk to the Team"
+      />
+      <section className="mk-container mk-section mk-split">
+        <div>
+          <p className="mk-eyebrow">A useful first conversation</p>
+          <h2>
+            Tell us what matters
+            <br />
+            to your organisation.
+          </h2>
+          <p className="mk-lead">
+            A café with essential equipment. A growing property portfolio. A team reviewing
+            operational evidence. We would like to understand what you need.
+          </p>
+          <a
+            href={`mailto:${EMAIL}`}
+            className="inline-flex items-center gap-2 text-primary text-sm font-semibold mt-6"
+          >
+            <Mail className="size-4" />
+            {EMAIL}
+          </a>
+          <img
+            src={photos.enterprise}
+            alt="Business team discussing operational requirements"
+            width="429"
+            height="407"
+            loading="lazy"
+            className="mt-8"
+          />
+        </div>
         <form
-          className="space-y-4 rounded-3xl border bg-card p-8 shadow-soft"
+          className="space-y-5 border border-border rounded-lg bg-card p-7"
           onSubmit={(e) => {
             e.preventDefault();
             window.location.href = href;
           }}
         >
-          <input
-            required
-            maxLength={100}
-            placeholder="Your name"
-            className={inp}
-            value={f.name}
-            onChange={(e) => setF({ ...f, name: e.target.value })}
-          />
-          <input
-            maxLength={120}
-            placeholder="Organisation (optional)"
-            className={inp}
-            value={f.org}
-            onChange={(e) => setF({ ...f, org: e.target.value })}
-          />
-          <select
-            className={inp}
-            value={f.topic}
-            onChange={(e) => setF({ ...f, topic: e.target.value })}
-          >
-            {["Individual", "Business", "Enterprise", "White-label / partnership", "Support"].map(
-              (x) => (
-                <option key={x}>{x}</option>
-              ),
-            )}
-          </select>
-          <textarea
-            required
-            maxLength={2000}
-            rows={5}
-            placeholder="How can we help?"
-            className={inp}
-            value={f.msg}
-            onChange={(e) => setF({ ...f, msg: e.target.value })}
-          />
-          <button className="w-full rounded-full bg-aurora py-3 font-semibold text-primary-foreground shadow-glow">
-            Open email to send
-          </button>
-          <p className="text-center text-xs text-muted-foreground">
-            This opens your email app with your message ready to send to {EMAIL}.
+          <label className="block text-sm font-semibold" htmlFor="contact-name">
+            Your name
+            <Input
+              id="contact-name"
+              required
+              maxLength={100}
+              value={f.name}
+              onChange={(e) => setF({ ...f, name: e.target.value })}
+              className="mt-2"
+              autoComplete="name"
+            />
+          </label>
+          <label className="block text-sm font-semibold" htmlFor="contact-org">
+            Organisation (optional)
+            <Input
+              id="contact-org"
+              maxLength={120}
+              value={f.org}
+              onChange={(e) => setF({ ...f, org: e.target.value })}
+              className="mt-2"
+              autoComplete="organization"
+            />
+          </label>
+          <label className="block text-sm font-semibold" htmlFor="contact-topic">
+            What would you like to discuss?
+            <select
+              id="contact-topic"
+              className="w-full mt-2 border border-input rounded-md bg-background px-3 py-3 text-sm font-normal"
+              value={f.topic}
+              onChange={(e) => setF({ ...f, topic: e.target.value })}
+            >
+              {[
+                "Individual account",
+                "Business demonstration",
+                "Enterprise consultation",
+                "Pilot partnership",
+                "White-label / licensing",
+                "Support",
+              ].map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-semibold" htmlFor="contact-message">
+            Your message
+            <Textarea
+              id="contact-message"
+              required
+              maxLength={2000}
+              rows={6}
+              value={f.msg}
+              onChange={(e) => setF({ ...f, msg: e.target.value })}
+              className="mt-2"
+            />
+          </label>
+          <Button type="submit" className="w-full">
+            Open Email to Send
+            <ArrowRight className="size-4" />
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Your email app will open with the enquiry ready to send to {EMAIL}.
           </p>
         </form>
       </section>

@@ -25,3 +25,7 @@
 - Google (Gmail, Calendar, Drive) uses per-user App User Connectors: each user's connection key is stored encrypted in app_user_connections (service-role only) and every Google call runs in src/lib/google.functions.ts, so tokens never reach the browser.
 - Plan product access comes from the feature catalogue in src/lib/entitlements.ts (defaults per plan tier) overridden by the latest approved plan_versions.entitlements; benefits text stays marketing-only so copy edits never change access.
 - Shared passports store a frozen HTML snapshot in passport_shares and guests read it only via the open_passport_share function, so a link never exposes live workspace data.
+
+- Public marketing lives in isolated marketing components and the public-only SiteShell; scope presentation tokens under .marketing-site so authenticated screens retain their existing theme.
+- Public product demonstrations use local illustrative records and scripted responses, never authenticated data or AI APIs; the ROI calculator is a pure tested calculation.
+- Marketing pricing reads the existing published catalogue and reuses the approved-entitlement comparison; marketing copy never defines plan access.

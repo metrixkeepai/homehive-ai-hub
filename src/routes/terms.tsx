@@ -48,7 +48,16 @@ const sections = [
 ] as const;
 export const Route = createFileRoute("/terms")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://matrixkeep.com/terms" }],
     meta: [
+      { property: "og:title", content: "Terms of Service — MatrixKeep" },
+      {
+        property: "og:description",
+        content:
+          "Terms for MatrixKeep accounts, subscriptions, connected services and Digital Passport sharing.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Terms of Service — MatrixKeep" },
       {
         name: "description",

@@ -12,17 +12,21 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AiAgentsRouteImport } from './routes/ai-agents'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BusinessRouteImport } from './routes/business'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DigitalPassportRouteImport } from './routes/digital-passport'
 import { Route as EnterpriseRouteImport } from './routes/enterprise'
 import { Route as FeaturesRouteImport } from './routes/features'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as IndividualRouteImport } from './routes/individual'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SecurityRouteImport } from './routes/security'
+import { Route as SeraRouteImport } from './routes/sera'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated/app'
@@ -78,6 +82,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AiAgentsRoute = AiAgentsRouteImport.update({
+  id: '/ai-agents',
+  path: '/ai-agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -91,6 +100,11 @@ const BusinessRoute = BusinessRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DigitalPassportRoute = DigitalPassportRouteImport.update({
+  id: '/digital-passport',
+  path: '/digital-passport',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnterpriseRoute = EnterpriseRouteImport.update({
@@ -113,6 +127,11 @@ const IndividualRoute = IndividualRouteImport.update({
   path: '/individual',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -131,6 +150,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SecurityRoute = SecurityRouteImport.update({
   id: '/security',
   path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeraRoute = SeraRouteImport.update({
+  id: '/sera',
+  path: '/sera',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperAdminRoute = SuperAdminRouteImport.update({
@@ -344,17 +368,21 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/ai-agents': typeof AiAgentsRoute
   '/auth': typeof AuthRoute
   '/business': typeof BusinessRoute
   '/contact': typeof ContactRoute
+  '/digital-passport': typeof DigitalPassportRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
+  '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
+  '/sera': typeof SeraRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/terms': typeof TermsRoute
   '/app': typeof AuthenticatedAppRouteWithChildren
@@ -399,17 +427,21 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/ai-agents': typeof AiAgentsRoute
   '/auth': typeof AuthRoute
   '/business': typeof BusinessRoute
   '/contact': typeof ContactRoute
+  '/digital-passport': typeof DigitalPassportRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
+  '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
+  '/sera': typeof SeraRoute
   '/terms': typeof TermsRoute
   '/industries/$slug': typeof IndustriesSlugRoute
   '/p/$token': typeof PTokenRoute
@@ -453,17 +485,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/ai-agents': typeof AiAgentsRoute
   '/auth': typeof AuthRoute
   '/business': typeof BusinessRoute
   '/contact': typeof ContactRoute
+  '/digital-passport': typeof DigitalPassportRoute
   '/enterprise': typeof EnterpriseRoute
   '/features': typeof FeaturesRoute
   '/how-it-works': typeof HowItWorksRoute
   '/individual': typeof IndividualRoute
+  '/partners': typeof PartnersRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/security': typeof SecurityRoute
+  '/sera': typeof SeraRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/terms': typeof TermsRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteWithChildren
@@ -510,17 +546,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/ai-agents'
     | '/auth'
     | '/business'
     | '/contact'
+    | '/digital-passport'
     | '/enterprise'
     | '/features'
     | '/how-it-works'
     | '/individual'
+    | '/partners'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/security'
+    | '/sera'
     | '/super-admin'
     | '/terms'
     | '/app'
@@ -565,17 +605,21 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/ai-agents'
     | '/auth'
     | '/business'
     | '/contact'
+    | '/digital-passport'
     | '/enterprise'
     | '/features'
     | '/how-it-works'
     | '/individual'
+    | '/partners'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/security'
+    | '/sera'
     | '/terms'
     | '/industries/$slug'
     | '/p/$token'
@@ -618,17 +662,21 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/ai-agents'
     | '/auth'
     | '/business'
     | '/contact'
+    | '/digital-passport'
     | '/enterprise'
     | '/features'
     | '/how-it-works'
     | '/individual'
+    | '/partners'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/security'
+    | '/sera'
     | '/super-admin'
     | '/terms'
     | '/_authenticated/app'
@@ -675,17 +723,21 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AiAgentsRoute: typeof AiAgentsRoute
   AuthRoute: typeof AuthRoute
   BusinessRoute: typeof BusinessRoute
   ContactRoute: typeof ContactRoute
+  DigitalPassportRoute: typeof DigitalPassportRoute
   EnterpriseRoute: typeof EnterpriseRoute
   FeaturesRoute: typeof FeaturesRoute
   HowItWorksRoute: typeof HowItWorksRoute
   IndividualRoute: typeof IndividualRoute
+  PartnersRoute: typeof PartnersRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SecurityRoute: typeof SecurityRoute
+  SeraRoute: typeof SeraRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   TermsRoute: typeof TermsRoute
   IndustriesSlugRoute: typeof IndustriesSlugRoute
@@ -723,6 +775,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ai-agents': {
+      id: '/ai-agents'
+      path: '/ai-agents'
+      fullPath: '/ai-agents'
+      preLoaderRoute: typeof AiAgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -742,6 +801,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/digital-passport': {
+      id: '/digital-passport'
+      path: '/digital-passport'
+      fullPath: '/digital-passport'
+      preLoaderRoute: typeof DigitalPassportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enterprise': {
@@ -772,6 +838,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndividualRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -798,6 +871,13 @@ declare module '@tanstack/react-router' {
       path: '/security'
       fullPath: '/security'
       preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sera': {
+      id: '/sera'
+      path: '/sera'
+      fullPath: '/sera'
+      preLoaderRoute: typeof SeraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/super-admin': {
@@ -1180,17 +1260,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AiAgentsRoute: AiAgentsRoute,
   AuthRoute: AuthRoute,
   BusinessRoute: BusinessRoute,
   ContactRoute: ContactRoute,
+  DigitalPassportRoute: DigitalPassportRoute,
   EnterpriseRoute: EnterpriseRoute,
   FeaturesRoute: FeaturesRoute,
   HowItWorksRoute: HowItWorksRoute,
   IndividualRoute: IndividualRoute,
+  PartnersRoute: PartnersRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SecurityRoute: SecurityRoute,
+  SeraRoute: SeraRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   TermsRoute: TermsRoute,
   IndustriesSlugRoute: IndustriesSlugRoute,

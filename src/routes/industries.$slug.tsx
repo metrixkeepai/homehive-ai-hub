@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { StoryPage } from "@/components/hv/StoryPage";
 import { industries } from "@/components/hv/siteContent";
 
+import { storyPhoto } from "@/components/marketing/media";
 export const Route = createFileRoute("/industries/$slug")({
   loader: ({ params }) => {
     const s = industries.find((x) => x.slug === params.slug);
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/industries/$slug")({
         meta: [{ title: "Not found — MatrixKeep" }, { name: "robots", content: "noindex" }],
       };
     return {
+      links: [{ rel: "canonical", href: `https://matrixkeep.com/industries/${s.slug}` }],
       meta: [
         { title: `${s.t} — MatrixKeep` },
         { name: "description", content: s.lead },
@@ -22,6 +24,8 @@ export const Route = createFileRoute("/industries/$slug")({
         { property: "og:description", content: s.short },
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
+        { property: "og:image", content: storyPhoto(s.slug) },
+        { name: "twitter:image", content: storyPhoto(s.slug) },
       ],
     };
   },
@@ -30,6 +34,7 @@ export const Route = createFileRoute("/industries/$slug")({
 
 function Page() {
   const { slug } = Route.useLoaderData();
-  const s = industries.find((x) => x.slug === slug)!;
+  const s = industries.find((x) => x.slug === slug);
+  if (!s) return null;
   return <StoryPage s={s} kind="industries" others={industries} />;
 }

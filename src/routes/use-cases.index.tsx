@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { StoryIndex } from "@/components/hv/StoryPage";
 import { useCases } from "@/components/hv/siteContent";
 
+import { photos } from "@/components/marketing/media";
 export const Route = createFileRoute("/use-cases/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://matrixkeep.com/use-cases" }],
     meta: [
       { title: "Use cases — MatrixKeep" },
       {
@@ -15,6 +17,8 @@ export const Route = createFileRoute("/use-cases/")({
       { property: "og:description", content: "See what you can do with MatrixKeep." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: photos.family },
+      { name: "twitter:image", content: photos.family },
     ],
   }),
   component: () => (

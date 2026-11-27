@@ -1,21 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode, type ComponentType } from "react";
-import {
-  Menu,
-  X,
-  ChevronDown,
-  Check,
-  ArrowRight,
-  Home,
-  Building2,
-  Landmark,
-  Sparkles,
-  Workflow,
-  Lock,
-  Tag,
-} from "lucide-react";
-import { industries, useCases } from "@/components/hv/siteContent";
-import { Logo } from "@/components/hv/Logo";
+import { Menu, X, ChevronDown, Check, ArrowRight, FileCheck2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Logo } from "./Logo";
+import { industries, useCases } from "./siteContent";
+import { photos } from "@/components/marketing/media";
 
 export function Reveal({
   children,
@@ -31,13 +20,13 @@ export function Reveal({
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
-      ([e]) => {
-        if (e?.isIntersecting) {
+      ([entry]) => {
+        if (entry?.isIntersecting) {
           el.classList.add("in");
           io.disconnect();
         }
       },
-      { threshold: 0.12 },
+      { threshold: 0.05 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -48,355 +37,336 @@ export function Reveal({
     </div>
   );
 }
-
-type MenuItem = {
-  to: string;
-  params?: { slug: string };
-  t: string;
-  d: string;
-  icon: ComponentType<{ className?: string }>;
-};
-const menus: {
-  label: string;
-  all?: { to: string; t: string };
-  items: MenuItem[];
-  promo: [string, string, string];
-}[] = [
+type PublicPath =
+  | "/"
+  | "/features"
+  | "/ai-agents"
+  | "/sera"
+  | "/digital-passport"
+  | "/security"
+  | "/individual"
+  | "/business"
+  | "/enterprise"
+  | "/partners"
+  | "/how-it-works"
+  | "/pricing"
+  | "/about"
+  | "/contact"
+  | "/privacy"
+  | "/terms"
+  | "/industries"
+  | "/use-cases"
+  | "/auth";
+type Entry = { t: string; to: PublicPath; d?: string };
+const menuGroups: { label: string; items: Entry[] }[] = [
   {
     label: "Product",
     items: [
+      { t: "Platform overview", to: "/features", d: "Your assets. Connected intelligence." },
+      { t: "AI Agents", to: "/ai-agents", d: "Capture, understand and connect." },
+      { t: "Meet Sera", to: "/sera", d: "Answers from your saved records." },
       {
-        to: "/features",
-        t: "Features",
-        d: "Capture, passports, agents and evidence",
-        icon: Sparkles,
+        t: "Digital Asset Passport",
+        to: "/digital-passport",
+        d: "A digital identity for every asset.",
       },
-      {
-        to: "/how-it-works",
-        t: "How it works",
-        d: "From one photo to a living memory",
-        icon: Workflow,
-      },
-      { to: "/security", t: "Security", d: "Private by design", icon: Lock },
-      { to: "/pricing", t: "Pricing", d: "Plans for every need", icon: Tag },
+      { t: "Security & Privacy", to: "/security", d: "Information under your control." },
     ],
-    promo: ["Meet Sera", "Your AI keeper answers from your own records.", "/how-it-works"],
   },
   {
     label: "Solutions",
     items: [
-      { to: "/individual", t: "Individual", d: "Homes, belongings, families", icon: Home },
-      { to: "/business", t: "Business", d: "SMEs, shops, clinics, offices", icon: Building2 },
-      { to: "/enterprise", t: "Enterprise", d: "Multi-site, governance, scale", icon: Landmark },
+      { t: "Individuals & Families", to: "/individual", d: "Less searching. More living." },
+      { t: "Small & Medium Businesses", to: "/business", d: "A business that remembers." },
+      { t: "Enterprise", to: "/enterprise", d: "Explore operational assurance." },
+      { t: "Partners", to: "/partners", d: "Build what comes next, together." },
     ],
-    promo: ["Start free", "Create your first Digital Passport in a minute.", "/auth"],
   },
   {
-    label: "Use Cases",
-    all: { to: "/use-cases", t: "All use cases" },
-    items: useCases.map((u) => ({
-      to: "/use-cases/$slug",
-      params: { slug: u.slug },
-      t: u.t,
-      d: u.short,
-      icon: u.icon,
-    })),
-    promo: ["Warranty intelligence", "Expiry dates calculated from your receipts.", "/use-cases"],
-  },
-  {
-    label: "Industries",
-    all: { to: "/industries", t: "All industries" },
-    items: industries.map((u) => ({
-      to: "/industries/$slug",
-      params: { slug: u.slug },
-      t: u.t,
-      d: u.short,
-      icon: u.icon,
-    })),
-    promo: ["Multi-location", "Every site, one view.", "/industries"],
+    label: "Company",
+    items: [
+      { t: "About MatrixKeep", to: "/about" },
+      { t: "Contact", to: "/contact" },
+      { t: "Book a Demo", to: "/contact" },
+      { t: "Become a Pilot Partner", to: "/partners" },
+    ],
   },
 ];
-const links = [
-  ["/how-it-works", "How It Works"],
-  ["/pricing", "Pricing"],
-] as const;
-
-function MenuLink({
-  m,
-  onClick,
-  compact,
-}: {
-  m: MenuItem;
-  onClick: () => void;
-  compact?: boolean;
-}) {
-  return (
-    <Link
-      to={m.to}
-      params={m.params as never}
-      onClick={onClick}
-      className="flex items-start gap-3 rounded-xl p-3 transition hover:bg-midnight-foreground/5"
-    >
-      <m.icon className="mt-0.5 h-5 w-5 shrink-0 text-aurora" />
-      <span>
-        <span className="block text-sm font-semibold">{m.t}</span>
-        {!compact && <span className="text-xs text-midnight-foreground/60">{m.d}</span>}
-      </span>
-    </Link>
-  );
-}
-
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const f = () => setScrolled(window.scrollY > 20);
-    f();
-    window.addEventListener("scroll", f);
-    return () => window.removeEventListener("scroll", f);
-  }, []);
-  const lc = "text-sm text-midnight-foreground/70 transition hover:text-midnight-foreground";
-  const active = menus.find((m) => m.label === menu);
   const close = () => {
-    setMenu(null);
     setOpen(false);
+    setMenu(null);
   };
+  useEffect(() => {
+    const f = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", f);
+    return () => window.removeEventListener("keydown", f);
+  }, []);
+  const group = menuGroups.find((m) => m.label === menu);
   return (
-    <header
-      className={`sticky top-0 z-50 text-midnight-foreground transition ${scrolled ? "bg-midnight/90 shadow-soft backdrop-blur" : "bg-midnight"}`}
-      onMouseLeave={() => setMenu(null)}
-    >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Logo light />
-        <nav className="hidden items-center gap-6 lg:flex">
-          {menus.map((m) => (
-            <button
+    <header className="mk-header" onMouseLeave={() => setMenu(null)}>
+      <div className="mk-nav">
+        <Logo />
+        <nav aria-label="Main navigation" className="mk-desktop-nav">
+          <Link to="/" onMouseEnter={() => setMenu(null)}>
+            Home
+          </Link>
+          {menuGroups.slice(0, 2).map((m) => (
+            <Button
               key={m.label}
+              variant="ghost"
+              size="sm"
               onMouseEnter={() => setMenu(m.label)}
               onClick={() => setMenu(menu === m.label ? null : m.label)}
               aria-expanded={menu === m.label}
-              className={`${lc} flex items-center gap-1 ${menu === m.label ? "text-midnight-foreground" : ""}`}
+              aria-controls="marketing-menu"
             >
-              {m.label}{" "}
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition ${menu === m.label ? "rotate-180" : ""}`}
-              />
-            </button>
+              {m.label}
+              <ChevronDown className="size-3" />
+            </Button>
           ))}
-          {links.map(([to, t]) => (
-            <Link
-              key={to}
-              to={to}
-              onMouseEnter={() => setMenu(null)}
-              className={lc}
-              activeProps={{ className: "text-midnight-foreground" }}
-            >
-              {t}
-            </Link>
-          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onMouseEnter={() => setMenu("Use Cases")}
+            onClick={() => setMenu(menu === "Use Cases" ? null : "Use Cases")}
+            aria-expanded={menu === "Use Cases"}
+          >
+            Use Cases
+            <ChevronDown className="size-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onMouseEnter={() => setMenu("Industries")}
+            onClick={() => setMenu(menu === "Industries" ? null : "Industries")}
+            aria-expanded={menu === "Industries"}
+          >
+            Industries
+            <ChevronDown className="size-3" />
+          </Button>
+          <Link to="/how-it-works" onMouseEnter={() => setMenu(null)}>
+            How It Works
+          </Link>
+          <Link to="/pricing" onMouseEnter={() => setMenu(null)}>
+            Pricing
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onMouseEnter={() => setMenu("Company")}
+            onClick={() => setMenu(menu === "Company" ? null : "Company")}
+            aria-expanded={menu === "Company"}
+          >
+            Company
+            <ChevronDown className="size-3" />
+          </Button>
         </nav>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/auth"
-            className="hidden text-sm text-midnight-foreground/80 hover:text-midnight-foreground sm:block"
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link to="/auth">Sign In</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link to="/auth">
+              Start Free
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mk-mobile-toggle"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
           >
-            Sign in
-          </Link>
-          <Link
-            to="/auth"
-            className="rounded-full bg-midnight-foreground px-5 py-2 text-sm font-semibold text-midnight transition hover:opacity-90"
-          >
-            Start free
-          </Link>
-          <button
-            aria-label="Open menu"
-            className="rounded-full border border-midnight-foreground/20 p-2 lg:hidden"
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
+            {open ? <X /> : <Menu />}
+          </Button>
         </div>
       </div>
-      {active && (
-        <div className="absolute inset-x-0 top-full hidden lg:block">
-          <div className="mx-auto max-w-7xl px-6">
-            <div className="animate-rise grid grid-cols-[1fr_260px] gap-4 rounded-3xl border border-midnight-foreground/10 bg-midnight p-4 shadow-glow">
-              <div>
-                <div
-                  className={`grid gap-1 ${active.items.length > 4 ? "grid-cols-3" : "grid-cols-2"}`}
-                >
-                  {active.items.map((m) => (
-                    <MenuLink key={m.t} m={m} onClick={close} />
-                  ))}
-                </div>
-                {active.all && (
+      {menu && (
+        <div id="marketing-menu" className="mk-mega">
+          <div className="mk-mega-inner">
+            <div className="mk-mega-links">
+              {group?.items.map((m) => (
+                <Link key={m.t} to={m.to} onClick={close}>
+                  <span>{m.t}</span>
+                  {m.d && <small>{m.d}</small>}
+                  <ArrowRight className="size-4" />
+                </Link>
+              ))}
+              {menu === "Industries" &&
+                industries.map((m) => (
                   <Link
-                    to={active.all.to}
+                    key={m.slug}
+                    to="/industries/$slug"
+                    params={{ slug: m.slug }}
                     onClick={close}
-                    className="ml-3 mt-2 inline-flex items-center gap-1 text-sm font-semibold text-aurora"
                   >
-                    {active.all.t} <ArrowRight className="h-4 w-4" />
+                    <span>{m.t}</span>
+                    <small>{m.short}</small>
                   </Link>
-                )}
-              </div>
-              <Link
-                to={active.promo[2]}
-                onClick={close}
-                className="relative overflow-hidden rounded-2xl bg-midnight-glow p-5"
-              >
-                <div className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-aurora opacity-30 blur-2xl animate-float" />
-                <Sparkles className="h-5 w-5 text-aurora" />
-                <p className="mt-3 font-display text-xl">{active.promo[0]}</p>
-                <p className="mt-1 text-sm text-midnight-foreground/70">{active.promo[1]}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-aurora">
-                  Explore <ArrowRight className="h-4 w-4" />
-                </span>
-              </Link>
+                ))}
+              {menu === "Use Cases" &&
+                useCases.map((m) => (
+                  <Link
+                    key={m.slug}
+                    to="/use-cases/$slug"
+                    params={{ slug: m.slug }}
+                    onClick={close}
+                  >
+                    <span>{m.t}</span>
+                    <small>{m.short}</small>
+                  </Link>
+                ))}
             </div>
+            <Link
+              to={menu === "Company" ? "/partners" : "/digital-passport"}
+              onClick={close}
+              className="mk-mega-feature"
+            >
+              <img src={photos.coffee} alt="Commercial coffee machine" width="627" height="627" />
+              <span>One asset. Its whole story.</span>
+              <small>Explore Digital Passports →</small>
+            </Link>
           </div>
         </div>
       )}
       {open && (
-        <div className="animate-rise max-h-[80vh] overflow-y-auto border-t border-midnight-foreground/10 px-6 pb-6 lg:hidden">
-          {menus.map((m) => (
-            <details key={m.label} className="border-b border-midnight-foreground/10 py-2">
-              <summary className="cursor-pointer py-2 text-sm font-semibold">{m.label}</summary>
+        <nav aria-label="Mobile navigation" className="mk-mobile-nav">
+          <Link to="/" onClick={close}>
+            Home
+          </Link>
+          {menuGroups.map((m) => (
+            <details key={m.label}>
+              <summary>{m.label}</summary>
               {m.items.map((x) => (
-                <MenuLink key={x.t} m={x} onClick={close} compact />
-              ))}
-              {m.all && (
-                <Link to={m.all.to} onClick={close} className="block p-3 text-sm text-aurora">
-                  {m.all.t} →
+                <Link key={x.t} to={x.to} onClick={close}>
+                  {x.t}
                 </Link>
-              )}
+              ))}
             </details>
           ))}
-          {links.map(([to, t]) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={close}
-              className="block py-3 text-sm text-midnight-foreground/80"
-            >
-              {t}
-            </Link>
-          ))}
-          <Link
-            to="/about"
-            onClick={close}
-            className="block py-3 text-sm text-midnight-foreground/80"
-          >
-            About
+          <details>
+            <summary>Use Cases</summary>
+            {useCases.map((x) => (
+              <Link key={x.slug} to="/use-cases/$slug" params={{ slug: x.slug }} onClick={close}>
+                {x.t}
+              </Link>
+            ))}
+          </details>
+          <details>
+            <summary>Industries</summary>
+            {industries.map((x) => (
+              <Link key={x.slug} to="/industries/$slug" params={{ slug: x.slug }} onClick={close}>
+                {x.t}
+              </Link>
+            ))}
+          </details>
+          <Link to="/how-it-works" onClick={close}>
+            How It Works
           </Link>
-          <Link
-            to="/contact"
-            onClick={close}
-            className="block py-3 text-sm text-midnight-foreground/80"
-          >
-            Contact
+          <Link to="/pricing" onClick={close}>
+            Pricing
           </Link>
-          <Link to="/auth" onClick={close} className="block py-3 text-sm">
-            Sign in
+          <Link to="/auth" onClick={close}>
+            Sign In
           </Link>
-        </div>
+        </nav>
       )}
     </header>
   );
 }
-
 export function SiteFooter() {
-  const cols: [string, [string, string][]][] = [
-    [
-      "Solutions",
-      [
-        ["/individual", "Individual"],
-        ["/business", "Business"],
-        ["/enterprise", "Enterprise"],
+  const groups: { title: string; items: Entry[] }[] = [
+    { title: "Product", items: menuGroups[0]?.items ?? [] },
+    { title: "Solutions", items: menuGroups[1]?.items ?? [] },
+    {
+      title: "Company",
+      items: [
+        { t: "About MatrixKeep", to: "/about" },
+        { t: "Contact & demos", to: "/contact" },
+        { t: "Pricing", to: "/pricing" },
       ],
-    ],
-    [
-      "Product",
-      [
-        ["/features", "Features"],
-        ["/how-it-works", "How it works"],
-        ["/pricing", "Pricing"],
-        ["/security", "Security"],
+    },
+    {
+      title: "Legal",
+      items: [
+        { t: "Privacy Policy", to: "/privacy" },
+        { t: "Terms & Conditions", to: "/terms" },
+        { t: "Security", to: "/security" },
       ],
-    ],
-    [
-      "Explore",
-      [
-        ["/use-cases", "Use cases"],
-        ["/industries", "Industries"],
-      ],
-    ],
-    [
-      "Company",
-      [
-        ["/about", "About"],
-        ["/contact", "Contact"],
-        ["/privacy", "Privacy"],
-        ["/terms", "Terms"],
-        ["/auth", "Sign in"],
-      ],
-    ],
+    },
   ];
   return (
-    <footer className="bg-midnight text-midnight-foreground">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-5">
-        <div>
-          <Logo light />
-          <p className="mt-4 max-w-xs text-sm text-midnight-foreground/60">
-            Keep what matters. Know what’s next. The AI Digital Passport for everything you own,
-            operate and need to remember.
-          </p>
+    <footer className="mk-footer">
+      <div className="mk-container">
+        <div className="mk-footer-top">
+          <Logo />
+          <p>Own smarter. Operate better. Stay ahead.</p>
+          <Button asChild variant="outline">
+            <Link to="/auth">
+              Start Free
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
         </div>
-        {cols.map(([h, ls]) => (
-          <div key={h}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-midnight-foreground/50">
-              {h}
-            </p>
-            <ul className="mt-4 space-y-2 text-sm">
-              {ls.map(([to, t]) => (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    className="text-midnight-foreground/75 hover:text-midnight-foreground"
-                  >
-                    {t}
-                  </Link>
-                </li>
+        <div className="mk-footer-grid">
+          {groups.map((g) => (
+            <div key={g.title}>
+              <h3>{g.title}</h3>
+              {g.items.map((m) => (
+                <Link key={m.t} to={m.to}>
+                  {m.t}
+                </Link>
               ))}
-            </ul>
+            </div>
+          ))}
+          <div>
+            <h3>Use Cases</h3>
+            {useCases.slice(0, 6).map((m) => (
+              <Link key={m.slug} to="/use-cases/$slug" params={{ slug: m.slug }}>
+                {m.t}
+              </Link>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="border-t border-midnight-foreground/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 text-xs text-midnight-foreground/50">
-          <p>© 2026 MatrixKeep. All rights reserved.</p>
+          <div>
+            <h3>Industries</h3>
+            {industries.slice(0, 6).map((m) => (
+              <Link key={m.slug} to="/industries/$slug" params={{ slug: m.slug }}>
+                {m.t}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="mk-footer-bottom">
+          <span>© 2026 MatrixKeep. All rights reserved.</span>
+          <a href="mailto:hello@matrixkeep.com">hello@matrixkeep.com</a>
+          <span>Built around what matters.</span>
         </div>
       </div>
     </footer>
   );
 }
-
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="marketing-site">
       <SiteHeader />
       <main>{children}</main>
       <SiteFooter />
     </div>
   );
 }
-
 export function PageHero({
   eyebrow,
   title,
   accent,
   lead,
-  cta = "Start free",
+  cta = "Start Free",
   visual,
 }: {
   eyebrow: string;
@@ -406,41 +376,58 @@ export function PageHero({
   cta?: string;
   visual?: ReactNode;
 }) {
+  const image = /business|enterprise/i.test(eyebrow)
+    ? photos.enterprise
+    : /industry/i.test(eyebrow)
+      ? photos.cafe
+      : photos.world;
   return (
-    <section className="relative overflow-hidden bg-midnight-glow text-midnight-foreground">
-      <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-aurora opacity-20 blur-3xl animate-float" />
-      <div
-        className={`relative mx-auto grid max-w-7xl items-center gap-14 px-6 pb-24 pt-16 ${visual ? "lg:grid-cols-2" : ""}`}
-      >
-        <div className="animate-rise">
-          <span className="inline-flex rounded-full border border-midnight-foreground/15 px-3 py-1 text-xs text-midnight-foreground/80">
-            {eyebrow}
-          </span>
-          <h1 className="mt-6 font-display text-5xl font-medium leading-[1.05] tracking-tight md:text-6xl">
-            {title} {accent && <em className="text-aurora not-italic">{accent}</em>}
+    <section className="mk-page-hero">
+      <img
+        className="mk-hero-photo"
+        src={image}
+        alt="Contemporary home and business environment"
+        width="1536"
+        height="1024"
+        fetchPriority="high"
+      />
+      <div className="mk-hero-shade" />
+      <div className="mk-container relative">
+        <div className="mk-hero-copy">
+          <p className="mk-eyebrow">{eyebrow}</p>
+          <h1>
+            {title}
+            {accent && (
+              <>
+                {" "}
+                <em>{accent}</em>
+              </>
+            )}
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-midnight-foreground/70">{lead}</p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link
-              to="/auth"
-              className="rounded-full bg-aurora px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.03]"
-            >
-              {cta}
-            </Link>
-            <Link
-              to="/pricing"
-              className="rounded-full border border-midnight-foreground/20 px-7 py-3.5 font-semibold transition hover:bg-midnight-foreground/5"
-            >
-              See pricing
-            </Link>
+          <p className="mk-lead">{lead}</p>
+          <div className="mk-actions">
+            <Button asChild>
+              <Link
+                to={
+                  cta.toLowerCase().includes("demo") || cta.toLowerCase().includes("talk")
+                    ? "/contact"
+                    : "/auth"
+                }
+              >
+                {cta}
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/pricing">See pricing</Link>
+            </Button>
           </div>
         </div>
-        {visual && <div className="animate-float">{visual}</div>}
+        {visual && <div className="mk-hero-preview">{visual}</div>}
       </div>
     </section>
   );
 }
-
 export function FeatureGrid({
   title,
   lead,
@@ -451,22 +438,19 @@ export function FeatureGrid({
   items: { icon: ComponentType<{ className?: string }>; t: string; d: string }[];
 }) {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24">
+    <section className="mk-section mk-container">
       <Reveal>
-        <h2 className="max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">
-          {title}
-        </h2>
-        {lead && <p className="mt-4 max-w-xl text-muted-foreground">{lead}</p>}
+        <p className="mk-eyebrow">Connected capabilities</p>
+        <h2>{title}</h2>
+        {lead && <p className="mk-lead">{lead}</p>}
       </Reveal>
-      <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mk-feature-grid">
         {items.map((f, i) => (
-          <Reveal key={f.t} delay={i * 70}>
-            <div className="group h-full rounded-3xl border bg-card p-7 shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-glow">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-secondary transition group-hover:bg-aurora">
-                <f.icon className="h-5 w-5 text-primary group-hover:text-primary-foreground" />
-              </span>
-              <h3 className="mt-5 text-lg font-semibold">{f.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.d}</p>
+          <Reveal key={f.t} delay={i * 40}>
+            <div className="mk-feature">
+              <f.icon className="size-6 text-primary" />
+              <h3>{f.t}</h3>
+              <p>{f.d}</p>
             </div>
           </Reveal>
         ))}
@@ -474,38 +458,31 @@ export function FeatureGrid({
     </section>
   );
 }
-
 export function Steps({ steps }: { steps: [string, string][] }) {
   return (
-    <section className="border-y bg-secondary/50">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 md:grid-cols-3">
-        {steps.map(([t, d], i) => (
-          <Reveal key={t} delay={i * 100}>
-            <span className="font-display text-5xl text-aurora">0{i + 1}</span>
-            <h3 className="mt-3 text-xl font-semibold">{t}</h3>
-            <p className="mt-2 text-muted-foreground">{d}</p>
-          </Reveal>
-        ))}
+    <section className="mk-tint">
+      <div className="mk-container mk-section">
+        <div className="mk-steps">
+          {steps.map(([t, d], i) => (
+            <Reveal key={t} delay={i * 60}>
+              <span className="mk-step-number">0{i + 1}</span>
+              <h3>{t}</h3>
+              <p>{d}</p>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
-
 export function UseCases({ title, items }: { title: string; items: string[] }) {
-  const row = [...items, ...items];
   return (
-    <section className="overflow-hidden py-16">
-      <Reveal>
-        <p className="mb-8 text-center text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          {title}
-        </p>
-      </Reveal>
-      <div className="flex w-max animate-marquee gap-3">
-        {row.map((x, i) => (
-          <span
-            key={i}
-            className="whitespace-nowrap rounded-full border bg-card px-5 py-2.5 text-sm shadow-soft"
-          >
+    <section className="mk-container mk-section">
+      <h2>{title}</h2>
+      <div className="mk-tags">
+        {items.map((x) => (
+          <span key={x}>
+            <Check className="size-4 text-primary" />
             {x}
           </span>
         ))}
@@ -513,7 +490,6 @@ export function UseCases({ title, items }: { title: string; items: string[] }) {
     </section>
   );
 }
-
 export function Checklist({
   title,
   items,
@@ -524,104 +500,106 @@ export function Checklist({
   side: ReactNode;
 }) {
   return (
-    <section className="mx-auto grid max-w-7xl items-center gap-14 px-6 py-24 lg:grid-cols-2">
+    <section className="mk-container mk-section mk-split">
       <Reveal>
-        <h2 className="font-display text-4xl font-medium tracking-tight">{title}</h2>
-        <ul className="mt-8 space-y-3">
+        <h2>{title}</h2>
+        <ul className="mk-checklist">
           {items.map((x) => (
-            <li key={x} className="flex gap-3">
-              <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <span>{x}</span>
+            <li key={x}>
+              <Check className="size-5 text-primary" />
+              {x}
             </li>
           ))}
         </ul>
       </Reveal>
-      <Reveal delay={150}>{side}</Reveal>
+      <Reveal>{side}</Reveal>
     </section>
   );
 }
-
 export function FAQ({ items }: { items: [string, string][] }) {
-  const [o, setO] = useState<number | null>(0);
   return (
-    <section className="mx-auto max-w-3xl px-6 py-24">
-      <h2 className="text-center font-display text-4xl font-medium">Questions, answered</h2>
-      <div className="mt-10 divide-y rounded-3xl border bg-card">
-        {items.map(([q, a], i) => (
-          <div key={q}>
-            <button
-              onClick={() => setO(o === i ? null : i)}
-              className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-semibold"
-              aria-expanded={o === i}
-            >
+    <section className="mk-container mk-section mk-faq">
+      <div>
+        <p className="mk-eyebrow">A little clarity</p>
+        <h2>
+          Questions,
+          <br />
+          answered.
+        </h2>
+        <p>Still have something on your mind?</p>
+        <Button asChild variant="link">
+          <Link to="/contact">
+            Talk to the team
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      </div>
+      <div>
+        {items.map(([q, a]) => (
+          <details key={q}>
+            <summary>
               {q}
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 transition ${o === i ? "rotate-180" : ""}`}
-              />
-            </button>
-            {o === i && <p className="animate-rise px-6 pb-5 text-sm text-muted-foreground">{a}</p>}
-          </div>
+              <ChevronDown className="size-4 shrink-0" />
+            </summary>
+            <p>{a}</p>
+          </details>
         ))}
       </div>
     </section>
   );
 }
-
 export function CTA({ title, lead }: { title: string; lead: string }) {
   return (
-    <section className="mx-auto max-w-7xl px-6 pb-24">
-      <Reveal>
-        <div className="relative overflow-hidden rounded-[2rem] bg-midnight-glow p-12 text-midnight-foreground md:p-16">
-          <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-aurora opacity-25 blur-3xl animate-float" />
-          <h2 className="relative max-w-2xl font-display text-4xl font-medium">{title}</h2>
-          <p className="relative mt-4 max-w-xl text-midnight-foreground/70">{lead}</p>
-          <div className="relative mt-8 flex flex-wrap gap-3">
-            <Link
-              to="/auth"
-              className="inline-flex items-center gap-2 rounded-full bg-midnight-foreground px-7 py-3.5 font-semibold text-midnight"
-            >
-              Start free <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/contact"
-              className="rounded-full border border-midnight-foreground/20 px-7 py-3.5 font-semibold"
-            >
-              Talk to us
-            </Link>
+    <section className="mk-final">
+      <img
+        src={photos.world}
+        loading="lazy"
+        alt="A home and a business connected by everyday information"
+        width="1536"
+        height="1024"
+      />
+      <div className="mk-container">
+        <Reveal>
+          <p className="mk-eyebrow">Make room for what matters</p>
+          <h2>{title}</h2>
+          <p className="mk-lead">{lead}</p>
+          <div className="mk-actions">
+            <Button asChild>
+              <Link to="/auth">
+                Start Your Free Account
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/business">Explore Business</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/contact">Talk to Our Team</Link>
+            </Button>
           </div>
-        </div>
-      </Reveal>
+          <p className="mt-8 text-sm text-muted-foreground">
+            Own smarter. Operate better. Stay ahead.
+          </p>
+        </Reveal>
+      </div>
     </section>
   );
 }
-
-/** Small animated "agent feed" card used as hero visuals. */
 export function FeedCard({ title, rows }: { title: string; rows: [string, string][] }) {
-  const [n, setN] = useState(1);
-  useEffect(() => {
-    const t = setInterval(() => setN((v) => (v % rows.length) + 1), 1600);
-    return () => clearInterval(t);
-  }, [rows.length]);
   return (
-    <div className="mx-auto w-full max-w-md rounded-3xl border border-midnight-foreground/15 bg-midnight/80 p-6 shadow-glow backdrop-blur">
-      <div className="flex items-center justify-between">
-        <p className="font-semibold">{title}</p>
-        <span className="flex items-center gap-2 text-xs text-midnight-foreground/60">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-aurora" />
-          Live
-        </span>
+    <div className="mk-feed">
+      <div className="mk-feed-head">
+        <FileCheck2 className="size-5 text-primary" />
+        <strong>{title}</strong>
+        <Sparkles className="size-4 text-primary" />
       </div>
-      <div className="mt-5 space-y-2">
-        {rows.slice(0, n).map(([a, b]) => (
-          <div
-            key={a}
-            className="animate-rise flex items-center justify-between rounded-xl bg-midnight-foreground/5 px-4 py-3 text-sm"
-          >
-            <span>{a}</span>
-            <span className="text-xs text-aurora">{b}</span>
-          </div>
-        ))}
-      </div>
+      <p className="mk-demo-label">Illustrative product preview</p>
+      {rows.map(([a, b]) => (
+        <div className="mk-feed-row" key={a}>
+          <span>{a}</span>
+          <strong>{b}</strong>
+        </div>
+      ))}
     </div>
   );
 }

@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { StoryIndex } from "@/components/hv/StoryPage";
 import { industries } from "@/components/hv/siteContent";
 
+import { photos } from "@/components/marketing/media";
 export const Route = createFileRoute("/industries/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://matrixkeep.com/industries" }],
     meta: [
       { title: "Industries — MatrixKeep" },
       {
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/industries/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: photos.cafe },
+      { name: "twitter:image", content: photos.cafe },
     ],
   }),
   component: () => (
