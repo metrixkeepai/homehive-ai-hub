@@ -4,7 +4,7 @@ manifest=accepted/release.json
 export RELEASE_SHA=$(jq -er .sha "$manifest")
 [[ $GCP_PROJECT_ID == matrixkeep-production && $REGION == europe-west2 ]]
 [[ $(git -C application rev-parse HEAD) == "$RELEASE_SHA" ]]
-[[ $(jq -r .recovery_run "$manifest") == "$GITHUB_RUN_ID" ]]
+[[ $(jq -r .recovery_run "$manifest") == "${RECOVERY_RUN:?}" ]]
 # Reject approval of stale evidence. Check the live staging target again before copying.
 stage_args=(--project=matrixkeep-staging --region=europe-west2)
 revision=$(jq -er .revision "$manifest")
