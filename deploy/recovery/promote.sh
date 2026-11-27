@@ -5,14 +5,13 @@ export RELEASE_SHA=$(jq -er .sha "$manifest")
 [[ $GCP_PROJECT_ID == matrixkeep-production && $REGION == europe-west2 ]]
 [[ $(git -C application rev-parse HEAD) == "$RELEASE_SHA" ]]
 [[ $(jq -r .recovery_run "$manifest") == "${RECOVERY_RUN:?}" ]]
-# Reject approval of stale evidence. Check the live staging target again before copying.
-stage_args=(--project=matrixkeep-staging --region=europe-west2)
-revision=$(jq -er .revision "$manifest")
-gcloud run services describe matrixkeep-staging-web "${stage_args[@]}" --format=json |
- jq -e --arg rev "$revision" '[.status.traffic[]|select(.percent>0)]|length==1 and .[0].percent==100 and .[0].revisionName==$rev' >/dev/null
-gcloud run revisions describe "$revision" "${stage_args[@]}" --format=json |
- jq -e --arg sha "$RELEASE_SHA" --arg child "$(jq -er .child "$manifest")" '.metadata.labels["source-commit"]==$sha and .status.imageDigest==$child' >/dev/null
-for path in live ready; do curl --fail --silent --show-error --max-time 20 "https://matrixkeep-staging-web-893477687403.europe-west2.run.app/health/$path" | jq -e '.status=="ok"' >/dev/null; done
+# A protected staging identity has reread the live service for this specific dispatch.
+jq -e --arg run "$GITHUB_RUN_ID" --arg recovery "$RECOVERY_RUN" --slurpfile expected "$manifest" '
+  . as $w | .promotion_run==$run and .original_recovery==$recovery and
+  (now-(.verified_at|fromdateiso8601) | .>=0 and .<300) and
+  .traffic_percent==100 and .health=={live:200,ready:200} and
+  all(["sha","image","revision","child","digest","migrator","project","region","service"][]; $w[.]==$expected[0][.])
+' witness/witness.json >/dev/null
 bash deploy/recovery/guard.sh production pending-activation
 gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
 for pair in web:image migrator:migrator; do

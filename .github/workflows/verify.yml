@@ -1,12 +1,22 @@
 name: Verify hardening
 on:
+  workflow_dispatch:
+    inputs:
+      promotion_run:
+        type: string
+        required: true
+        description: Protected production dispatch requiring a fresh staging witness
+      recovery_run:
+        type: string
+        required: true
+        description: Successful staging recovery run
   push:
     branches: [production-hardening, main, release/matrixkeep-cloud-run]
   pull_request:
 permissions:
   contents: read
 concurrency:
-  group: verify-${{ github.ref }}
+  group: verify-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: true
 jobs:
   verify:
@@ -271,4 +281,49 @@ jobs:
         with:
           name: matrixkeep-recovered-staging-release
           path: release.json
+          if-no-files-found: error
+
+  witness:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate the requesting production run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROMOTION: ${{ inputs.promotion_run }}
+          RECOVERY: ${{ inputs.recovery_run }}
+        run: |
+          set -euo pipefail
+          [[ $PROMOTION =~ ^[0-9]+$ && $RECOVERY =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROMOTION" | jq -e --arg sha "$GITHUB_SHA" '.path==".github/workflows/promote.yml" and .head_sha==$sha and .head_branch=="main" and .event=="workflow_dispatch" and .status=="in_progress"' >/dev/null
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.recovery_run }}
+          name: matrixkeep-recovered-staging-release
+          path: accepted
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Verify live traffic, identity, original index and health
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROMOTION: ${{ inputs.promotion_run }}
+          RECOVERY: ${{ inputs.recovery_run }}
+        run: |
+          bash deploy/recovery/verify.sh
+          jq -e --slurpfile old accepted/release.json '. as $new | all(["sha","image","revision","child","migrator","execution","project","region","service","functional_acceptance"][]; $old[0][.] == $new[.])' release.json >/dev/null
+          jq --arg p "$PROMOTION" --arg r "$RECOVERY" '. + {promotion_run:$p,original_recovery:$r}' release.json > witness.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-live-witness-${{ inputs.promotion_run }}
+          path: witness.json
           if-no-files-found: error
