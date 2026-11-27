@@ -293,7 +293,9 @@ export function Capabilities() {
     </section>
   );
 }
-export function Intelligence() { return <IntelligenceShowcase />; }
+export function Intelligence() {
+  return <IntelligenceShowcase />;
+}
 export function Journey() {
   return (
     <>

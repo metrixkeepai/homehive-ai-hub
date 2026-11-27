@@ -171,7 +171,15 @@ export function AudiencePage({ audience }: { audience: keyof typeof content }) {
             </div>
           </div>
         </div>
-        <LivingOverlay label={enterprise ? "Connected enterprise locations" : business ? "Business equipment passport" : "Your digital home"} />
+        <LivingOverlay
+          label={
+            enterprise
+              ? "Connected enterprise locations"
+              : business
+                ? "Business equipment passport"
+                : "Your digital home"
+          }
+        />
       </section>
       {!enterprise && <EnvironmentExplorer personal={!business} />}
       <section className="mk-container mk-section mk-split">
