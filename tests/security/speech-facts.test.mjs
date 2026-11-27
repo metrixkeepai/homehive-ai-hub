@@ -39,3 +39,8 @@ test("Malayalam to English accepts a script change and preserves price and day",
     "numbers",
   );
 });
+
+test("a Malayalam rupee symbol may translate to the English currency name", () => {
+  assert.equal(translationRisk("വില ₹650", "Price 650 rupees", "ml"), null);
+  assert.equal(translationRisk("വില ₹650", "Price 650 euros", "ml"), "currency");
+});

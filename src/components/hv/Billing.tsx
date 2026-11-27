@@ -36,6 +36,14 @@ export function BillingPage() {
       return latest.data;
     },
   });
+  const usage = useQuery({
+    queryKey: ["my-ai-allowances", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("my_ai_allowances");
+      if (error) throw error;
+      return data;
+    },
+  });
   const sub = subscription.data;
   const [busy, setBusy] = useState(false);
   const portal = async () => {
@@ -186,6 +194,19 @@ export function BillingPage() {
             );
           })}
         </div>
+        {usage.data?.map((row) => (
+          <p key={row.feature} className="mt-3 text-sm">
+            {row.feature === "ai_captures"
+              ? "Account AI captures (including recorded speech)"
+              : "Account Sera voice minutes"}
+            :{" "}
+            {row.enabled
+              ? row.used + " / " + (row.monthly_limit ?? "Unlimited")
+              : "Unavailable on this plan"}{" "}
+            · Resets {new Date(row.resets_at).toLocaleDateString("en-GB", { timeZone: "UTC" })} UTC
+          </p>
+        ))}
+        {usage.isError && <p>AI usage is temporarily unavailable.</p>}
         <p className="mt-4 text-xs text-muted-foreground">
           Storage {p.cap.storage} · {p.cap.captures} · {p.cap.sera}. Counts include records you've
           saved yourself.

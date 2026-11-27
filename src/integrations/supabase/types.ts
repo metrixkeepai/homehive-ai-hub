@@ -1406,6 +1406,16 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      my_ai_allowances: {
+        Args: never;
+        Returns: {
+          feature: string;
+          enabled: boolean;
+          monthly_limit: number | null;
+          used: number;
+          resets_at: string;
+        }[];
+      };
       effective_plan_catalogue: {
         Args: never;
         Returns: {

@@ -35,8 +35,8 @@ export function useCurrentPlan(key?: string | null) {
 }
 export async function refreshPlans(client: QueryClient) {
   await Promise.all(
-    [["admin", "plans"], ["published-plan-catalogue"], ["plan-status"]].map((queryKey) =>
-      client.invalidateQueries({ queryKey }),
+    [["admin", "plans"], ["published-plan-catalogue"], ["my-ai-allowances"], ["plan-status"]].map(
+      (queryKey) => client.invalidateQueries({ queryKey }),
     ),
   );
 }

@@ -91,7 +91,14 @@ export function translationRisk(original: string, english: string, language: str
       .map((m) => m[0])
       .sort()
       .join("");
-  if (symbols(original) && symbols(original) !== symbols(english)) return "units";
+  // Currency names and symbols can legitimately change across scripts (₹65 → 65 rupees).
+  const sourceSymbols = sourceAmounts.length
+    ? symbols(original).replace(/[£€$¥₹]/gu, "")
+    : symbols(original);
+  const translatedSymbols = sourceAmounts.length
+    ? symbols(english).replace(/[£€$¥₹]/gu, "")
+    : symbols(english);
+  if (sourceSymbols && sourceSymbols !== translatedSymbols) return "units";
   return null;
 }
 

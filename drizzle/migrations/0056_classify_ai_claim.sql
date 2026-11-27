@@ -42,3 +42,19 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
 $$;
 REVOKE ALL ON FUNCTION public.effective_plan_catalogue() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.effective_plan_catalogue() TO anon,authenticated,service_role;
+
+-- Account-wide UTC meter uses the same rows and features as reserve_ai_operation.
+CREATE FUNCTION public.my_ai_allowances()
+RETURNS TABLE(feature text, enabled boolean, monthly_limit numeric, used bigint, resets_at timestamptz)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+  WITH account AS (SELECT public.account_entitlements(auth.uid()) ent),
+  period AS (SELECT date_trunc('month',now() AT TIME ZONE 'UTC') start_utc)
+  SELECT k,(ent->k->>'on')::boolean,(ent->k->>'limit')::numeric,
+    (SELECT coalesce(sum(r.units),0)::bigint FROM public.operation_reservations r
+     WHERE r.user_id=auth.uid() AND r.created_at>=start_utc AT TIME ZONE 'UTC'
+       AND CASE k WHEN 'ai_captures' THEN r.feature IN ('capture','speech') ELSE r.feature='voice' END),
+    (start_utc+interval '1 month') AT TIME ZONE 'UTC'
+  FROM account,period,unnest(ARRAY['ai_captures','sera_voice_minutes']) k
+$$;
+REVOKE ALL ON FUNCTION public.my_ai_allowances() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.my_ai_allowances() TO authenticated;
