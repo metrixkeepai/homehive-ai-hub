@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
+      recovery_request: ${{ steps.install.outputs.recovery }}
       website_workflow_install: ${{ steps.install.outputs.only }}
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +30,7 @@ jobs:
           # A recovery-only change must not replace the running staging image.
           if [[ $(git log -1 --format=%s) == *"[release-recovery]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(deploy\/recovery\/|deploy\/cloud-run.sh$|\.github\/workflows\/(verify|recover-serving|release-browser-qa|promote)\.yml$)/ { other=1 } END { exit other }'; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
+            if ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- deploy/recovery/request.json; then echo 'recovery=true' >> "$GITHUB_OUTPUT"; fi
           fi
           if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
@@ -241,3 +243,32 @@ jobs:
     uses: ./.github/workflows/release-browser-qa.yml
     with:
       target: staging
+
+  recover:
+    needs: verify
+    if: needs.verify.outputs.recovery_request == 'true' && github.ref == 'refs/heads/main'
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency: matrixkeep-serving-recovery
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Derive deployment evidence and verify staging AI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash deploy/recovery/verify.sh
+          bash deploy/recovery/guard.sh staging required
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-recovered-staging-release
+          path: release.json
+          if-no-files-found: error

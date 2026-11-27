@@ -1,5 +1,9 @@
 name: Promote verified MatrixKeep release
 on:
+  workflow_run:
+    workflows: ["Verify hardening"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       website_sha:
@@ -33,7 +37,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -112,7 +116,7 @@ jobs:
           if-no-files-found: error
 
   serving-acceptance:
-    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -161,7 +165,7 @@ jobs:
         run: bash deploy/billing-acceptance.sh
 
   mail:
-    if: inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -194,7 +198,7 @@ jobs:
       - run: bash deploy/production-mail-worker.sh
 
   website-production:
-    if: github.ref == 'refs/heads/main' && inputs.website_sha != ''
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.website_sha != ''
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -239,6 +243,61 @@ jobs:
 
   capture-acceptance:
     needs: promote
+    uses: ./.github/workflows/release-browser-qa.yml
+    with:
+      target: production
+
+  recover-production:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_commit.message, '[release-recovery]')
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RECOVERY_RUN: ${{ github.event.workflow_run.id }}
+      APP_ENV: production
+      STAGING_PROJECT: matrixkeep-staging
+      REGION: europe-west2
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      STRIPE_ACCOUNT_ID: ${{ vars.STRIPE_ACCOUNT_ID }}
+      LIVE_BILLING_VERIFIED: ${{ vars.LIVE_BILLING_VERIFIED }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: matrixkeep-recovered-staging-release
+          path: accepted
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - id: source
+        run: |
+          set -euo pipefail
+          sha=$(jq -er '.sha|select(test("^[0-9a-f]{40}$"))' accepted/release.json)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          path: application
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - run: bash deploy/recovery/promote.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-production-release
+          path: application/release.json
+          if-no-files-found: error
+
+
+  recovered-capture-acceptance:
+    needs: recover-production
     uses: ./.github/workflows/release-browser-qa.yml
     with:
       target: production

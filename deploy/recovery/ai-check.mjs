@@ -19,10 +19,23 @@ const [limits] = await query(
 );
 assert.equal(limits.billing_environment, target === "production" ? "live" : "sandbox");
 const budget = Number(limits.daily_ai_budget_usd);
-const [day] = await query(
-  "ai_budget_days?select=held_and_spent_usd&day=eq." + new Date().toISOString().slice(0, 10),
-);
-assert.ok(budget > Number(day?.held_and_spent_usd ?? 0), "AI daily budget unavailable");
+// Sum the same settled-or-reserved amounts used by the daily ledger trigger.
+// The web identity already has read access to reservations in both environments.
+const day = new Date().toISOString().slice(0, 10);
+const tomorrow = new Date(Date.parse(day + "T00:00:00Z") + 86400000).toISOString();
+const ledger =
+  "operation_reservations?select=settled_usd,reserved_usd&feature=not.in.(share,report)&created_at=gte." +
+  day +
+  "T00:00:00Z&created_at=lt." +
+  tomorrow +
+  "&order=id&limit=500";
+let heldAndSpent = 0;
+for (let offset = 0; ; offset += 500) {
+  const rows = await query(ledger + "&offset=" + offset);
+  for (const row of rows) heldAndSpent += Number(row.settled_usd ?? row.reserved_usd);
+  if (rows.length < 500) break;
+}
+assert.ok(budget > heldAndSpent, "AI daily budget unavailable");
 const flags = await query(
   "feature_flags?select=key,enabled,rollout&key=in.(capture_ai,speech_capture)",
 );
