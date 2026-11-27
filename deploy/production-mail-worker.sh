@@ -41,6 +41,10 @@ done
 gcloud run jobs deploy "$job" "${common[@]}" --image="${images[mail-worker]}" --service-account="$identity" \
   --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=15m --set-secrets="$(IFS=,; echo "${bindings[*]}")" \
   --set-env-vars='APP_ENV=production' --execute-now --wait
+# Verify the persistent job is in customer delivery mode before running QA overrides.
+gcloud run jobs describe "$job" "${common[@]}" --format=json |
+  jq -e '[.spec.template.spec.template.spec.containers[0].env[].name] |
+    (index("APP_ENV") != null and index("MATRIXKEEP_MAIL_QA_RECIPIENT") == null and index("MATRIXKEEP_PRODUCTION_DELIVERY_QA") == null)' >/dev/null
 # Both passes use the normal renderer, SMTP submission and persistent delivery ledger.
 for pass in first replay; do
   gcloud run jobs execute "$job" "${common[@]}" --update-env-vars='MATRIXKEEP_PRODUCTION_DELIVERY_QA=true,MATRIXKEEP_MAIL_QA_RECIPIENT=zaineluvathingal@gmail.com' --wait
