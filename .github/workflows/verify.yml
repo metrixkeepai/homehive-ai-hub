@@ -27,7 +27,7 @@ jobs:
           # The one-time installation includes the reviewed CI repair. Never deploy
           # main's application or start its migrator on this installation push.
           # A recovery-only change must not replace the running staging image.
-          if [[ $(git log -1 --format=%s) == *"[release-recovery]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(deploy\/recovery\/|deploy\/cloud-run.sh$|\.github\/workflows\/(verify|recover-serving|promote)\.yml$)/ { other=1 } END { exit other }'; then
+          if [[ $(git log -1 --format=%s) == *"[release-recovery]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(deploy\/recovery\/|deploy\/cloud-run.sh$|\.github\/workflows\/(verify|recover-serving|release-browser-qa|promote)\.yml$)/ { other=1 } END { exit other }'; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
           fi
           if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
@@ -223,6 +223,9 @@ jobs:
           name: matrixkeep-staging-release
           path: release.json
           if-no-files-found: error
+      - name: Verify staging AI runtime
+        if: contains(github.event.head_commit.message, '[runtime-parity]')
+        run: bash deploy/recovery/guard.sh staging required
       - name: Functional browser QA on the published deployment
         if: contains(github.event.head_commit.message, '[staging-qa]')
         run: bash deploy/staging-qa.sh
@@ -231,3 +234,10 @@ jobs:
         env:
           MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
         run: python3 deploy/monitoring.py
+
+  capture-acceptance:
+    needs: staging
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[runtime-parity]')
+    uses: ./.github/workflows/release-browser-qa.yml
+    with:
+      target: staging

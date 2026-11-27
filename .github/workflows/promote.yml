@@ -236,3 +236,9 @@ jobs:
           name: matrixkeep-website-${{ env.TARGET }}
           path: website.json
           if-no-files-found: error
+
+  capture-acceptance:
+    needs: promote
+    uses: ./.github/workflows/release-browser-qa.yml
+    with:
+      target: production

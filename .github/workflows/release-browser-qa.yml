@@ -1,0 +1,51 @@
+name: Customer capture release acceptance
+on:
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      target:
+        type: choice
+        required: true
+        options: [staging, production]
+permissions:
+  contents: read
+jobs:
+  browser:
+    if: github.ref == 'refs/heads/main' && (inputs.target == 'staging' || inputs.target == 'production')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [individual, business]
+    concurrency: capture-acceptance-${{ inputs.target }}-${{ matrix.role }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y espeak-ng ffmpeg python3-pil
+          bun x playwright install --with-deps chromium
+      - name: Complete customer workflows and reopen saved records
+        env:
+          APP_ENV: ${{ inputs.target }}
+          QA_ROLE: ${{ matrix.role }}
+          QA_PASSWORD: ${{ matrix.role == 'business' && secrets.CAPTURE_QA_BUSINESS_PASSWORD || secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
+          QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
+        run: node deploy/recovery/browser-qa.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capture-browser-${{ inputs.target }}-${{ matrix.role }}
+          path: browser-*.json
+          if-no-files-found: error

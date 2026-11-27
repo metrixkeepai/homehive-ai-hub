@@ -59,7 +59,10 @@ jobs:
           name: matrixkeep-recovered-staging-release
           path: accepted
       - id: source
-        run: echo "sha=$(jq -er '.sha|select(test(\"^[0-9a-f]{40}$\"))' accepted/release.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          sha=$(jq -er '.sha|select(test("^[0-9a-f]{40}$"))' accepted/release.json)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.source.outputs.sha }}
@@ -75,3 +78,9 @@ jobs:
           name: matrixkeep-production-release
           path: application/release.json
           if-no-files-found: error
+
+  capture-acceptance:
+    needs: promote
+    uses: ./.github/workflows/release-browser-qa.yml
+    with:
+      target: production
