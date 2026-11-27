@@ -44,8 +44,10 @@ function Plans() {
   const off = useInactivePlans();
   const catalogue = usePublishedPlans();
   const list = (catalogue.data ?? [])
-    .filter((p) =>
-      kind === "individual" ? p.audience === "individual" : p.audience !== "individual",
+    .filter(
+      (p) =>
+        p.key === profile?.plan ||
+        (kind === "individual" ? p.audience === "individual" : p.audience !== "individual"),
     )
     .filter((p) => !off.has(p.key) || p.key === profile?.plan);
   const published = usePublished();
@@ -78,7 +80,9 @@ function Plans() {
       return;
     }
     localStorage.removeItem("hv-voucher");
-    toast.success(`Voucher applied — you're on ${planByKey(data).name}`);
+    toast.success(
+      `Voucher applied — you're on ${catalogue.data?.find((p) => p.key === data)?.name ?? planByKey(data).name}`,
+    );
     setCode("");
     await reload();
   };

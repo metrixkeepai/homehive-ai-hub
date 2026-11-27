@@ -38,8 +38,9 @@ export async function browserSpeech({ dir, cases, base, email, password, db, use
         .first()
         .click();
       await page.getByRole("button", { name: "Speak", exact: true }).click();
-      await page.getByText("Detect automatically", { exact: true }).waitFor();
-      steps.automaticUi = !(await page.getByRole("combobox", { name: /language/i }).count());
+      const language = page.getByRole("combobox", { name: "Spoken language" });
+      await language.waitFor();
+      steps.automaticUi = (await language.inputValue()) === "";
       await page.getByRole("button", { name: "Tap and speak" }).click();
       await page.getByRole("button", { name: /Listening.*finish/ }).waitFor();
       await new Promise((resolve) =>

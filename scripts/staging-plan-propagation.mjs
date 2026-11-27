@@ -1,4 +1,14 @@
-export async function checkPlanPropagation({ admin, page, db, base, key, userId, executionId }) {
+export async function checkPlanPropagation({
+  admin,
+  page,
+  db,
+  base,
+  key,
+  userId,
+  executionId,
+  targetLimit,
+  exercise,
+}) {
   let phase = "READ_APPROVED";
   try {
     const approved = async () => {
@@ -15,12 +25,12 @@ export async function checkPlanPropagation({ admin, page, db, base, key, userId,
     phase = "OPEN_APPROVED";
     const limit = before.entitlements.ai_captures.limit;
     const note = "QA allowance " + executionId;
-    const target = limit + 1;
+    const target = targetLimit ?? limit + 1;
     await admin.goto(base + "/super-admin/plans/" + key);
     await admin.getByRole("cell", { name: "v" + before.version, exact: true }).waitFor();
     const latest = admin.locator("tbody tr").first();
     if (
-      !(await latest.innerText()).includes("v" + before.version) ||
+      (await latest.getByRole("cell", { name: /^draft$/i }).count()) ||
       (await admin.getByLabel("Maximum AI Captures", { exact: true }).inputValue()) !==
         String(limit)
     )
@@ -53,6 +63,10 @@ export async function checkPlanPropagation({ admin, page, db, base, key, userId,
               ? "APP_PLANS"
               : "BILLING_METER";
         await page.goto(base + path);
+        if (key === "free" && path === "/app/plans") {
+          const audience = page.getByRole("button", { name: "Individual", exact: true });
+          if (await audience.count()) await audience.click();
+        }
         await page
           .getByText(new RegExp("\\b" + target + " AI captures/mo"))
           .first()
@@ -63,6 +77,10 @@ export async function checkPlanPropagation({ admin, page, db, base, key, userId,
       const runtime = await db.rpc("account_entitlements", { _user: userId });
       if (runtime.error || runtime.data?.ai_captures?.limit !== target)
         throw Error("Runtime did not adopt approved version");
+      if (exercise) {
+        phase = "BROWSER_CAPTURES";
+        await exercise(target);
+      }
     } finally {
       if ((await approved()).id === edited.id) {
         // Restore the original approved version with the same normal Admin action.

@@ -221,6 +221,7 @@ export function AddAnything({
   };
 
   const recRef = useRef<MediaRecorder | null>(null);
+  const [spokenLanguage, setSpokenLanguage] = useState("");
   const [speechWarning, setSpeechWarning] = useState("");
   const [originalTranscript, setOriginalTranscript] = useState("");
   const [transcribing, setTranscribing] = useState(false);
@@ -294,6 +295,7 @@ export function AddAnything({
         const r = await transcribeToEnglish({
           data: {
             audio: btoa(bin),
+            language: spokenLanguage || undefined,
             mime: "audio/wav",
             workspaceId: current.id,
           },
@@ -656,12 +658,22 @@ export function AddAnything({
               )}
               {mode.kind === "voice" && (
                 <>
-                  <div className="block text-sm">
+                  <label className="block text-sm">
                     Spoken language
-                    <span className="ml-2 inline-block rounded border bg-background p-2">
-                      Detect automatically
-                    </span>
-                  </div>
+                    <select
+                      className="ml-2 rounded border bg-background p-2"
+                      value={spokenLanguage}
+                      disabled={listening || transcribing}
+                      onChange={(event) => setSpokenLanguage(event.target.value)}
+                    >
+                      <option value="">Detect automatically</option>
+                      <option value="en">English</option>
+                      <option value="ml">മലയാളം (Malayalam)</option>
+                      <option value="fr">Français (French)</option>
+                      <option value="hi">हिन्दी (Hindi)</option>
+                      <option value="ar">العربية (Arabic)</option>
+                    </select>
+                  </label>
                   <button
                     type="button"
                     onClick={listen}
