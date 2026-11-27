@@ -62,6 +62,25 @@ function calendarTerms(text: string, locale: string) {
   for (let d = 0; d < 7; d++) add(weekday.format(Date.UTC(2024, 0, 7 + d)), "weekday:" + d);
   return terms;
 }
+export function speechLocale(original: string, acoustic: string[], translatedFrom: string) {
+  // A Malayalam-script clause is direct evidence even in mixed-language speech.
+  if ((original.match(/\p{Script=Malayalam}/gu) ?? []).length >= 4) return "ml";
+  const languages = [...acoustic, translatedFrom]
+    .map((s) => s.toLowerCase().split(/[-_]/)[0])
+    .filter((s) => s && !["mul", "unknown", "und"].includes(s));
+  return languages[0] ?? "und";
+}
+
+function normaliseSpokenFacts(text: string) {
+  return text
+    .replace(/പൗണ്ട[\p{Script=Malayalam}\p{M}]*/gu, " GBP ")
+    .replace(/രൂപ[\p{Script=Malayalam}\p{M}]*/gu, " INR ")
+    .replace(/രണ്ട്|രണ്ടു/gu, "2")
+    .replace(/\btwo\b/gi, "2");
+}
+function yearTerms(text: string) {
+  return Array.from(text.matchAll(/(\d+)\s*[- ]?\s*(?:years?\b|വർഷ|വര്‍ഷ)/giu), (m) => m[1]);
+}
 export function translationRisk(original: string, english: string, language: string) {
   let locale = "en";
   try {
@@ -69,8 +88,11 @@ export function translationRisk(original: string, english: string, language: str
   } catch {
     /* mixed or unknown */
   }
+  original = normaliseSpokenFacts(original);
+  english = normaliseSpokenFacts(english);
   const numbers = numericEntities(original, locale);
   if (JSON.stringify(numbers) !== JSON.stringify(numericEntities(english))) return "numbers";
+  if (yearTerms(original).some((n) => !yearTerms(english).includes(n))) return "term";
   const dates = calendarTerms(original, locale);
   const translatedDates = calendarTerms(english, "en-GB");
   if (dates.some((t) => !translatedDates.includes(t))) return "date";

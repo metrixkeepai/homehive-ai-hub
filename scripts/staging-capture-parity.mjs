@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, statSync } from "node:fs";
+import { mkdtempSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { hasExactGbp } from "../src/lib/speech-facts.ts";
@@ -17,7 +17,8 @@ const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_R
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const dir = mkdtempSync(join(tmpdir(), "capture-qa-"));
-execFileSync("python3", ["scripts/ai-benchmark-fixtures.py", dir]);
+const receiptRef = "MK-" + process.env.QA_RUN + "-" + process.env.QA_ATTEMPT;
+execFileSync("python3", ["scripts/ai-benchmark-fixtures.py", dir, receiptRef]);
 const runId = process.env.QA_RUN + "-" + process.env.QA_ATTEMPT + "-capture-parity";
 const mark = async (name, result) => {
   const { error } = await db
@@ -30,6 +31,7 @@ const mark = async (name, result) => {
   console.log(name, result);
   if (result !== "PASS") process.exitCode = 1;
 };
+let humanWav = process.env.QA_MALAYALAM_WAV;
 for (const role of ["individual", "business"]) {
   // Fixed, owner-designated staging fixtures only. Each browser follows a single-use
   // Supabase sign-in link. The privileged client is never provided to the page.
@@ -45,6 +47,15 @@ for (const role of ["individual", "business"]) {
     if (error || data.user.email !== email || !data.user.email_confirmed_at)
       throw Error("Fixture unavailable");
     userId = data.user.id;
+    if (!humanWav && role === "individual") {
+      const { data: clip } = await db.storage
+        .from("evidence")
+        .download(userId + "/release-qa/owner-malayalam.wav");
+      if (clip) {
+        humanWav = join(dir, "owner-malayalam.wav");
+        writeFileSync(humanWav, Buffer.from(await clip.arrayBuffer()), { mode: 0o600 });
+      }
+    }
     const page = await sessionBrowser.newPage();
     await page.goto(data.properties.action_link);
     await page
@@ -97,10 +108,23 @@ for (const role of ["individual", "business"]) {
       "receipt",
       "en",
       "ml",
-      ...(role === "individual" ? ["fr", "photo", "room", "type", "email"] : []),
+      "duplicate",
+      "fr",
+      "photo",
+      "room",
+      "document",
+      "type",
+      "email",
     ]) {
       const speech = ["en", "ml", "fr"].includes(mode);
-      const wav = join(dir, mode + ".wav");
+      // A private 16 kHz mono PCM WAV can be mounted in the protected QA job.
+      const human = mode === "ml" && Boolean(humanWav);
+      const wav = human ? humanWav : join(dir, mode + ".wav");
+      const today = new Date().toISOString().slice(0, 10);
+      const item = human ? /Dyson\s+V\s*15/i : /kettle/i;
+      const expected = human ? 599 : 65;
+      const terms = /(?:two|2)[- ]years?|24[- ]months?/i;
+
       const browser = await chromium.launch({
         args: speech
           ? [
@@ -125,6 +149,8 @@ for (const role of ["individual", "business"]) {
           .click();
         const labels = {
           receipt: "Scan receipt",
+          duplicate: "Scan receipt",
+          document: "Upload document",
           photo: "Take photo",
           room: "Scan room",
           email: "Import email",
@@ -132,10 +158,18 @@ for (const role of ["individual", "business"]) {
         await page.getByRole("button", { name: labels[mode] ?? "Speak", exact: true }).click();
         step = "CAPTURE";
         if (speech) {
-          if (mode !== "en") await page.getByLabel("Spoken language").selectOption(mode);
+          const automatic = async () => {
+            if (
+              !(await page.getByText("Detect automatically", { exact: true }).isVisible()) ||
+              (await page.getByRole("combobox", { name: /language/i }).count())
+            )
+              throw Error("Language control is editable");
+          };
+          await automatic();
           await page.getByRole("button", { name: "Tap and speak" }).click();
           const stop = page.getByRole("button", { name: /Listening.*finish/ });
           await stop.waitFor();
+          await automatic();
           await new Promise((r) => setTimeout(r, Math.ceil(statSync(wav).size / 32) + 350));
           await stop.click();
           step = "TRANSCRIPT";
@@ -143,28 +177,34 @@ for (const role of ["individual", "business"]) {
             timeout: 105000,
           });
           await page.getByText("Original transcript", { exact: true }).click();
+          await automatic();
           const original = await page.locator("details[open] p").innerText();
           if (!original.trim() || (mode === "ml" && !/[\u0D00-\u0D7F]/u.test(original)))
             throw Error();
           step = "ENGLISH";
           const draft = await page.locator("textarea").inputValue();
-          if (!/kettle/i.test(draft) || !hasExactGbp(draft, 65)) throw Error();
-          await page.locator("textarea").fill(draft + " QA reference " + runId + " " + mode);
+          if (!item.test(draft) || !hasExactGbp(draft, expected)) throw Error();
+          if (human && ![/vacuum/i, /Currys/i, /today/i, terms].every((re) => re.test(draft)))
+            throw Error();
+          if (!human)
+            await page.locator("textarea").fill(draft + " QA reference " + runId + " " + mode);
         } else if (mode === "email" || mode === "type") {
           await page
             .locator("textarea")
             .fill(
-              "MatrixKeep QA receipt QA-PAR-658. Elm Appliances. One Bosch kettle TWK7203 for GBP 65.00 on 18 March 2026.",
+              `MatrixKeep QA receipt QA-PAR-${runId}-${mode}. Elm Appliances. One Bosch kettle TWK7203 for GBP 65.00 on 18 March 2026.`,
             );
         } else {
           const file =
-            mode === "receipt"
+            mode === "receipt" || mode === "duplicate"
               ? join(dir, "clear-receipt.jpg")
-              : mode === "room"
-                ? "src/assets/auth-home.jpg"
-                : "src/assets/passport-tv.jpg";
+              : mode === "document"
+                ? join(dir, "receipt.pdf")
+                : mode === "room"
+                  ? "src/assets/auth-home.jpg"
+                  : "src/assets/passport-tv.jpg";
           await page.locator("input[type=file]").setInputFiles(file);
-          await page.locator("textarea").fill("QA reference " + runId);
+          await page.locator("textarea").fill("QA reference " + runId + " " + mode);
         }
         await page.getByRole("button", { name: "Let the AI read it" }).click();
         step = "REVIEW";
@@ -174,15 +214,52 @@ for (const role of ["individual", "business"]) {
           .locator("input,dd,dt")
           .evaluateAll((els) => els.map((e) => e.value ?? e.textContent).join(" "));
         if (
-          mode === "receipt" &&
-          ![/MK-508/i, /elm appliances/i, /TWK7203/i, /65/].every((re) => re.test(review))
+          ["receipt", "document", "duplicate"].includes(mode) &&
+          ![new RegExp(receiptRef, "i"), /elm appliances/i, /TWK7203/i, /65/].every((re) =>
+            re.test(review),
+          )
         )
           throw Error();
-        if (speech && (!/kettle/i.test(review) || !hasExactGbp(review, 65))) throw Error();
+        if (speech && (!item.test(review) || !hasExactGbp(review, expected))) throw Error();
+        if (human && (!review.includes(today) || !/Currys/i.test(review) || !terms.test(review)))
+          throw Error();
         if (mode === "photo" && !/television|\bTV\b/i.test(review)) throw Error();
         if (mode === "room" && !/chair|sofa|table/i.test(review)) throw Error();
         step = "SAVE";
-        await save.click();
+        if (mode === "duplicate") {
+          const count = async () => {
+            const { count, error } = await db
+              .from("home_items")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", userId);
+            if (error) throw Error("Cannot verify saved records");
+            return count;
+          };
+          const before = await count();
+          const confirmDuplicate = async (accept) => {
+            const clicked = page.waitForEvent("dialog").then(async (d) => {
+              const expected =
+                d.type() === "confirm" &&
+                /^This file was already uploaded as .+Save it again anyway\?$/.test(d.message());
+              if (expected && accept) await d.accept();
+              else await d.dismiss();
+              if (!expected) throw Error("Unexpected dialog");
+            });
+            await Promise.all([clicked, save.click()]);
+          };
+          await confirmDuplicate(false);
+          if (!(await save.isVisible()) || (await count()) !== before)
+            throw Error("Duplicate cancellation changed records");
+          await confirmDuplicate(true);
+        } else if (mode === "photo" || mode === "room") {
+          page.once("dialog", async (d) => {
+            if (d.type() === "confirm" && /^This file was already uploaded as /.test(d.message()))
+              await d.accept();
+            else await d.dismiss();
+          });
+          await save.click();
+        } else await save.click();
+
         await page.getByText(/^Saved to /).waitFor();
         const records = await page
           .locator("div.fixed")
@@ -194,13 +271,52 @@ for (const role of ["individual", "business"]) {
           );
         if (!records.length) throw Error();
         step = "REOPEN";
+        if (
+          human &&
+          !["/app/assets/", "/app/warranties/"].every((prefix) =>
+            records.some(([path]) => path.startsWith(prefix)),
+          )
+        )
+          throw Error();
         for (const [path, title] of records) {
           await page.goto(base + path);
           await page.getByText(title, { exact: true }).first().waitFor();
+          if (human) {
+            const expiry = new Date(today + "T12:00:00Z");
+            expiry.setUTCFullYear(expiry.getUTCFullYear() + 2);
+            const saved = await page.locator("main").innerText();
+            if (
+              path.startsWith("/app/assets/") &&
+              (!item.test(saved) ||
+                !hasExactGbp(saved, expected) ||
+                !/Currys/i.test(saved) ||
+                !saved.includes(today))
+            )
+              throw Error();
+            if (
+              path.startsWith("/app/warranties/") &&
+              (!terms.test(saved) ||
+                !saved.includes(today) ||
+                !saved.includes(expiry.toISOString().slice(0, 10)))
+            )
+              throw Error();
+          }
         }
-        await mark(role + " " + mode + " capture review save reopen", "PASS");
+        await mark(
+          role +
+            " " +
+            (human ? "human Malayalam auto-detect" : mode) +
+            " capture review save reopen",
+          "PASS",
+        );
       } catch {
-        await mark(role + " " + mode + " capture review save reopen", step + "_FAILED");
+        await mark(
+          role +
+            " " +
+            (human ? "human Malayalam auto-detect" : mode) +
+            " capture review save reopen",
+          step + "_FAILED",
+        );
       } finally {
         await browser.close();
       }
@@ -225,9 +341,9 @@ for (const role of ["individual", "business"]) {
         await page.locator("textarea").fill("Quota check " + runId);
         await page.getByRole("button", { name: "Let the AI read it" }).click();
         await page.getByText("You have reached your monthly allowance.", { exact: true }).waitFor();
-        await mark("Business quota sixth capture", "PASS");
+        await mark("Business quota after allocated operations", "PASS");
       } catch {
-        await mark("Business quota sixth capture", "FAIL");
+        await mark("Business quota after allocated operations", "FAIL");
       } finally {
         await browser.close();
       }
@@ -261,7 +377,7 @@ for (const role of ["individual", "business"]) {
         key: "free",
         userId,
         executionId: runId + "-free",
-        targetLimit: used + 5,
+        targetLimit: used + 13,
         exercise: runCaptures,
       });
       await mark("Restored published Free allowance after Business quota exercise", "PASS");
@@ -272,3 +388,5 @@ for (const role of ["individual", "business"]) {
     }
   }
 }
+
+if (!humanWav) await mark("Owner Malayalam recording on both accounts", "INPUT_MISSING");
