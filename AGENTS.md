@@ -33,3 +33,4 @@
 - Public motion uses one scoped LivingSurface lifecycle (intersection, scroll, pointer and reduced-motion controls); hero and scripted demonstrations never invoke account APIs.
 - Marketing primary photographs are assigned by route slug in the media manifest so unrelated industry and use-case openings cannot share a primary photograph.
 - Public scroll-linked stories use one ScrollStory component fed by page data in src/components/marketing/stories.ts, so every page gets its own story without duplicating the motion logic.
+- Public marketing binaries live under public/images/marketing and are referenced through src/components/marketing/media.ts with root-relative local paths; retained .asset.json files are provenance only, so source exports do not require Lovable's asset-serving route.

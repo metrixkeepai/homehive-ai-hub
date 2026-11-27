@@ -50,3 +50,13 @@
 - [x] Existing catalogue pricing, metadata, responsive and interaction QA
 - [x] Report limitations and confirm protected systems unchanged
 - [ ] Clean production compilation — blocked by pre-existing generated database type/schema mismatches in protected account, billing and AI files; deliberately unchanged under public-only scope.
+
+# Portable public website assets
+
+- [x] Discover every managed pointer, local media file and external marketing dependency.
+- [x] Retrieve original binaries without changing their visual content and store them under public/images/marketing/.
+- [x] Replace only public marketing asset references; preserve all interactions and protected systems.
+- [x] Create a machine-readable manifest, reference mapping and migration instructions.
+- [x] Verify image integrity, all 42 public routes and interactive motion behavior.
+- [x] Verify portable source/asset ZIP contents, extracted checksums and independent static HTTP serving.
+- [ ] Clean production compilation — blocked by pre-existing protected generated backend type mismatches; no protected systems changed.
