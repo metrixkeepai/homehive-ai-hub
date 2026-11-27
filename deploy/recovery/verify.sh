@@ -26,7 +26,9 @@ image="$registry/web@$digest"
 # Recover the original submitted index for this exact revision from its deploy log.
 # Cloud Run stores the resolved platform manifest in its revision spec.
 job_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/attempts/$attempt/jobs" | jq -er '.jobs[] | select(.name=="staging") | .id')
-gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$job_id/logs" > "$RUNNER_TEMP/original-deploy.log"
+if jq -e 'has("log_job")' "$request" >/dev/null; then [[ $job_id == "$(jq -er .log_job "$request")" ]]; fi
+# The raw log is parsed from a private temporary file and never rendered in the terminal.
+gh api --allow-escape-sequences "repos/$GITHUB_REPOSITORY/actions/jobs/$job_id/logs" > "$RUNNER_TEMP/original-deploy.log"
 jq -Rse --arg sha "$sha" --arg image "$image" --arg rev "$rev" '
   split("\n") | any(.[]; (sub("^[^{]*";"")|fromjson?) | .sha==$sha and .image==$image and .revision==$rev)
 ' "$RUNNER_TEMP/original-deploy.log" >/dev/null
