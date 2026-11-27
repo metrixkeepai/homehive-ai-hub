@@ -1,11 +1,7 @@
 import { deliverEmail } from "./delivery.mjs";
 
-export const billingOwners = Object.freeze({
-  activated: "matrixkeep",
-  upgraded: "matrixkeep",
-  downgraded: "matrixkeep",
-  cancelled: "matrixkeep",
-});
+import { billingOwners } from "./ownership.mjs";
+export { billingOwners };
 
 export async function exerciseStagingDelivery({ sql, send, environment, to }) {
   if (environment !== "staging" || to !== "metrixkeepai+emailqa20261126@gmail.com")

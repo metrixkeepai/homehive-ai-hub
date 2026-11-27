@@ -330,6 +330,13 @@
       "when": 1795689601000,
       "tag": "0046_mail_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1795689602000,
+      "tag": "0047_mail_transitions",
+      "breakpoints": true
     }
   ]
 }

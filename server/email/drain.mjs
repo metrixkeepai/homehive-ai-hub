@@ -5,6 +5,8 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { deliverEmail } from "./delivery.mjs";
 
+import { billingOwners } from "./ownership.mjs";
+
 const config = process.env;
 const refs = {
   staging: "cdfpupivjjamhvmfcvry",
@@ -39,13 +41,12 @@ function send(message) {
     child.stdin.end(JSON.stringify(message));
   });
 }
-const qaRecipient =
-  config.APP_ENV === "staging" ? config.MATRIXKEEP_MAIL_QA_RECIPIENT?.trim().toLowerCase() : null;
+const qaRecipient = config.MATRIXKEEP_MAIL_QA_RECIPIENT?.trim().toLowerCase() || null;
 if (
-  config.APP_ENV === "staging" &&
+  (config.APP_ENV === "staging" || config.MATRIXKEEP_MAIL_QA_RECIPIENT !== undefined) &&
   (!qaRecipient || !/^[^\s<>@,;]+@[^\s<>@,;]+\.[^\s<>@,;]+$/.test(qaRecipient))
 )
-  throw Error("Staging mail requires one QA recipient");
+  throw Error("Restricted mail delivery requires one QA recipient");
 const sql = postgres(config.MAIL_DATABASE_URL, {
   ssl: {
     ca: readFileSync(new URL("../../supabase-db-ca.crt", import.meta.url)),
@@ -77,7 +78,8 @@ try {
         environment: config.APP_ENV,
         occurrence: m.source_id,
         to: m.email,
-        fields: m,
+        fields: { ...m, ...m.display_fields },
+        billingOwners,
         recipientKey: m.source_id,
       });
       if (result !== "sent") continue;

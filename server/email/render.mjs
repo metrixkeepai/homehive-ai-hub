@@ -50,7 +50,18 @@ function signedAction(raw, origin, authOrigin, kind) {
 function render(kind, data, environment, native) {
   if (!Object.hasOwn(catalogue, kind) || !Object.hasOwn(environments, environment))
     throw Error("Unknown email template or environment");
-  const t = catalogue[kind];
+  const template = catalogue[kind];
+  const t =
+    kind === "downgraded" && data.already_effective === true
+      ? {
+          ...template,
+          preview: "Your subscription has changed.",
+          before: [
+            "Your MatrixKeep subscription changed from {old_plan} to {new_plan} on {effective_date}.",
+            "Your new plan limits now apply.",
+          ],
+        }
+      : template;
   const [origin, authOrigin] = environments[environment];
   const value = (key) => {
     const v = clean(data[key]);
