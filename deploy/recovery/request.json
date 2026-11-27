@@ -1,0 +1,7 @@
+{
+  "staging_run": "46068752207",
+  "sha": "b03f368ba9c95347f7afa568c51762bcd8ece5ae",
+  "revision": "matrixkeep-staging-web-00136-yig",
+  "digest": "sha256:9a7bacd11082c7ebe4f8a558cbb667c6a957aa92cdc4cf8926a4eb7383224a61",
+  "acceptance": "Owner accepted automatic human Malayalam transcription and translation on canonical staging on 2026-11-27. Fresh receipts passed on both designated staging accounts. Synthetic and quota observations remain recorded in staging run 46068752207."
+}
