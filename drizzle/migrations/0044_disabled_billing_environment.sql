@@ -1,4 +1,6 @@
-ALTER TABLE public.runtime_limits
-  DROP CONSTRAINT runtime_limits_billing_environment_check,
-  ADD CONSTRAINT runtime_limits_billing_environment_check
-    CHECK (billing_environment IN ('disabled', 'sandbox', 'live'));
+-- The content of this migration cannot be applied yet: public.runtime_limits is missing.
+-- Reapply after the runtime limits table is restored.
+-- ALTER TABLE public.runtime_limits
+--   DROP CONSTRAINT runtime_limits_billing_environment_check,
+--   ADD CONSTRAINT runtime_limits_billing_environment_check
+--     CHECK (billing_environment IN ('disabled', 'sandbox', 'live'));

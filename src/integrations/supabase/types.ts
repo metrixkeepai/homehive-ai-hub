@@ -44,27 +44,173 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_budget_days: {
+        Row: {
+          day: string
+          held_and_spent_usd: number
+          reserved_usd: number
+          spent_usd: number
+        }
+        Insert: {
+          day: string
+          held_and_spent_usd?: number
+          reserved_usd?: number
+          spent_usd?: number
+        }
+        Update: {
+          day?: string
+          held_and_spent_usd?: number
+          reserved_usd?: number
+          spent_usd?: number
+        }
+        Relationships: []
+      }
       ai_model_rates: {
         Row: {
+          audio_per_minute_usd: number
+          cached_input_per_million_usd: number
           input_per_million_usd: number
           model: string
           output_per_million_usd: number
+          processing_mode: string
+          provider: string
           updated_at: string
           updated_by: string | null
+          write_per_million_usd: number
         }
         Insert: {
+          audio_per_minute_usd?: number
+          cached_input_per_million_usd?: number
           input_per_million_usd?: number
           model: string
           output_per_million_usd?: number
+          processing_mode?: string
+          provider?: string
           updated_at?: string
           updated_by?: string | null
+          write_per_million_usd?: number
         }
         Update: {
+          audio_per_minute_usd?: number
+          cached_input_per_million_usd?: number
           input_per_million_usd?: number
           model?: string
           output_per_million_usd?: number
+          processing_mode?: string
+          provider?: string
           updated_at?: string
           updated_by?: string | null
+          write_per_million_usd?: number
+        }
+        Relationships: []
+      }
+      ai_request_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          feature: string | null
+          hit_count: number
+          hits: number
+          id: string
+          input_hash: string
+          key: string | null
+          kind: string
+          lease: string | null
+          reservation_id: string | null
+          result: Json | null
+          source_reservation: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          feature?: string | null
+          hit_count?: number
+          hits?: number
+          id?: string
+          input_hash: string
+          key?: string | null
+          kind: string
+          lease?: string | null
+          reservation_id?: string | null
+          result?: Json | null
+          source_reservation?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          feature?: string | null
+          hit_count?: number
+          hits?: number
+          id?: string
+          input_hash?: string
+          key?: string | null
+          kind?: string
+          lease?: string | null
+          reservation_id?: string | null
+          result?: Json | null
+          source_reservation?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_request_cache_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "operation_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_request_cache_source_reservation_fkey"
+            columns: ["source_reservation"]
+            isOneToOne: false
+            referencedRelation: "operation_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_request_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_request_cache_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_reuse_days: {
+        Row: {
+          day: string
+          feature: string
+          hits: number
+          savings_usd: number
+          unpriced_hits: number
+          user_id: string
+        }
+        Insert: {
+          day: string
+          feature: string
+          hits: number
+          savings_usd: number
+          unpriced_hits: number
+          user_id: string
+        }
+        Update: {
+          day?: string
+          feature?: string
+          hits?: number
+          savings_usd?: number
+          unpriced_hits?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -81,6 +227,8 @@ export type Database = {
           model: string
           ok: boolean
           output_tokens: number
+          reservation_id: string | null
+          usage_details: Json
           user_id: string | null
           workspace_id: string | null
         }
@@ -96,6 +244,8 @@ export type Database = {
           model: string
           ok?: boolean
           output_tokens?: number
+          reservation_id?: string | null
+          usage_details?: Json
           user_id?: string | null
           workspace_id?: string | null
         }
@@ -111,10 +261,20 @@ export type Database = {
           model?: string
           ok?: boolean
           output_tokens?: number
+          reservation_id?: string | null
+          usage_details?: Json
           user_id?: string | null
           workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_log_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "operation_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_user_connections: {
         Row: {
@@ -155,6 +315,24 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_action_locks: {
+        Row: {
+          action_key: string
+          expires_at: string
+          token: string
+        }
+        Insert: {
+          action_key: string
+          expires_at: string
+          token: string
+        }
+        Update: {
+          action_key?: string
+          expires_at?: string
+          token?: string
+        }
+        Relationships: []
+      }
       billing_customers: {
         Row: {
           created_at: string
@@ -188,6 +366,33 @@ export type Database = {
         Update: {
           created_at?: string
           event_id?: string
+        }
+        Relationships: []
+      }
+      billing_price_history: {
+        Row: {
+          amount: number
+          environment: string
+          interval_name: string
+          plan_key: string
+          price_id: string
+          product_id: string
+        }
+        Insert: {
+          amount: number
+          environment: string
+          interval_name: string
+          plan_key: string
+          price_id: string
+          product_id: string
+        }
+        Update: {
+          amount?: number
+          environment?: string
+          interval_name?: string
+          plan_key?: string
+          price_id?: string
+          product_id?: string
         }
         Relationships: []
       }
@@ -418,6 +623,42 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_reservations: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          reserved_usd: number
+          settled: boolean
+          settled_usd: number | null
+          units: number
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          reserved_usd: number
+          settled?: boolean
+          settled_usd?: number | null
+          units?: number
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          reserved_usd?: number
+          settled?: boolean
+          settled_usd?: number | null
+          units?: number
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       operation_usage: {
         Row: {
           created_at: string
@@ -484,6 +725,21 @@ export type Database = {
           user_id?: string
           views?: number
           workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      plan_defaults: {
+        Row: {
+          entitlements: Json
+          plan_key: string
+        }
+        Insert: {
+          entitlements: Json
+          plan_key: string
+        }
+        Update: {
+          entitlements?: Json
+          plan_key?: string
         }
         Relationships: []
       }
@@ -740,50 +996,128 @@ export type Database = {
           },
         ]
       }
+      release_qa_checks: {
+        Row: {
+          check_name: string
+          outcome: string
+          run_id: string
+        }
+        Insert: {
+          check_name: string
+          outcome: string
+          run_id: string
+        }
+        Update: {
+          check_name?: string
+          outcome?: string
+          run_id?: string
+        }
+        Relationships: []
+      }
+      runtime_limits: {
+        Row: {
+          ai_enabled: boolean
+          billing_environment: string
+          daily_ai_budget_usd: number
+          requests_per_minute: number
+          singleton: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ai_enabled?: boolean
+          billing_environment?: string
+          daily_ai_budget_usd?: number
+          requests_per_minute?: number
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ai_enabled?: boolean
+          billing_environment?: string
+          daily_ai_budget_usd?: number
+          requests_per_minute?: number
+          singleton?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
+          billing_interval: string | null
           cancel_at_period_end: boolean | null
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
           environment: string
           id: string
+          plan_key: string | null
           price_id: string
           product_id: string
           status: string
           stripe_customer_id: string
           stripe_subscription_id: string
+          trial_end: string | null
+          trial_start: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
           id?: string
+          plan_key?: string | null
           price_id: string
           product_id: string
           status?: string
           stripe_customer_id: string
           stripe_subscription_id: string
+          trial_end?: string | null
+          trial_start?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          billing_interval?: string | null
           cancel_at_period_end?: boolean | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           environment?: string
           id?: string
+          plan_key?: string | null
           price_id?: string
           product_id?: string
           status?: string
           stripe_customer_id?: string
           stripe_subscription_id?: string
+          trial_end?: string | null
+          trial_start?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trial_history: {
+        Row: {
+          ended_at: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          ended_at: string
+          started_at: string
+          user_id: string
+        }
+        Update: {
+          ended_at?: string
+          started_at?: string
           user_id?: string
         }
         Relationships: []
@@ -943,21 +1277,102 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_billing_event: {
-        Args: {
-          _created: number
-          _environment: string
-          _event: string
-          _paid: boolean
-          _plan: string
-          _subscription: Json
-        }
-        Returns: boolean
+      account_entitlements: { Args: { _user: string }; Returns: Json }
+      ai_cost_summary:
+        | { Args: { _from: string; _to: string }; Returns: Json }
+        | {
+            Args: { _since?: string }
+            Returns: {
+              cache_read: number
+              cache_savings: number
+              cache_write: number
+              calls: number
+              cost: number
+              hits: number
+              luna: number
+              measured_input: number
+              operations: number
+              reserved: number
+              savings: number
+              sol: number
+              speech_minutes: number
+              unpriced: number
+              users: number
+            }[]
+          }
+      apply_billing_event:
+        | {
+            Args: {
+              _created: number
+              _environment: string
+              _event: string
+              _paid: boolean
+              _plan: string
+              _subscription: Json
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _created: number
+              _environment: string
+              _event: string
+              _paid: boolean
+              _plan: string
+              _subscription: Json
+            }
+            Returns: boolean
+          }
+      approve_catalogue_version: {
+        Args: { _admin: string; _id: string }
+        Returns: undefined
       }
+      can_access_workspace: { Args: { _workspace: string }; Returns: boolean }
+      can_share_passport: { Args: never; Returns: boolean }
+      claim_ai_request:
+        | {
+            Args: {
+              _feature: string
+              _key: string
+              _lease: string
+              _user: string
+              _workspace: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _estimate: number
+              _feature: string
+              _hash: string
+              _user: string
+              _workspace: string
+            }
+            Returns: Json
+          }
+      claim_billing_action: { Args: { _key: string }; Returns: string }
+      confirm_sera_review: { Args: { _draft: Json }; Returns: Json }
       feature_enabled: {
         Args: { _key: string; _user: string }
         Returns: boolean
       }
+      finish_ai_request:
+        | {
+            Args: { _key: string; _lease: string; _result: Json }
+            Returns: undefined
+          }
+        | { Args: { _reservation: string; _result: Json }; Returns: undefined }
+      finish_metered_request:
+        | {
+            Args: {
+              _key: string
+              _lease: string
+              _reservation: string
+              _result: Json
+            }
+            Returns: undefined
+          }
+        | { Args: { _reservation: string; _result: Json }; Returns: undefined }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -977,6 +1392,38 @@ export type Database = {
           title: string
         }[]
       }
+      passport_records: {
+        Args: { _subject: string }
+        Returns: {
+          created_at: string
+          fields: Json
+          id: string
+          property_id: string | null
+          section: string
+          subtitle: string
+          title: string
+          user_id: string
+          workspace_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "home_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      published_plan_catalogue: {
+        Args: never
+        Returns: {
+          audience: string
+          benefits: string[]
+          capacity: Json
+          monthly: number
+          name: string
+          plan_key: string
+          yearly: number
+        }[]
+      }
       published_plan_entitlements: {
         Args: never
         Returns: {
@@ -984,7 +1431,53 @@ export type Database = {
           plan_key: string
         }[]
       }
+      purge_expired_connector_data: { Args: never; Returns: undefined }
+      reconcile_ai_budget: {
+        Args: { _since?: string }
+        Returns: {
+          audio_seconds: number
+          costed_usd: number
+          input_tokens: number
+          model: string
+          output_tokens: number
+          unpriced_rows: number
+          usage_rows: number
+        }[]
+      }
+      record_email_reminder: {
+        Args: { _enabled?: boolean; _record: string }
+        Returns: boolean
+      }
       redeem_voucher: { Args: { _code: string }; Returns: string }
+      release_billing_action: {
+        Args: { _key: string; _token: string }
+        Returns: undefined
+      }
+      release_sera_review: { Args: never; Returns: undefined }
+      reserve_ai_operation:
+        | {
+            Args: {
+              _estimate: number
+              _feature: string
+              _user: string
+              _workspace: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _estimate: number
+              _feature: string
+              _units: number
+              _user: string
+              _workspace: string
+            }
+            Returns: string
+          }
+      reserve_ai_retry: {
+        Args: { _estimate: number; _id: string; _user: string }
+        Returns: undefined
+      }
       reserve_operation: {
         Args: {
           _feature: string
@@ -994,6 +1487,41 @@ export type Database = {
         }
         Returns: string
       }
+      reserve_speech_minutes: {
+        Args: { _minutes: number; _user: string; _workspace: string }
+        Returns: string
+      }
+      sera_keywords: {
+        Args: {
+          _fields: Json
+          _section: string
+          _subtitle: string
+          _title: string
+        }
+        Returns: unknown
+      }
+      sera_retrieve: {
+        Args: { _intent: Json; _property: string; _workspace: string }
+        Returns: Json
+      }
+      settle_ai_operation:
+        | {
+            Args: { _calls: number; _id: string; _user: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _audio?: number
+              _cost: number
+              _feature: string
+              _id: string
+              _input: number
+              _model: string
+              _output: number
+              _user: string
+            }
+            Returns: undefined
+          }
       start_business_trial: { Args: never; Returns: string }
     }
     Enums: {

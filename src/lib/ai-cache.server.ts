@@ -21,7 +21,8 @@ export async function cachedOperation<T extends Json>(
     const claim = await supabaseAdmin.rpc("claim_ai_request", {
       _key: key,
       _user: user,
-      _workspace: workspace,
+      // PostgREST accepts null for the personal-workspace scope; generated RPC args do not model nullable inputs.
+      _workspace: workspace as string,
       _feature: feature,
       _lease: lease,
     });
@@ -47,7 +48,8 @@ export async function cachedOperation<T extends Json>(
       }
       const failed = result !== null && typeof result === "object" && "error" in result;
       const saved = await supabaseAdmin.rpc("finish_metered_request", {
-        _reservation: meter.reservation ?? null,
+        // A cache-only result has no reservation; Postgres accepts that null marker.
+        _reservation: (meter.reservation ?? null) as string,
         _key: key,
         _lease: lease,
         _result: failed ? null : result,

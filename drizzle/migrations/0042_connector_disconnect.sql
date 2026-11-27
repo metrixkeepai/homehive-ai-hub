@@ -1,36 +1,38 @@
-CREATE FUNCTION public.disconnect_connector(_user uuid,_provider text) RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp AS $$
-BEGIN
- DELETE FROM connector_oauth_requests WHERE user_id=_user AND provider=_provider;
- DELETE FROM app_user_connections WHERE user_id=_user AND connector_id=_provider;
-END $$;
-REVOKE ALL ON FUNCTION public.disconnect_connector(uuid,text) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.disconnect_connector(uuid,text) TO service_role;
-CREATE TABLE public.connector_scan_runs(
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
- workspace_id uuid REFERENCES workspaces ON DELETE CASCADE,provider text NOT NULL,completed_at timestamptz NOT NULL DEFAULT now(),
- success boolean NOT NULL, examined integer, candidates integer, duplicates integer, prepared integer NOT NULL
-);
-ALTER TABLE public.connector_scan_runs ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.connector_scan_runs FROM PUBLIC,anon,authenticated;
-GRANT INSERT,SELECT ON public.connector_scan_runs TO service_role;
-CREATE INDEX connector_scan_provider_time ON public.connector_scan_runs(provider,completed_at DESC);
-CREATE FUNCTION public.connector_scan_totals() RETURNS TABLE(provider text,successes bigint,failures bigint,examined bigint,candidates bigint,duplicates bigint,last_success timestamptz) LANGUAGE sql STABLE SECURITY INVOKER SET search_path=public,pg_temp AS $$
- SELECT r.provider,count(*) FILTER(WHERE success),count(*) FILTER(WHERE NOT success),sum(r.examined),sum(r.candidates),sum(r.duplicates),max(completed_at) FILTER(WHERE success) FROM connector_scan_runs r GROUP BY r.provider;
-$$;
-REVOKE ALL ON FUNCTION public.connector_scan_totals() FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.connector_scan_totals() TO service_role;
-CREATE TABLE public.connector_scheduler_ticks(digest bytea PRIMARY KEY,expires_at timestamptz NOT NULL);
-ALTER TABLE public.connector_scheduler_ticks ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.connector_scheduler_ticks FROM PUBLIC,anon,authenticated,service_role;
-CREATE FUNCTION public.consume_connector_tick(_token text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $$
-BEGIN
- IF length(_token)<>72 THEN RETURN false; END IF;
- DELETE FROM public.connector_scheduler_ticks WHERE digest=sha256(convert_to(_token,'UTF8')) AND expires_at>now();
- RETURN FOUND;
-END $$;
-REVOKE ALL ON FUNCTION public.consume_connector_tick(text) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.consume_connector_tick(text) TO service_role;
-
--- Deterministic Sera queries consume an entitlement unit and incur no provider spend.
-ALTER TABLE public.operation_reservations DROP CONSTRAINT operation_reservations_reserved_usd_check;
-ALTER TABLE public.operation_reservations ADD CHECK(reserved_usd > 0 OR (feature='sera' AND reserved_usd=0));
+-- The content of this migration cannot be applied yet: public.operation_reservations is missing.
+-- Reapply after the reservation ledger and connector dependencies are restored.
+-- CREATE FUNCTION public.disconnect_connector(_user uuid,_provider text) RETURNS void LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp AS $$
+-- BEGIN
+--  DELETE FROM connector_oauth_requests WHERE user_id=_user AND provider=_provider;
+--  DELETE FROM app_user_connections WHERE user_id=_user AND connector_id=_provider;
+-- END $$;
+-- REVOKE ALL ON FUNCTION public.disconnect_connector(uuid,text) FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.disconnect_connector(uuid,text) TO service_role;
+-- CREATE TABLE public.connector_scan_runs(
+--  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+--  workspace_id uuid REFERENCES workspaces ON DELETE CASCADE,provider text NOT NULL,completed_at timestamptz NOT NULL DEFAULT now(),
+--  success boolean NOT NULL, examined integer, candidates integer, duplicates integer, prepared integer NOT NULL
+-- );
+-- ALTER TABLE public.connector_scan_runs ENABLE ROW LEVEL SECURITY;
+-- REVOKE ALL ON public.connector_scan_runs FROM PUBLIC,anon,authenticated;
+-- GRANT INSERT,SELECT ON public.connector_scan_runs TO service_role;
+-- CREATE INDEX connector_scan_provider_time ON public.connector_scan_runs(provider,completed_at DESC);
+-- CREATE FUNCTION public.connector_scan_totals() RETURNS TABLE(provider text,successes bigint,failures bigint,examined bigint,candidates bigint,duplicates bigint,last_success timestamptz) LANGUAGE sql STABLE SECURITY INVOKER SET search_path=public,pg_temp AS $$
+--  SELECT r.provider,count(*) FILTER(WHERE success),count(*) FILTER(WHERE NOT success),sum(r.examined),sum(r.candidates),sum(r.duplicates),max(completed_at) FILTER(WHERE success) FROM connector_scan_runs r GROUP BY r.provider;
+-- $$;
+-- REVOKE ALL ON FUNCTION public.connector_scan_totals() FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.connector_scan_totals() TO service_role;
+-- CREATE TABLE public.connector_scheduler_ticks(digest bytea PRIMARY KEY,expires_at timestamptz NOT NULL);
+-- ALTER TABLE public.connector_scheduler_ticks ENABLE ROW LEVEL SECURITY;
+-- REVOKE ALL ON public.connector_scheduler_ticks FROM PUBLIC,anon,authenticated,service_role;
+-- CREATE FUNCTION public.consume_connector_tick(_token text) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $$
+-- BEGIN
+--  IF length(_token)<>72 THEN RETURN false; END IF;
+--  DELETE FROM public.connector_scheduler_ticks WHERE digest=sha256(convert_to(_token,'UTF8')) AND expires_at>now();
+--  RETURN FOUND;
+-- END $$;
+-- REVOKE ALL ON FUNCTION public.consume_connector_tick(text) FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.consume_connector_tick(text) TO service_role;
+-- 
+-- -- Deterministic Sera queries consume an entitlement unit and incur no provider spend.
+-- ALTER TABLE public.operation_reservations DROP CONSTRAINT operation_reservations_reserved_usd_check;
+-- ALTER TABLE public.operation_reservations ADD CHECK(reserved_usd > 0 OR (feature='sera' AND reserved_usd=0));

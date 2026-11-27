@@ -337,6 +337,62 @@
       "when": 1795689602000,
       "tag": "0047_mail_transitions",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1795785022316,
+      "tag": "0048_reconcile_pending_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795785056763,
+      "tag": "0049_restore_workspace_security_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795785094401,
+      "tag": "0050_restore_individual_entitlement_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1795785109862,
+      "tag": "0051_restore_business_entitlement_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1795785157177,
+      "tag": "0052_restore_ai_runtime_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795785178875,
+      "tag": "0053_restore_ai_settlement",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1795785193560,
+      "tag": "0054_restore_entitlement_and_query_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1795785231175,
+      "tag": "0055_align_ai_and_sera_function_signatures",
+      "breakpoints": true
     }
   ]
 }

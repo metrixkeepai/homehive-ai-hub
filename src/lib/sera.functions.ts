@@ -22,8 +22,9 @@ export const askSera = createServerFn({ method: "POST" })
       const question = data.messages.filter((m) => m.role === "user").at(-1)?.content ?? "";
       const intent = seraIntent(question);
       const { data: found, error } = await context.supabase.rpc("sera_retrieve", {
-        _workspace: data.workspaceId ?? null,
-        _property: data.propertyId ?? null,
+        // Null means no workspace/property filter in Postgres; generated RPC args omit that nullable-input detail.
+        _workspace: (data.workspaceId ?? null) as string,
+        _property: (data.propertyId ?? null) as string,
         _intent: intent,
       });
       if (error) throw new Error("Retrieval failed");

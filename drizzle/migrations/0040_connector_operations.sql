@@ -1,46 +1,48 @@
-CREATE TABLE public.connector_oauth_requests (
- state_hash text PRIMARY KEY, user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
- provider text NOT NULL CHECK(provider IN ('outlook','onedrive')), verifier text NOT NULL,
- redirect_uri text NOT NULL, expires_at timestamptz NOT NULL DEFAULT now()+interval '10 minutes'
-);
-ALTER TABLE public.connector_oauth_requests ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.connector_oauth_requests FROM anon,authenticated,PUBLIC;
-GRANT SELECT,INSERT,DELETE ON public.connector_oauth_requests TO service_role;
-ALTER TABLE public.connector_reviews ADD COLUMN content_hash text, ADD COLUMN extraction_version text;
-CREATE UNIQUE INDEX connector_review_content ON public.connector_reviews(user_id,workspace_id,content_hash,extraction_version) NULLS NOT DISTINCT WHERE content_hash IS NOT NULL;
-CREATE FUNCTION public.connector_operations() RETURNS TABLE(provider text,connected bigint,reconnect bigint,healthy bigint,failed bigint,last_sync timestamptz,discovered bigint,approved bigint,rejected bigint,ai_calls bigint,estimated_usd numeric) LANGUAGE sql STABLE SECURITY INVOKER SET search_path=public,pg_temp AS $$
- SELECT p,c.n,c.r,c.h,c.f,c.last_seen,d.n,d.a,d.r,ai.n,ai.cost FROM unnest(ARRAY['google_mail','google_drive','outlook','onedrive']) p
- CROSS JOIN LATERAL (SELECT count(*) n,count(*) FILTER(WHERE reconnect_required) r,count(*) FILTER(WHERE last_sync_at IS NOT NULL AND last_error IS NULL) h,count(*) FILTER(WHERE last_error IS NOT NULL) f,max(last_sync_at) last_seen FROM app_user_connections WHERE connector_id=p) c
- CROSS JOIN LATERAL (SELECT count(*) n,count(*) FILTER(WHERE state='approved') a,count(*) FILTER(WHERE state='rejected') r FROM connector_reviews r WHERE r.provider=p) d
- CROSS JOIN LATERAL (SELECT count(*) n,coalesce(sum(cost_usd),0) cost FROM ai_usage_log WHERE usage_details->>'connector'=p) ai;
-$$;
-REVOKE ALL ON FUNCTION public.connector_operations() FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.connector_operations() TO service_role;
-CREATE TABLE public.connector_checks (
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, provider text NOT NULL, workspace_id uuid REFERENCES public.workspaces ON DELETE CASCADE,
- auto_check boolean NOT NULL DEFAULT false, requested boolean NOT NULL DEFAULT false, last_period date, lease uuid, leased_until timestamptz,
- last_checked timestamptz,last_found integer,last_problem text,
- FOREIGN KEY(user_id,provider) REFERENCES public.app_user_connections(user_id,connector_id) ON DELETE CASCADE,
- UNIQUE NULLS NOT DISTINCT(user_id,workspace_id,provider)
-);
-ALTER TABLE public.connector_checks ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.connector_checks FROM PUBLIC,anon,authenticated;
-GRANT SELECT,INSERT,UPDATE,DELETE ON public.connector_checks TO service_role;
-CREATE FUNCTION public.claim_connector_check() RETURNS SETOF public.connector_checks LANGUAGE sql SECURITY INVOKER SET search_path=public,pg_temp AS $$
- WITH period AS (SELECT date_trunc('month',now())::date+CASE WHEN extract(day FROM now())>=15 THEN 14 ELSE 0 END AS d),
- candidate AS (SELECT k.id FROM connector_checks k JOIN app_user_connections c ON c.user_id=k.user_id AND c.connector_id=k.provider CROSS JOIN period
- WHERE NOT c.reconnect_required AND (k.leased_until IS NULL OR k.leased_until < now()) AND (k.requested OR (k.auto_check AND k.last_period IS DISTINCT FROM period.d)) ORDER BY k.last_checked NULLS FIRST,k.id FOR UPDATE OF k SKIP LOCKED LIMIT 1)
- UPDATE connector_checks k SET lease=gen_random_uuid(),leased_until=now()+interval '25 minutes',requested=false,last_period=period.d FROM candidate,period WHERE k.id=candidate.id RETURNING k.*
-$$;
-REVOKE ALL ON FUNCTION public.claim_connector_check() FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.claim_connector_check() TO service_role;
-ALTER TABLE public.connector_checks ADD COLUMN requested_at timestamptz;
-CREATE FUNCTION public.enqueue_connector_check(_user uuid,_workspace uuid,_provider text) RETURNS boolean LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp AS $$
-BEGIN
- INSERT INTO connector_checks(user_id,workspace_id,provider,requested,requested_at) VALUES(_user,_workspace,_provider,true,now())
- ON CONFLICT (user_id,workspace_id,provider) DO UPDATE SET requested=true,requested_at=now()
- WHERE NOT connector_checks.requested AND coalesce(connector_checks.leased_until,'-infinity')<now() AND coalesce(connector_checks.requested_at,'-infinity')<now()-interval '2 minutes';
- RETURN FOUND;
-END $$;
-REVOKE ALL ON FUNCTION public.enqueue_connector_check(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_connector_check(uuid,uuid,text) TO service_role;
+-- The content of this migration cannot be applied yet: public.connector_reviews is missing.
+-- Reapply after the connector-review schema is restored.
+-- CREATE TABLE public.connector_oauth_requests (
+--  state_hash text PRIMARY KEY, user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+--  provider text NOT NULL CHECK(provider IN ('outlook','onedrive')), verifier text NOT NULL,
+--  redirect_uri text NOT NULL, expires_at timestamptz NOT NULL DEFAULT now()+interval '10 minutes'
+-- );
+-- ALTER TABLE public.connector_oauth_requests ENABLE ROW LEVEL SECURITY;
+-- REVOKE ALL ON public.connector_oauth_requests FROM anon,authenticated,PUBLIC;
+-- GRANT SELECT,INSERT,DELETE ON public.connector_oauth_requests TO service_role;
+-- ALTER TABLE public.connector_reviews ADD COLUMN content_hash text, ADD COLUMN extraction_version text;
+-- CREATE UNIQUE INDEX connector_review_content ON public.connector_reviews(user_id,workspace_id,content_hash,extraction_version) NULLS NOT DISTINCT WHERE content_hash IS NOT NULL;
+-- CREATE FUNCTION public.connector_operations() RETURNS TABLE(provider text,connected bigint,reconnect bigint,healthy bigint,failed bigint,last_sync timestamptz,discovered bigint,approved bigint,rejected bigint,ai_calls bigint,estimated_usd numeric) LANGUAGE sql STABLE SECURITY INVOKER SET search_path=public,pg_temp AS $$
+--  SELECT p,c.n,c.r,c.h,c.f,c.last_seen,d.n,d.a,d.r,ai.n,ai.cost FROM unnest(ARRAY['google_mail','google_drive','outlook','onedrive']) p
+--  CROSS JOIN LATERAL (SELECT count(*) n,count(*) FILTER(WHERE reconnect_required) r,count(*) FILTER(WHERE last_sync_at IS NOT NULL AND last_error IS NULL) h,count(*) FILTER(WHERE last_error IS NOT NULL) f,max(last_sync_at) last_seen FROM app_user_connections WHERE connector_id=p) c
+--  CROSS JOIN LATERAL (SELECT count(*) n,count(*) FILTER(WHERE state='approved') a,count(*) FILTER(WHERE state='rejected') r FROM connector_reviews r WHERE r.provider=p) d
+--  CROSS JOIN LATERAL (SELECT count(*) n,coalesce(sum(cost_usd),0) cost FROM ai_usage_log WHERE usage_details->>'connector'=p) ai;
+-- $$;
+-- REVOKE ALL ON FUNCTION public.connector_operations() FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.connector_operations() TO service_role;
+-- CREATE TABLE public.connector_checks (
+--  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, provider text NOT NULL, workspace_id uuid REFERENCES public.workspaces ON DELETE CASCADE,
+--  auto_check boolean NOT NULL DEFAULT false, requested boolean NOT NULL DEFAULT false, last_period date, lease uuid, leased_until timestamptz,
+--  last_checked timestamptz,last_found integer,last_problem text,
+--  FOREIGN KEY(user_id,provider) REFERENCES public.app_user_connections(user_id,connector_id) ON DELETE CASCADE,
+--  UNIQUE NULLS NOT DISTINCT(user_id,workspace_id,provider)
+-- );
+-- ALTER TABLE public.connector_checks ENABLE ROW LEVEL SECURITY;
+-- REVOKE ALL ON public.connector_checks FROM PUBLIC,anon,authenticated;
+-- GRANT SELECT,INSERT,UPDATE,DELETE ON public.connector_checks TO service_role;
+-- CREATE FUNCTION public.claim_connector_check() RETURNS SETOF public.connector_checks LANGUAGE sql SECURITY INVOKER SET search_path=public,pg_temp AS $$
+--  WITH period AS (SELECT date_trunc('month',now())::date+CASE WHEN extract(day FROM now())>=15 THEN 14 ELSE 0 END AS d),
+--  candidate AS (SELECT k.id FROM connector_checks k JOIN app_user_connections c ON c.user_id=k.user_id AND c.connector_id=k.provider CROSS JOIN period
+--  WHERE NOT c.reconnect_required AND (k.leased_until IS NULL OR k.leased_until < now()) AND (k.requested OR (k.auto_check AND k.last_period IS DISTINCT FROM period.d)) ORDER BY k.last_checked NULLS FIRST,k.id FOR UPDATE OF k SKIP LOCKED LIMIT 1)
+--  UPDATE connector_checks k SET lease=gen_random_uuid(),leased_until=now()+interval '25 minutes',requested=false,last_period=period.d FROM candidate,period WHERE k.id=candidate.id RETURNING k.*
+-- $$;
+-- REVOKE ALL ON FUNCTION public.claim_connector_check() FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.claim_connector_check() TO service_role;
+-- ALTER TABLE public.connector_checks ADD COLUMN requested_at timestamptz;
+-- CREATE FUNCTION public.enqueue_connector_check(_user uuid,_workspace uuid,_provider text) RETURNS boolean LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp AS $$
+-- BEGIN
+--  INSERT INTO connector_checks(user_id,workspace_id,provider,requested,requested_at) VALUES(_user,_workspace,_provider,true,now())
+--  ON CONFLICT (user_id,workspace_id,provider) DO UPDATE SET requested=true,requested_at=now()
+--  WHERE NOT connector_checks.requested AND coalesce(connector_checks.leased_until,'-infinity')<now() AND coalesce(connector_checks.requested_at,'-infinity')<now()-interval '2 minutes';
+--  RETURN FOUND;
+-- END $$;
+-- REVOKE ALL ON FUNCTION public.enqueue_connector_check(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
+-- GRANT EXECUTE ON FUNCTION public.enqueue_connector_check(uuid,uuid,text) TO service_role;
