@@ -20,14 +20,16 @@ export class AIProviderError extends Error {
   readonly status: number;
   readonly providerCode: string | undefined;
   constructor(status: number, providerCode?: string) {
+    const busy =
+      (status === 429 &&
+        (!providerCode ||
+          providerCode === "unknown_429" ||
+          providerCode === "rate_limit_exceeded")) ||
+      [502, 504].includes(status);
     super(
-      status === 429
-        ? providerCode === "rate_limit_exceeded"
-          ? "The AI request rate limit was reached. Please try again shortly."
-          : providerCode && providerCode !== "unknown_429"
-            ? "AI usage is limited by the API account. Please contact support."
-            : "The AI provider limited this request. Please try again or contact support."
-        : "The AI could not complete this request. Please try again.",
+      busy
+        ? "AI processing is temporarily busy. Please try again."
+        : "AI processing is temporarily unavailable.",
     );
     this.status = status;
     this.providerCode = providerCode;

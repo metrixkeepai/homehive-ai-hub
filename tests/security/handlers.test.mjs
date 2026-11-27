@@ -257,7 +257,7 @@ test("direct extraction rejects remote URLs before any AI provider call", async 
 });
 test("text-only extraction still reaches the existing provider error path", async () => {
   const result = await runExtraction({ mode: "text", text: "A chair" }, "user_test");
-  assert.match(result.error, /AI provider limited/);
+  assert.equal(result.error, "AI processing is temporarily busy. Please try again.");
   assert.deepEqual(calls, [["fetch"]]);
 });
 
