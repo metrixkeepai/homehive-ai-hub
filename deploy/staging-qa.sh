@@ -2,7 +2,13 @@
 set -euo pipefail
 [[ $APP_ENV == staging && $GCP_PROJECT_ID == matrixkeep-staging && $REGION == europe-west2 ]]
 image="$REGION-docker.pkg.dev/$GCP_PROJECT_ID/matrixkeep/staging-qa:$GITHUB_SHA"
-docker build --target staging-qa -t "$image" .
+target=staging-qa
+entry=()
+if [[ $(git log -1 --format=%s) == *"[capture-qa]"* ]]; then
+  target=ai-benchmark
+  entry=(--command=node --args=scripts/staging-capture-parity.mjs)
+fi
+docker build --target "$target" -t "$image" .
 docker push "$image"
 common=(--project="$GCP_PROJECT_ID" --region="$REGION" --quiet)
 revision=$(jq -er .revision release.json)
@@ -20,4 +26,4 @@ bindings=$(jq -er '[.spec.containers[0].env[] | select(.name | IN("SUPABASE_URL"
 trap 'status=$?; python3 deploy/staging-performance.py || true; exit "$status"' EXIT
 gcloud run jobs deploy matrixkeep-staging-certification "${common[@]}" --image="$image" \
  --service-account="matrixkeep-web@$GCP_PROJECT_ID.iam.gserviceaccount.com" --set-secrets="$bindings" \
- --set-env-vars="APP_ENV=staging,QA_RUN=$GITHUB_RUN_ID,QA_ATTEMPT=${GITHUB_RUN_ATTEMPT:?},QA_REVISION=$revision,QA_REPEAT_HOME_PLUS=true" --cpu=2 --memory=2Gi --max-retries=0 --task-timeout=12m --tasks=1 --execute-now --wait
+ "${entry[@]}" --set-env-vars="APP_ENV=staging,QA_RUN=$GITHUB_RUN_ID,QA_ATTEMPT=${GITHUB_RUN_ATTEMPT:?},QA_REVISION=$revision,QA_REPEAT_HOME_PLUS=true" --cpu=2 --memory=2Gi --max-retries=0 --task-timeout=24m --tasks=1 --execute-now --wait
