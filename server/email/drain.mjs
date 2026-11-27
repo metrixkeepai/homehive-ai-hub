@@ -56,9 +56,12 @@ const sql = postgres(config.MAIL_DATABASE_URL, {
 });
 try {
   await sql`SET ROLE matrixkeep_mail_sender`;
-  if (config.MATRIXKEEP_STAGING_DELIVERY_QA === "true") {
-    const { exerciseStagingDelivery } = await import("./staging-acceptance.mjs");
-    await exerciseStagingDelivery({ sql, send, environment: config.APP_ENV, to: qaRecipient });
+  if (
+    (config.APP_ENV === "staging" && config.MATRIXKEEP_STAGING_DELIVERY_QA === "true") ||
+    (config.APP_ENV === "production" && config.MATRIXKEEP_PRODUCTION_DELIVERY_QA === "true")
+  ) {
+    const { exerciseControlledDelivery } = await import("./staging-acceptance.mjs");
+    await exerciseControlledDelivery({ sql, send, environment: config.APP_ENV, to: qaRecipient });
   }
   const messages =
     await sql`SELECT * FROM matrixkeep_mail.messages WHERE (${qaRecipient}::text IS NULL OR lower(email)=${qaRecipient}::text) ORDER BY source_id`;

@@ -41,6 +41,10 @@ done
 gcloud run jobs deploy "$job" "${common[@]}" --image="${images[mail-worker]}" --service-account="$identity" \
   --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=15m --set-secrets="$(IFS=,; echo "${bindings[*]}")" \
   --set-env-vars='APP_ENV=production,MATRIXKEEP_MAIL_QA_RECIPIENT=zaineluvathingal@gmail.com' --execute-now --wait
+# Both passes use the normal renderer, SMTP submission and persistent delivery ledger.
+for pass in first replay; do
+  gcloud run jobs execute "$job" "${common[@]}" --update-env-vars=MATRIXKEEP_PRODUCTION_DELIVERY_QA=true --wait
+done
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" --member="serviceAccount:$identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
 if result=$(gcloud scheduler jobs describe "$job" "${sched[@]}" --format='value(state)' 2>&1); then action=update

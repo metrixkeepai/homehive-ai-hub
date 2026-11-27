@@ -1,3 +1,4 @@
+import { RecordEmailReminder } from "./RecordEmailReminder";
 import { RecordInsight } from "./RecordInsight";
 import { useRecordLinks, RelatedRecords } from "@/components/hv/RecordLinks";
 import { Sparkles } from "lucide-react";
@@ -378,8 +379,7 @@ export function TrackingPage({
         </div>
       )}
       <p className="text-xs text-muted-foreground">
-        Calendar reminders can be downloaded from each record. Email and push alerts are not
-        enabled.
+        Calendar reminders can be downloaded from each record.
       </p>
       {open && <TrackingEditor section={section} onClose={() => setOpen(false)} />}
     </div>
@@ -454,6 +454,7 @@ export function TrackingDetail({ section, item }: { section: string; item: Item 
             <Pencil className="h-4 w-4" />
             Edit
           </button>
+          {section === "warranties" && <RecordEmailReminder item={item} section={section} />}
           <button
             disabled={!date}
             onClick={() => downloadReminder(item)}

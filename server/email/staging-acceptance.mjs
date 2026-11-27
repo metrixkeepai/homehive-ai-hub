@@ -1,11 +1,16 @@
+import { createHash } from "node:crypto";
 import { deliverEmail } from "./delivery.mjs";
 
 import { billingOwners } from "./ownership.mjs";
 export { billingOwners };
 
-export async function exerciseStagingDelivery({ sql, send, environment, to }) {
-  if (environment !== "staging" || to !== "metrixkeepai+emailqa20261126@gmail.com")
-    throw Error("Unexpected staging mail acceptance recipient");
+export async function exerciseControlledDelivery({ sql, send, environment, to }) {
+  const approved = {
+    staging: "metrixkeepai+emailqa20261126@gmail.com",
+    production: "zaineluvathingal@gmail.com",
+  };
+  if (!Object.hasOwn(approved, environment) || to !== approved[environment])
+    throw Error("Unexpected mail acceptance recipient");
   const date = "30 November 2026";
   const fields = {
     first_name: "MatrixKeep QA",
@@ -30,11 +35,13 @@ export async function exerciseStagingDelivery({ sql, send, environment, to }) {
     maintenance_type: "QA service",
     due_date: date,
     property_or_room: "QA kitchen",
-    security_event: "Staging notification delivery test",
+    security_event: "Controlled notification delivery test",
     event_date: date,
-    event_context: "MatrixKeep staging QA",
+    event_context: "MatrixKeep QA",
   };
+  const occurrence = environment + "-delivery-acceptance-20261127";
   for (const kind of [
+    ...(environment === "production" ? ["welcome"] : []),
     "activated",
     "upgraded",
     "downgraded",
@@ -54,9 +61,15 @@ export async function exerciseStagingDelivery({ sql, send, environment, to }) {
       to,
       fields,
       billingOwners,
-      occurrence: "staging-delivery-acceptance-20261127",
+      occurrence,
     });
-    console.log("Staging delivery acceptance", kind, result);
+    const deliveryKey = createHash("sha256")
+      .update(JSON.stringify([environment, kind, occurrence, to]))
+      .digest("hex");
+    const [receipt] =
+      await sql`SELECT state FROM matrixkeep_mail.delivery WHERE delivery_key=${deliveryKey}`;
+    if (receipt?.state !== "sent") throw Error("QA delivery has no sent receipt");
+    console.log("Controlled delivery acceptance", kind, result);
     if (!["sent", "already-claimed"].includes(result)) throw Error("Unexpected delivery outcome");
   }
 }
