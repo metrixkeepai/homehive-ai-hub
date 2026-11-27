@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
+    if: "!(github.event_name == 'push' && github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[website-only 25bcf726503b7d8dbbe90a3e82064a9daf5c0297]'))"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -199,4 +200,90 @@ jobs:
         with:
           name: matrixkeep-staging-release
           path: release.json
+          if-no-files-found: error
+
+  website-staging:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[website-only 25bcf726503b7d8dbbe90a3e82064a9daf5c0297]'))
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      WEBSITE_SHA: 25bcf726503b7d8dbbe90a3e82064a9daf5c0297
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'europe-west2' }}
+      TARGET: staging
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v4
+      - run: test "$WEBSITE_SHA" = 25bcf726503b7d8dbbe90a3e82064a9daf5c0297
+        working-directory: .
+      - uses: actions/checkout@v4
+        with:
+          ref: 25bcf726503b7d8dbbe90a3e82064a9daf5c0297
+          path: website
+          persist-credentials: false
+      - run: test "$(git rev-parse HEAD)" = "$WEBSITE_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+      - name: Transactional email tests
+        run: |
+          node --test server/email/email.test.mjs
+          python -m unittest discover -s server/email -p test_smtp.py
+      - name: Product tests
+        if: ${{ !cancelled() }}
+        run: npm test
+      - name: Security tests
+        if: ${{ !cancelled() }}
+        run: npm run test:security
+      - name: Database permissions and billing tests
+        if: ${{ !cancelled() }}
+        run: npm run test:database
+      - name: Dependency audit
+        if: ${{ !cancelled() }}
+        run: bun audit --audit-level high
+      - name: Build Node runtime
+        if: ${{ !cancelled() }}
+        run: npm run build
+      - name: Verify the release container starts as non-root
+        run: |
+          docker build --label org.opencontainers.image.revision="$WEBSITE_SHA" --target runtime -t matrixkeep-ci:web .
+          docker run --rm matrixkeep-ci:web sh -ec 'test "$(id -u)" != 0 && test -f .output/server/index.mjs && node -e "require.resolve(\"ws\"); require.resolve(\"@supabase/supabase-js\")"'
+          docker run -d --name matrixkeep-ci -p 127.0.0.1:8080:8080 \
+            -e PORT=8080 -e APP_ENV=test -e APP_ORIGIN=http://127.0.0.1:8080 \
+            -e SUPABASE_URL=http://127.0.0.1:9 -e SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci \
+            -e SUPABASE_SERVICE_ROLE_KEY=ci-only -e STRIPE_ENVIRONMENT=sandbox -e PAYMENTS_ENABLED=false matrixkeep-ci:web
+          trap 'docker rm -f matrixkeep-ci >/dev/null' EXIT
+          curl --fail --retry 12 --retry-all-errors --retry-delay 1 --max-time 5 http://127.0.0.1:8080/health/live
+          [[ $(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health/ready) == 503 ]]
+          for route in / /pricing /auth /super-admin/login /matrixkeep-config.js; do
+            [[ $(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$route") == 200 ]]
+          done
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Deploy only the web image
+        working-directory: .
+        run: bash deploy/website-only.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-website-${{ env.TARGET }}
+          path: website.json
           if-no-files-found: error
