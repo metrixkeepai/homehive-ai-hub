@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      mail_only:
+        description: Promote the accepted main mail worker and migration for production QA
+        type: boolean
+        default: false
       acceptance_only:
         description: Test the serving production revision without deploying or moving traffic
         type: boolean
@@ -25,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: github.ref == 'refs/heads/main' && inputs.acceptance_only != true
+    if: github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -102,7 +106,7 @@ jobs:
           if-no-files-found: error
 
   serving-acceptance:
-    if: github.ref == 'refs/heads/main' && inputs.acceptance_only
+    if: github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -149,3 +153,36 @@ jobs:
           jq -n --arg revision "$revision" '{revision:$revision}' > release.json
       - name: Private acceptance against existing production artifacts
         run: bash deploy/billing-acceptance.sh
+
+  mail:
+    if: github.ref == 'refs/heads/main' && inputs.mail_only
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      EXPECTED_SUPABASE_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact accepted main mail release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.staging_run }}
+          ACCEPTANCE: ${{ inputs.acceptance }}
+        run: |
+          set -euo pipefail
+          [[ $RUN_ID =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" |
+            jq -e --arg sha "$GITHUB_SHA" '.path == ".github/workflows/verify.yml" and .event == "push" and .head_branch == "main" and .head_sha == $sha and .conclusion == "success"'
+          gh run download "$RUN_ID" -n matrixkeep-staging-mail-release -D "$RUNNER_TEMP/staging"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - run: bash deploy/production-mail-worker.sh

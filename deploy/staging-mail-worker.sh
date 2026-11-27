@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Source after the staging migration, from deploy/cloud-run.sh.
+set -euo pipefail
+[[ $APP_ENV == staging && $GCP_PROJECT_ID == matrixkeep-staging && $REGION == europe-west2 ]]
+[[ $GITHUB_SHA =~ ^[0-9a-f]{40}$ && $(git rev-parse HEAD) == "$GITHUB_SHA" ]]
+
+# Restrict staging dispatch to the explicit QA mailbox.
+[[ ${MATRIXKEEP_MAIL_QA_RECIPIENT:?Set the staging QA mailbox} =~ ^[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]+$ ]]
+job=matrixkeep-staging-mail-worker
+mail_secrets=()
+missing=()
+for name in MAIL_DATABASE_URL MATRIXKEEP_SMTP_HOST MATRIXKEEP_SMTP_PORT MATRIXKEEP_SMTP_USER MATRIXKEEP_SMTP_PASSWORD; do
+  number=$(enabled_version "$name") || exit 1
+  if [[ -z $number ]]; then
+    missing+=("$name")
+  else
+    mail_secrets+=("$name=$name:$number")
+  fi
+done
+if (( ${#missing[@]} )); then
+  printf 'NO ENABLED VERSION: %s\n' "${missing[@]}" >&2
+  exit 1
+fi
+
+repo="$registry/mail-worker"
+tag="$repo:$GITHUB_SHA"
+docker build -f server/email/Dockerfile --label "org.opencontainers.image.revision=$GITHUB_SHA" -t "$tag" .
+docker push "$tag"
+digest=$(gcloud artifacts docker images describe "$tag" --project="$GCP_PROJECT_ID" --format='value(image_summary.digest)')
+[[ $digest =~ ^sha256:[0-9a-f]{64}$ ]]
+mail_identity="matrixkeep-mail@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+gcloud run jobs deploy "$job" "${common[@]}" --image="$repo@$digest" \
+  --service-account="$mail_identity" --tasks=1 --parallelism=1 --max-retries=0 --task-timeout=15m \
+  --set-env-vars="APP_ENV=staging,MATRIXKEEP_MAIL_QA_RECIPIENT=$MATRIXKEEP_MAIL_QA_RECIPIENT" --set-secrets="$(IFS=,; echo "${mail_secrets[*]}")"
+if ! gcloud run jobs execute "$job" "${common[@]}" --wait; then
+  execution=$(gcloud run jobs describe "$job" "${common[@]}" --format='value(status.latestCreatedExecution.name)')
+  if [[ $execution == "$job"-* ]]; then
+    endpoint="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job/executions/$execution/tasks"
+    curl --silent --show-error --fail -H "Authorization: Bearer $(gcloud auth print-access-token)" "$endpoint" |
+      jq -r '.tasks[] | "Mail execution exit code: \(.lastAttemptResult.exitCode // "unavailable")"'
+  fi
+  exit 1
+fi
+if [[ ${MATRIXKEEP_EXERCISE_STAGING_DELIVERY:-false} == true ]]; then
+  gcloud run jobs execute "$job" "${common[@]}" --update-env-vars=MATRIXKEEP_STAGING_DELIVERY_QA=true --wait
+fi
+gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
+  --member="serviceAccount:$mail_identity" --role=roles/run.invoker
+sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
+if result=$(gcloud scheduler jobs describe "$job" "${sched[@]}" --format='value(state)' 2>&1); then
+  action=update
+elif [[ $result == *NOT_FOUND:* ]]; then
+  action=create
+else
+  printf '%s\n' "$result" >&2
+  exit 1
+fi
+gcloud scheduler jobs "$action" http "$job" "${sched[@]}" --schedule='*/5 * * * *' --time-zone=Etc/UTC \
+  --uri="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" \
+  --http-method=POST --oauth-service-account-email="$mail_identity" --message-body='{}'
+gcloud scheduler jobs describe "$job" "${sched[@]}" --format='json(name,state,schedule,timeZone,httpTarget.uri,httpTarget.oauthToken.serviceAccountEmail)' |
+  jq -e --arg target "https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" --arg identity "$mail_identity" \
+    '.state == "ENABLED" and .schedule == "*/5 * * * *" and .timeZone == "Etc/UTC" and .httpTarget.uri == $target and .httpTarget.oauthToken.serviceAccountEmail == $identity'
+printf 'mail_worker=%s digest=%s sha=%s\n' "$job" "$digest" "$GITHUB_SHA"
