@@ -37,6 +37,7 @@ export function HomePage() {
       <StoryBridge>Less searching. More knowing.</StoryBridge>
       <Worlds />
       <Capabilities />
+      <StoryBridge>Every asset deserves a memory.</StoryBridge>
       <PassportDemo />
       <StoryBridge>Don't search for answers. Ask for them.</StoryBridge>
       <SeraDemo />
@@ -52,6 +53,7 @@ export function HomePage() {
       <MarketingPricing />
       <Trust />
       <FAQ items={commonFaq} />
+      <StoryBridge>Your next step towards a smarter life and business.</StoryBridge>
       <CTA
         title="Your life. Your business. Your intelligence."
         lead="Stop letting important information disappear into emails, spreadsheets and forgotten folders. Give everything you own and operate an intelligent digital memory."
