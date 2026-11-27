@@ -47,10 +47,14 @@ fi
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
-existing=$(gcloud scheduler jobs list "${sched[@]}" --format='value(name)')
-action=create
-resource="projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job"
-if grep -Fxq "$resource" <<<"$existing"; then action=update; fi
+if result=$(gcloud scheduler jobs describe "$job" "${sched[@]}" --format='value(state)' 2>&1); then
+  action=update
+elif [[ $result == *NOT_FOUND:* ]]; then
+  action=create
+else
+  printf '%s\n' "$result" >&2
+  exit 1
+fi
 gcloud scheduler jobs "$action" http "$job" "${sched[@]}" --schedule='*/5 * * * *' --time-zone=Etc/UTC \
   --uri="https://run.googleapis.com/v2/projects/$GCP_PROJECT_ID/locations/$REGION/jobs/$job:run" \
   --http-method=POST --oauth-service-account-email="$mail_identity" --message-body='{}'
