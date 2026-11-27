@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasExactGbp, numericEntities, translationRisk } from "../../src/lib/speech-facts.ts";
+import {
+  speechLocale,
+  hasExactGbp,
+  numericEntities,
+  translationRisk,
+} from "../../src/lib/speech-facts.ts";
 test("GBP assertions check the whole monetary value and currency", () => {
   for (const s of ["£65", "GBP 65.00", "65 pounds"]) assert.ok(hasExactGbp(s, 65), s);
   for (const s of ["£11.65", "£650", "£6.50", "€65", "£11.65 and 65 days", "£65 and £11.65"])
@@ -43,4 +48,23 @@ test("Malayalam to English accepts a script change and preserves price and day",
 test("a Malayalam rupee symbol may translate to the English currency name", () => {
   assert.equal(translationRisk("വില ₹650", "Price 650 rupees", "ml"), null);
   assert.equal(translationRisk("വില ₹650", "Price 650 euros", "ml"), "currency");
+});
+
+test("Malayalam purchase keeps the amount, currency, model, calendar day and warranty", () => {
+  const original =
+    "ഞാൻ ഇന്ന് കറീസിൽ നിന്ന് 599 പൗണ്ടിന് Dyson V15 വാക്വം ക്ലീനർ വാങ്ങി. ഇതിന് രണ്ട് വർഷത്തെ വാറന്റിയുണ്ട്.";
+  const english =
+    "I bought a Dyson V15 vacuum cleaner from Currys today for £599. It has a two-year warranty.";
+  assert.equal(speechLocale(original, ["it"], "ml"), "ml");
+  assert.equal(speechLocale("Good morning", ["en-GB"], "en"), "en");
+  assert.equal(speechLocale("Bonjour", ["fr-FR"], "fr"), "fr");
+  assert.equal(translationRisk(original, english, "ml"), null);
+  for (const [before, after] of [
+    ["£599", "€599"],
+    ["V15", "X15"],
+    ["today", "yesterday"],
+    ["two-year", "two-day"],
+    ["599", "59"],
+  ])
+    assert.ok(translationRisk(original, english.replace(before, after), "ml"));
 });

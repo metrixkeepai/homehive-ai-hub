@@ -22,10 +22,12 @@ for kind,body,sections,facts in [
  records.append(dict(kind=kind,fn="extractRecords",data=dict(mode="Upload document",text=body),sections=sections,facts=facts))
 font=ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",30)
 receipt=Image.new("RGB",(780,350),"white")
-ImageDraw.Draw(receipt).multiline_text((30,24),"ELM APPLIANCES\nReceipt MK-508\n18 March 2026\nBosch kettle TWK7203  GBP 65.00\nTotal GBP 65.00\nWarranty 24 months",font=font,fill="black",spacing=8)
+receipt_ref=sys.argv[2] if len(sys.argv)>2 else "MK-508"
+ImageDraw.Draw(receipt).multiline_text((30,24),f"ELM APPLIANCES\nReceipt {receipt_ref}\n18 March 2026\nBosch kettle TWK7203  GBP 65.00\nTotal GBP 65.00\nWarranty 24 months",font=font,fill="black",spacing=8)
 for kind,im in [("clear receipt",receipt),("poor receipt",receipt.rotate(2,fillcolor="white").filter(ImageFilter.GaussianBlur(1.3)))]:
  name=kind.replace(" ","-")+".jpg";im.save(out/name,quality=65)
  records.append(dict(kind=kind,fn="extractRecords",data=dict(mode="Scan receipt"),file=name,sections=["assets","documents"],facts=["TWK7203","65"]))
+receipt.save(out/"receipt.pdf","PDF",resolution=150.0)
 for kind,path,facts in [("product photograph","src/assets/passport-tv.jpg",["television|tv"]),("room photograph","src/assets/auth-home.jpg",["chair|armchair","table"])]:
  records.append(dict(kind=kind,fn="extractRecords",data=dict(mode="Scan room" if "room" in kind else "Take photo"),file=str(pathlib.Path(path).resolve()),sections=["assets"],facts=facts))
 records.append(dict(kind="Sera",fn="askSera",data=dict(messages=[dict(role="user",content="What model is my harbour kettle?")]),facts=["TWK7203"]))
