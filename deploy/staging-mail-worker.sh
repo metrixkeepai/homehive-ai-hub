@@ -44,7 +44,17 @@ fi
 gcloud run jobs add-iam-policy-binding "$job" "${common[@]}" \
   --member="serviceAccount:$mail_identity" --role=roles/run.invoker
 sched=(--location="$REGION" --project="$GCP_PROJECT_ID" --quiet)
-existing=$(gcloud scheduler jobs list "${sched[@]}" --filter="name ~ /jobs/$job$" --format='value(name)')
+list_schedules() {
+  gcloud scheduler jobs list "${sched[@]}" --filter="name ~ /jobs/$job$" --format='value(name)'
+}
+if ! existing=$(list_schedules 2>&1); then
+  if [[ $existing != *"Cloud Scheduler API has not been used"* && $existing != *"SERVICE_DISABLED"* ]]; then
+    printf '%s\n' "$existing" >&2
+    exit 1
+  fi
+  gcloud services enable cloudscheduler.googleapis.com --project="$GCP_PROJECT_ID" --quiet
+  existing=$(list_schedules)
+fi
 action=create
 if [[ -n $existing ]]; then action=update; fi
 gcloud scheduler jobs "$action" http "$job" "${sched[@]}" --schedule='*/5 * * * *' --time-zone=Etc/UTC \
