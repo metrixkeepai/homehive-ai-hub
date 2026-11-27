@@ -1,3 +1,4 @@
+import { OperationFailure } from "./ai-operation-error";
 import { operationMeter, scanBudget } from "./ai-meter.server";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
 
@@ -22,8 +23,7 @@ export async function reserveOperation(
     await new Promise((resolve) => setTimeout(resolve, 61000));
     ({ data, error } = await reserve());
   }
-  if (error || !data)
-    throw new Error("This operation is unavailable or its quota has been reached.");
+  if (error || !data) throw new OperationFailure(error?.message ?? "", "reserve");
   const meter = operationMeter.getStore();
   if (meter) meter.reservation = data;
   return data;
@@ -35,5 +35,5 @@ export async function reserveQualityRetry(userId: string, id: string, estimate: 
     _id: id,
     _estimate: estimate,
   });
-  if (error) throw new Error("AI retry budget unavailable");
+  if (error) throw new OperationFailure(error.message, "retry");
 }

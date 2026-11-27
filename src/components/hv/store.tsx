@@ -11,8 +11,8 @@ import type { Item } from "./data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { planByKey } from "@/lib/plans";
-import { checkAdd, effective, type Entitlements } from "@/lib/entitlements";
-import { fetchPublished, openUpgrade, UpgradeModal } from "./Upgrade";
+import { checkAdd, effective } from "@/lib/entitlements";
+import { usePublished, openUpgrade, UpgradeModal } from "./Upgrade";
 import { editableProfilePatch } from "@/lib/profile";
 
 /** Plan capacity for a section, or null when the plan doesn't cap it. */
@@ -194,12 +194,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const cursor = useRef<Row | null>(null);
-  const [published, setPublished] = useState<Record<string, Entitlements>>({});
-  useEffect(() => {
-    void fetchPublished()
-      .then(setPublished)
-      .catch(() => {});
-  }, []);
+  const published = usePublished();
   useEffect(() => {
     setWsId(localStorage.getItem("hv-ws") || null);
   }, []);

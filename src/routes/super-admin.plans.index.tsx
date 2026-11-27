@@ -1,3 +1,4 @@
+import { refreshPlans } from "@/lib/plan-status";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,7 +21,7 @@ function Plans() {
   const newKeys = [...new Set(versions.map((v) => v.plan_key))].filter(
     (k) => !plans.some((p) => p.key === k),
   );
-  const done = () => qc.invalidateQueries({ queryKey: ["admin", "plans"] });
+  const done = () => refreshPlans(qc);
   const err = (e: Error) => toast.error(e.message);
   const actM = useMutation({
     mutationFn: (v: { key: string; active: boolean }) => act({ data: v }),

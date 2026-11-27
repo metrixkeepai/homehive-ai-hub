@@ -1,3 +1,4 @@
+import { OperationFailure } from "./ai-operation-error";
 import { operationMeter, type OperationMeter } from "./ai-meter.server";
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../integrations/supabase/client.server";
@@ -26,7 +27,7 @@ export async function cachedOperation<T extends Json>(
       _feature: feature,
       _lease: lease,
     });
-    if (claim.error) throw new Error("AI request unavailable");
+    if (claim.error) throw new OperationFailure(claim.error.message, "claim");
     const state = claim.data as { state: string; result?: T };
     if (state.state === "hit" && state.result !== undefined) return state.result;
     if (state.state === "owner") {

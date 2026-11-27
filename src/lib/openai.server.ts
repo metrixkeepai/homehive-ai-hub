@@ -10,7 +10,10 @@ export const AI_MODELS = {
 } as const;
 export function openAIKey() {
   const key = process.env["OPENAI_API_KEY"];
-  if (!key) throw new Error("OpenAI is not configured.");
+  if (!key) {
+    console.error("AI configuration failure", { code: "PROVIDER_KEY_MISSING" });
+    throw new AIProviderError(503);
+  }
   return key;
 }
 export class AIProviderError extends Error {
@@ -64,6 +67,10 @@ export async function openAIRequest(
       : response.status === 429
         ? "unknown_429"
         : undefined;
+    console.warn("AI provider request failed", {
+      status: response.status,
+      code: providerCode ?? "PROVIDER_REQUEST",
+    });
     throw new AIProviderError(response.status, providerCode);
   }
   return response;

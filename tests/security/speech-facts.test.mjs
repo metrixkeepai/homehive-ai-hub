@@ -20,3 +20,22 @@ test("dates and amounts keep their meaning independently of numeral ordering", (
   assert.equal(translationRisk("20 novembre 2026", "20 November 2026", "fr"), null);
   assert.equal(translationRisk("GBP 65 and EUR 20", "EUR 65 and GBP 20", "en"), "currency");
 });
+
+test("Malayalam to English accepts a script change and preserves price and day", () => {
+  assert.equal(
+    translationRisk(
+      "ഇന്നലെ ₹2500 നൽകി വാച്ച് വാങ്ങി",
+      "Yesterday I bought a watch for ₹2,500.",
+      "ml",
+    ),
+    null,
+  );
+  assert.equal(
+    translationRisk(
+      "ഇന്നലെ ₹2500 നൽകി വാച്ച് വാങ്ങി",
+      "Yesterday I bought a watch for ₹250.",
+      "ml",
+    ),
+    "numbers",
+  );
+});

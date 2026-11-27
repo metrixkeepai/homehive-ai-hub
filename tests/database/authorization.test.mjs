@@ -509,7 +509,7 @@ test("same-tenant AI requests coalesce and cached results require current access
   assert.deepEqual((await claim(a, other)).result, { records: [] });
   await assert.rejects(claim(b, other), /scope mismatch/);
   await db.exec("UPDATE runtime_limits SET ai_enabled=false");
-  await assert.rejects(claim(a, other), /AI unavailable/);
+  await assert.rejects(claim(a, other), /Service temporarily unavailable/);
   await db.exec("UPDATE runtime_limits SET ai_enabled=true");
 });
 test("usage accounting prices cache reads, writes and audio from current rate rows", async () => {
@@ -751,4 +751,28 @@ test("record email reminders require an enabled rollout, owner consent and a cur
   assert.equal((await due()).rows.length, 0);
   await db.query("DELETE FROM public.home_items WHERE id=$1", [row]);
   await db.exec("UPDATE public.feature_flags SET enabled=false WHERE key='record_email_reminders'");
+});
+
+test("approved capture allowance reaches the catalogue and shared receipt/speech meter", async () => {
+  const user = crypto.randomUUID();
+  await db.query("insert into auth.users(id,email) values($1,'plan-propagation@example.test')", [
+    user,
+  ]);
+  await db.query("update profiles set plan='home',plan_source='admin' where id=$1", [user]);
+  const reserve = (feature) =>
+    db.query("select reserve_ai_operation($1,null,$2,1,0.001)", [user, feature]);
+  await db.exec(
+    "update runtime_limits set ai_enabled=true",
+  );
+  const version =
+    await db.query(`insert into plan_versions(plan_key,version,name,audience,monthly,yearly,capacity,benefits,status,entitlements)
+    values('home',999,'QA Home','individual',4.99,49,'{}','{}','draft','{"ai_captures":{"on":true,"limit":2}}') returning id`);
+  await db.query("select approve_catalogue_version($1,$2)", [version.rows[0].id, b]);
+  const published = await db.query(
+    "select name,entitlements->'ai_captures' as capture from effective_plan_catalogue() where plan_key='home'",
+  );
+  assert.deepEqual(published.rows, [{ name: "QA Home", capture: { on: true, limit: 2 } }]);
+  await reserve("capture");
+  await reserve("speech");
+  await assert.rejects(reserve("capture"), /Monthly quota reached/);
 });

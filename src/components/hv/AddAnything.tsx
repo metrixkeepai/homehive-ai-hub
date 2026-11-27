@@ -221,6 +221,7 @@ export function AddAnything({
   };
 
   const recRef = useRef<MediaRecorder | null>(null);
+  const [speechWarning, setSpeechWarning] = useState("");
   const [originalTranscript, setOriginalTranscript] = useState("");
   const [transcribing, setTranscribing] = useState(false);
   useEffect(
@@ -300,9 +301,10 @@ export function AddAnything({
         if ("error" in r && r.error) {
           if ("original" in r && r.original) setOriginalTranscript(r.original);
           toast.error(r.error);
-        } else if ("english" in r && r.english) {
+        } else if ("english" in r && r.original) {
           setOriginalTranscript(r.original);
-          setText((t) => (t ? t + " " : "") + r.english);
+          setText((t) => (t ? t + " " : "") + (r.english || r.original));
+          setSpeechWarning(r.warning ?? "");
         }
       } catch {
         toast.error("We couldn't understand that recording. Please try again.");
@@ -554,6 +556,7 @@ export function AddAnything({
                   setFile(null);
                   setText("");
                   setOriginalTranscript("");
+                  setSpeechWarning("");
                 }}
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -672,6 +675,7 @@ export function AddAnything({
                         ? "Listening… tap to finish"
                         : "Tap and speak"}
                   </button>
+                  {speechWarning && <p role="status">{speechWarning}</p>}
                   {originalTranscript && (
                     <details className="text-sm">
                       <summary>Original transcript</summary>
@@ -681,6 +685,9 @@ export function AddAnything({
                 </>
               )}
               <textarea
+                aria-label={
+                  mode.kind === "voice" ? "Editable transcript or English translation" : undefined
+                }
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={mode.kind === "file" ? 2 : 6}
@@ -906,6 +913,7 @@ export function AddAnything({
                     setFile(null);
                     setText("");
                     setOriginalTranscript("");
+                    setSpeechWarning("");
                     setRecs([]);
                   }}
                   className="flex-1 rounded-full border py-3 text-sm font-semibold"

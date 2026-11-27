@@ -1,3 +1,4 @@
+import { refreshPlans } from "@/lib/plan-status";
 import { z } from "zod";
 import { jsonObject } from "@/lib/json-values";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -87,7 +88,7 @@ function PlanDetail() {
   useEffect(() => {
     if (isNew) setF((x) => ({ ...x, entitlements: defaultEntitlements("", x.audience) }));
   }, [isNew, f.audience]);
-  const refresh = () => qc.invalidateQueries({ queryKey: ["admin", "plans"] });
+  const refresh = () => refreshPlans(qc);
   const saveM = useMutation({
     mutationFn: () =>
       save({

@@ -20,6 +20,7 @@ export type PlanDef = {
   outcome: string;
   badge?: string;
   trialDays?: number;
+  entitlements?: import("./entitlements").Entitlements;
   cap: Capacity;
   limits: { assets: number; users: number; places: number; docs: number };
   benefits: string[];

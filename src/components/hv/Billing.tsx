@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { publicSetting } from "@/lib/public-config";
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import { useStore } from "./store";
-import { planByKey, nextPlan, trialInfo, gbp } from "@/lib/plans";
+import { useCurrentPlan, usePublishedPlans } from "@/lib/plan-status";
+import { nextPlan, trialInfo, gbp } from "@/lib/plans";
 
 export function BillingPage() {
   const { user } = useRouteContext({ from: "/_authenticated" });
@@ -50,8 +51,10 @@ export function BillingPage() {
     }
   };
   const { profile, added, current } = useStore();
-  const p = planByKey(profile?.plan);
-  const up = nextPlan(p.key);
+  const p = useCurrentPlan(profile?.plan);
+  const catalogue = usePublishedPlans();
+  const nextKey = nextPlan(p.key)?.key;
+  const up = catalogue.data?.find((item) => item.key === nextKey);
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
   const n = (...s: string[]) => s.reduce((a, k) => a + (added[k]?.length ?? 0), 0);
   const biz = current.type !== "individual";

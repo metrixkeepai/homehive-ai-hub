@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+
 import { Check, Lock, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import {
   copyFor,
   effective,
@@ -11,24 +11,15 @@ import {
   type GateResult,
 } from "@/lib/entitlements";
 import { planByKey, priceLabel } from "@/lib/plans";
-import { useInactivePlans } from "@/lib/plan-status";
+import { useInactivePlans, usePublishedPlans, useCurrentPlan } from "@/lib/plan-status";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useStore } from "./store";
 
 /** Published (approved) entitlement overrides per plan key. */
-export async function fetchPublished(): Promise<Record<string, Entitlements>> {
-  const { data } = await supabase.rpc("published_plan_entitlements");
-  const out: Record<string, Entitlements> = {};
-  for (const r of data ?? []) if (r.entitlements) out[r.plan_key] = r.entitlements as Entitlements;
-  return out;
+export function usePublished(): Record<string, Entitlements> {
+  const catalogue = usePublishedPlans();
+  return Object.fromEntries((catalogue.data ?? []).map((p) => [p.key, p.entitlements ?? {}]));
 }
-export function usePublished() {
-  return (
-    useQuery({ queryKey: ["published-entitlements"], queryFn: fetchPublished, staleTime: 60_000 })
-      .data ?? {}
-  );
-}
-
 type Blocked = Extract<GateResult, { ok: false }>;
 let listener: ((b: Blocked) => void) | null = null;
 /** Opens the upgrade modal; remembers where the user was so they can return after upgrading. */
@@ -57,6 +48,8 @@ export function UpgradeModal() {
   const { profile } = useStore();
   const published = usePublished();
   const off = useInactivePlans();
+  const catalogue = usePublishedPlans();
+  const currentPlan = useCurrentPlan(profile?.plan);
   useEffect(() => {
     listener = setB;
     return () => {
@@ -67,12 +60,12 @@ export function UpgradeModal() {
   const current = profile?.plan ?? "free";
   const eligible = eligiblePlans(current, b.feature, published, b.max)
     .filter((k) => !off.has(k))
-    .map(planByKey);
+    .map((k) => catalogue.data?.find((p) => p.key === k) ?? planByKey(k));
   const [title, body] =
     b.reason === "limit"
       ? [
           `You've reached your ${b.max?.toLocaleString("en-GB")}-${b.label.replace(/s$/, "")} limit`,
-          `Your ${planByKey(current).name} plan allows ${b.max?.toLocaleString("en-GB")} ${b.label}. Upgrade to add more — what you've typed is kept.`,
+          `Your ${currentPlan.name} plan allows ${b.max?.toLocaleString("en-GB")} ${b.label}. Upgrade to add more — what you've typed is kept.`,
         ]
       : copyFor(b.feature, b.label);
   const go = (plan?: string) => {
@@ -95,7 +88,7 @@ export function UpgradeModal() {
         {b.reason === "locked" && (
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <Lock className="h-3.5 w-3.5" />
-            Not included in your {planByKey(current).name} plan
+            Not included in your {currentPlan.name} plan
           </p>
         )}
         {eligible.length > 0 ? (

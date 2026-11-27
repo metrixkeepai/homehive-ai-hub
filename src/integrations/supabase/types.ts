@@ -1406,6 +1406,19 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      effective_plan_catalogue: {
+        Args: never;
+        Returns: {
+          audience: string;
+          entitlements: Json;
+          benefits: string[];
+          capacity: Json;
+          monthly: number | null;
+          name: string;
+          plan_key: string;
+          yearly: number | null;
+        }[];
+      };
       published_plan_catalogue: {
         Args: never;
         Returns: {

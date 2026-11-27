@@ -666,6 +666,7 @@ export function MarketingPricing({
                   [MapPin, p.cap.places],
                   [Package, p.cap.assets],
                   [HardDrive, p.cap.storage],
+                  [Sparkles, p.cap.captures],
                 ].map(([Icon, text], i) => {
                   const I = Icon as typeof Users;
                   return (

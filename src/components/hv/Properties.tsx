@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { getSection, sections, type Item } from "./data";
 import { useStore, isArchivedItem, PROPERTY_SLUGS, toneClass } from "./store";
 import { COUNTRIES } from "@/lib/countries";
-import { planByKey } from "@/lib/plans";
+import { useCurrentPlan } from "@/lib/plan-status";
 import { ViewToggle, useViewMode } from "./ViewToggle";
 
 export const PERSONAL_TYPES = [
@@ -324,7 +324,7 @@ export function PropertiesPage({ slug }: { slug: string }) {
   const [view, setView] = useViewMode(slug);
   const { setArchived, del } = usePropertyActions();
   const own = added[slug] ?? [];
-  const max = planByKey(profile?.plan).limits.places;
+  const max = useCurrentPlan(profile?.plan).limits.places;
   const active = properties.filter((p) => !isArchivedItem(p));
   const count = (id: string, sec: string) =>
     (added[sec] ?? []).filter((i) => i.propertyId === id).length;
