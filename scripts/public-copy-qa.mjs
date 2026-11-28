@@ -11,7 +11,8 @@ const routes = new Set(
   [...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => new URL(m[1]).pathname),
 );
 for (const file of await readdir("src/routes")) {
-  if (/^[a-z-]+\.tsx$/.test(file) && file !== "index.tsx") routes.add("/" + file.slice(0, -4));
+  if (/^[a-z-]+\.tsx$/.test(file) && !["index.tsx", "super-admin.tsx"].includes(file))
+    routes.add("/" + file.slice(0, -4));
 }
 routes.add("/super-admin/login");
 routes.add("/p/public-copy-check");
@@ -45,7 +46,7 @@ const rows = [];
 function checkText(text) {
   const prose = text.replace(
     /(?:https?:\/\/|www\.)\S+|[\w.+-]+@[\w.-]+\.[a-z]+|\b(?:[a-z0-9-]+\.)+(?:com|co\.uk|ai|org)\b|\b(?:e\.g\.|i\.e\.)/gi,
-    "",
+    "reference",
   );
   return [
     ...prose.matchAll(
@@ -70,6 +71,7 @@ async function audit(viewport) {
         await page.evaluate(() => document.fonts.ready);
         const menus = [];
         if (route === "/") {
+          await page.locator(".mk-seen").first().waitFor({ state: "attached" });
           for (const button of await page.locator(".mk-desktop-nav button[aria-expanded]").all()) {
             if (await button.isVisible()) {
               await button.hover();
@@ -88,9 +90,64 @@ async function audit(viewport) {
             await page.getByRole("button", { name: "Close menu", exact: true }).click();
           }
         }
+        // These demos only switch illustrative public content. Never follow a billing CTA.
+        const states = [];
+        const collect = async (selector) => {
+          const parts = await page.locator(selector).evaluate((el) => {
+            const iter = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            const out = [];
+            while (iter.nextNode())
+              if (
+                !iter.currentNode.parentElement.closest(".mk-chat-answer [aria-hidden]") &&
+                iter.currentNode.textContent.trim()
+              )
+                out.push(iter.currentNode.textContent);
+            return out;
+          });
+          states.push(...parts);
+        };
+        if (route === "/" && viewport.width === 1440) {
+          for (const option of await page
+            .getByRole("group", { name: "Choose example asset" })
+            .getByRole("button")
+            .all()) {
+            await option.click();
+            await collect("#passport-demo");
+          }
+          for (const mode of await page
+            .getByRole("group", { name: "Assistant audience" })
+            .getByRole("button")
+            .all()) {
+            await mode.click();
+            for (const question of await page.locator(".mk-questions button").all()) {
+              await question.click();
+              await page.locator(".mk-chat-source").waitFor();
+              await collect("#sera-demo");
+            }
+          }
+        }
+        if (route === "/pricing") {
+          for (const audience of await page
+            .getByRole("group", { name: "Pricing audience" })
+            .getByRole("button")
+            .all()) {
+            await audience.click();
+            await collect("#plans");
+            for (const interval of await page
+              .getByRole("group", { name: "Billing period" })
+              .getByRole("button")
+              .all()) {
+              await interval.click();
+              await collect("#plans");
+            }
+          }
+        }
+        await page.mouse.move(1, viewport.height - 3);
         const result = await page.evaluate(() => {
           const clone = document.body.cloneNode(true);
-          clone.querySelectorAll("script,style,svg,noscript,template").forEach((e) => e.remove());
+          clone
+            .querySelectorAll("script,style,svg,noscript,template,.mk-chat-answer [aria-hidden]")
+            .forEach((e) => e.remove());
           const text = [];
           const walk = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
           while (walk.nextNode())
@@ -151,8 +208,10 @@ async function audit(viewport) {
           };
         });
         result.menus = menus;
-        findings.push(...spelling([...result.text, ...result.attrs, ...menus]));
-        for (const t of [...result.text, ...result.attrs, ...menus]) findings.push(...checkText(t));
+        result.states = [...new Set(states)];
+        findings.push(...spelling([...result.text, ...result.attrs, ...menus, ...result.states]));
+        for (const t of [...result.text, ...result.attrs, ...menus, ...result.states])
+          findings.push(...checkText(t));
         findings.push(...result.layout);
         for (const href of result.links) {
           if (!href?.startsWith("/") || href.startsWith("//")) continue;
@@ -168,6 +227,10 @@ async function audit(viewport) {
           for (const b of result.bridges)
             for (let i = 1; i < b.words.length; i++) {
               const [prev, next] = b.words.slice(i - 1, i + 1);
+              assert.ok(
+                next[1] > next[0] && prev[1] > prev[0],
+                "Animated word has no rendered width",
+              );
               if (Math.abs(prev[2] - next[2]) < 1 && next[0] - prev[1] < 1)
                 findings.push("Collapsed rendered gap: " + b.text);
             }
@@ -217,5 +280,19 @@ try {
 } finally {
   await browser.close();
   await writeFile(output + "/matrix.json", JSON.stringify(rows, null, 2));
+}
+const matrix = [
+  "| Route | Spelling | Spaces | Punctuation | Rendered QA |",
+  "| --- | --- | --- | --- | --- |",
+];
+for (const route of routes) {
+  const checks = rows.filter((r) => r.route === route);
+  const result = checks.length === 3 && checks.every((r) => !r.issues.length) ? "PASS" : "REVIEW";
+  matrix.push(`| ${route} | ${result} | ${result} | ${result} | ${result} |`);
+}
+await writeFile(output + "/routes.md", matrix.join("\n") + "\n");
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const { appendFile } = await import("node:fs/promises");
+  await appendFile(process.env.GITHUB_STEP_SUMMARY, matrix.join("\n") + "\n");
 }
 if (rows.some((r) => r.issues.length)) process.exitCode = 1;
