@@ -236,11 +236,17 @@ jobs:
         if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         run: bash deploy/cloud-run.sh
       - uses: actions/upload-artifact@v4
+        id: staging_evidence
         if: "!((github.ref == 'refs/heads/release/matrixkeep-cloud-run' && startsWith(github.event.head_commit.message, '[staging-mail-only]')) || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[mail-worker-release]')))"
         with:
           name: matrixkeep-staging-release
           path: release.json
           if-no-files-found: error
+      - name: Audit public copy on canonical staging
+        if: steps.staging_evidence.outcome == 'success' && !contains(github.event.head_commit.message, '[tag-only]')
+        uses: ./.github/actions/public-copy
+        with:
+          origin: https://matrixkeep-staging-web-893477687403.europe-west2.run.app
       - name: Verify staging AI runtime
         if: contains(github.event.head_commit.message, '[runtime-parity]')
         run: bash deploy/recovery/guard.sh staging required

@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      public_copy:
+        description: Verify the public site on the promoted build
+        type: boolean
+        default: false
       voucher_acceptance:
         description: Run targeted unpaid voucher and location acceptance after promotion
         type: boolean
@@ -91,6 +95,7 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
       - uses: google-github-actions/setup-gcloud@v3
       - name: Verify advertised AI features before promotion
+        if: inputs.public_copy != true
         run: bash deploy/recovery/guard.sh production required
       - name: Copy the accepted image manifests without rebuilding
         run: |
@@ -121,6 +126,11 @@ jobs:
           name: matrixkeep-production-release
           path: release.json
           if-no-files-found: error
+      - name: Audit public copy on production
+        if: inputs.public_copy
+        uses: ./.github/actions/public-copy
+        with:
+          origin: https://matrixkeep.com
       - name: Verify disabled-mode production billing
         if: inputs.billing_acceptance
         run: bash deploy/billing-acceptance.sh
@@ -256,7 +266,7 @@ jobs:
           if-no-files-found: error
 
   capture-acceptance:
-    if: inputs.voucher_acceptance != true
+    if: inputs.voucher_acceptance != true && inputs.public_copy != true
     needs: promote
     permissions:
       contents: read

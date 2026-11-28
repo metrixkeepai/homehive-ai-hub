@@ -23,6 +23,11 @@ else
   stripe=disabled
 fi
 
+subject=$(git log -1 --format=%s)
+if [[ $subject == *"[public-copy]"* ]]; then
+  # This release inherits the serving template and only replaces its image.
+  env_flags=""
+else
 # Pin each secret version to make an existing revision safe to roll back to.
 secret_list=$(gcloud secrets list --project="$GCP_PROJECT_ID" --format='value(name)' | sed 's|.*/||')
 enabled_version() {
@@ -46,7 +51,6 @@ has_secret() {
 }
 binding() { local v; v=$(version "$2") || return 1; echo "$1=$2:$v"; }
 bind() { local line; line=$(binding "$1" "${2:-$1}"); secrets+=("$line"); }
-subject=$(git log -1 --format=%s)
 if [[ $APP_ENV == staging && $subject =~ \[inspect-ms:(matrixkeep-staging-web-[0-9]{5}-[a-z0-9]+)\] ]]; then
   inspected_revision=${BASH_REMATCH[1]}
   [[ $GCP_PROJECT_ID == matrixkeep-staging && $subject == *"[tag-only]"* ]]
@@ -127,6 +131,8 @@ if [[ $APP_ENV == staging ]]; then
     }
 fi
 
+fi
+
 # On an existing service preserve the previous traffic split until the candidate passes its probes.
 existing=$(gcloud run services list "${common[@]}" --filter="metadata.name=$service" --format='value(metadata.name)')
 traffic=()
@@ -138,7 +144,7 @@ if [[ -n $existing ]]; then
 fi
 tag="qa-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 deploy_revision() {
-  if [[ $subject == *"[runtime-parity]"* || $subject == *"[voucher-qa]"* ]]; then
+  if [[ $subject == *"[runtime-parity]"* || $subject == *"[voucher-qa]"* || $subject == *"[public-copy]"* ]]; then
     # Keep the serving service's live/sandbox, mail, auth and connector configuration.
     # Cloud Run updates inherit the latest template, so first verify it serves traffic.
     if [[ -z ${parity_revision:-} ]]; then

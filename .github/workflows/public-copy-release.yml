@@ -1,0 +1,26 @@
+name: Promote verified public copy
+on:
+  workflow_run:
+    workflows: ["Verify hardening"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  promote:
+    if: github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[public-copy]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Require the published staging route matrix for this exact main SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          STAGING_RUN: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" == "$SHA" ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN/jobs" | jq -e 'any(.jobs[]; .name=="staging" and .conclusion=="success" and any(.steps[]; .name=="Audit public copy on canonical staging" and .conclusion=="success"))'
+          gh workflow run promote.yml -R "$GITHUB_REPOSITORY" --ref main -f public_copy=true -f staging_run="$STAGING_RUN" -f acceptance="Public website copy and responsive browser matrix for $SHA"

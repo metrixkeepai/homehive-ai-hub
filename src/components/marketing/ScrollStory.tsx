@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, FileText, Receipt, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -167,9 +167,10 @@ export function StoryBridge({ children }: { children: string }) {
     <div className="mk-bridge">
       <p>
         {children.split(" ").map((w, i) => (
-          <span key={i} style={{ ["--w" as string]: i }}>
-            {w}{" "}
-          </span>
+          <Fragment key={i}>
+            {i > 0 && " "}
+            <span style={{ ["--w" as string]: i }}>{w}</span>
+          </Fragment>
         ))}
       </p>
     </div>

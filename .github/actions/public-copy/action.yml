@@ -1,0 +1,27 @@
+name: Audit public website copy
+description: Check public routes, rendered text and responsive screenshots in Chromium
+inputs:
+  origin:
+    required: true
+    description: Published website origin
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '24.19.0'
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: '1.4.3'
+    - shell: bash
+      run: sudo apt-get update -qq && sudo apt-get install -y hunspell hunspell-en-gb && bun install --frozen-lockfile --ignore-scripts && bun x playwright install --with-deps chromium
+    - shell: bash
+      env:
+        ORIGIN: ${{ inputs.origin }}
+      run: node scripts/public-copy-qa.mjs "$ORIGIN"
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: public-copy-${{ github.job }}
+        path: public-copy-evidence
+        retention-days: 14
