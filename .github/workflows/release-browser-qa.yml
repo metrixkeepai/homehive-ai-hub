@@ -5,6 +5,13 @@ on:
       target:
         type: string
         required: true
+    secrets:
+      CAPTURE_QA_INDIVIDUAL_PASSWORD:
+        required: false
+      CAPTURE_QA_BUSINESS_PASSWORD:
+        required: false
+      CAPTURE_QA_HUMAN_WAV:
+        required: false
   workflow_dispatch:
     inputs:
       target:
@@ -40,7 +47,7 @@ jobs:
         env:
           APP_ENV: ${{ inputs.target }}
           QA_ROLE: ${{ matrix.role }}
-          QA_PASSWORD: ${{ matrix.role == 'business' && secrets.CAPTURE_QA_BUSINESS_PASSWORD || secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
+          QA_PASSWORD: ${{ secrets[format('CAPTURE_QA_{0}_PASSWORD', matrix.role == 'business' && 'BUSINESS' || 'INDIVIDUAL')] }}
           QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
         run: node deploy/recovery/browser-qa.mjs
       - uses: actions/upload-artifact@v4

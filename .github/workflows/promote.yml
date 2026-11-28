@@ -68,7 +68,13 @@ jobs:
           set -euo pipefail
           [[ $RUN_ID =~ ^[0-9]+$ && -n $ACCEPTANCE ]]
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > "$RUNNER_TEMP/run.json"
-          jq -e --arg sha "$GITHUB_SHA" '.path == ".github/workflows/verify.yml" and .event == "push" and .head_branch == "main" and .head_sha == $sha and .conclusion == "success"' "$RUNNER_TEMP/run.json"
+          jq -e --arg sha "$GITHUB_SHA" '.path == ".github/workflows/verify.yml" and .event == "push" and .head_branch == "main" and .head_sha == $sha and .status == "completed" and (.conclusion == "success" or .conclusion == "failure")' "$RUNNER_TEMP/run.json"
+          attempt=$(jq -er .run_attempt "$RUNNER_TEMP/run.json")
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/attempts/$attempt/jobs" |
+            jq -e 'any(.jobs[]; .name=="verify" and .conclusion=="success") and
+              all(.jobs[]; .conclusion!="failure" or .name=="staging" or (.name|startswith("capture-acceptance / browser ("))) and
+              any(.jobs[]; .name=="staging" and all(.steps[]; .conclusion!="failure" or .name=="Functional browser QA on the published deployment") and any(.steps[];
+                .name=="Migrate staging, deploy and verify HTTPS health" and .conclusion=="success"))' >/dev/null
           gh run download "$RUN_ID" -n matrixkeep-staging-release -D "$RUNNER_TEMP/staging"
           jq -e --arg sha "$GITHUB_SHA" '.sha == $sha and .service == "matrixkeep-staging-web"' "$RUNNER_TEMP/staging/release.json"
       - uses: google-github-actions/auth@v3
@@ -102,6 +108,11 @@ jobs:
           done
       - name: Migrate production, deploy and verify customer HTTPS
         run: bash deploy/cloud-run.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matrixkeep-production-release
+          path: release.json
+          if-no-files-found: error
       - name: Verify disabled-mode production billing
         if: inputs.billing_acceptance
         run: bash deploy/billing-acceptance.sh
@@ -109,11 +120,6 @@ jobs:
         env:
           MONITORING_CHANNEL: ${{ vars.MONITORING_CHANNEL }}
         run: python3 deploy/monitoring.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: matrixkeep-production-release
-          path: release.json
-          if-no-files-found: error
 
   serving-acceptance:
     if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
@@ -244,6 +250,10 @@ jobs:
   capture-acceptance:
     needs: promote
     uses: ./.github/workflows/release-browser-qa.yml
+    secrets:
+      CAPTURE_QA_INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
+      CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
+      CAPTURE_QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
     with:
       target: production
 
@@ -348,5 +358,9 @@ jobs:
   recovered-capture-acceptance:
     needs: recover-production
     uses: ./.github/workflows/release-browser-qa.yml
+    secrets:
+      CAPTURE_QA_INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
+      CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
+      CAPTURE_QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
     with:
       target: production

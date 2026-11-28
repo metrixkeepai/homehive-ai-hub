@@ -21,7 +21,6 @@ const email = prod
     : "sain.sabu41@gmail.com"
   : "zaineluvathingal+matrixkeep-public-" + role + "@gmail.com";
 const password = process.env.QA_PASSWORD;
-assert.ok(password, "QA sign-in credential unavailable");
 const dir = mkdtempSync(join(tmpdir(), "matrixkeep-qa-"));
 const ref = "MK-" + process.env.GITHUB_RUN_ID + "-" + process.env.GITHUB_RUN_ATTEMPT + "-" + role;
 const results = [];
@@ -32,6 +31,10 @@ const report = (mode, status) => {
 };
 let browser;
 try {
+  if (!password) {
+    report("sign-in", "QA CREDENTIAL UNAVAILABLE");
+    throw new Error("Protected " + target + " " + role + " QA credential unavailable");
+  }
   execFileSync("python3", ["scripts/ai-benchmark-fixtures.py", dir, ref]);
   if (process.env.QA_HUMAN_WAV)
     writeFileSync(join(dir, "human.wav"), Buffer.from(process.env.QA_HUMAN_WAV, "base64"), {
@@ -55,6 +58,7 @@ try {
   const state = await page.context().storageState();
   for (const [mode, label] of Object.entries({
     receipt: "Scan receipt",
+    duplicate: "Scan receipt",
     en: "Speak",
     ml: "Speak",
     photo: "Take photo",
@@ -98,7 +102,7 @@ try {
       await p.getByRole("button", { name: label, exact: true }).click();
       if (
         ["room", "email"].includes(mode) &&
-        (await p.getByText(/^Not included in your Free plan$/i).isVisible())
+        (await p.getByText(/^Not included in your .+ plan$/i).isVisible())
       ) {
         report(mode, "EXPECTED ENTITLEMENT BLOCK");
         continue;
@@ -148,6 +152,7 @@ try {
           photo: "src/assets/passport-tv.jpg",
           document: join(dir, "receipt.pdf"),
           receipt: join(dir, "clear-receipt.jpg"),
+          duplicate: join(dir, "clear-receipt.jpg"),
         };
         await p.locator("input[type=file]").setInputFiles(source[mode]);
       }
@@ -158,7 +163,7 @@ try {
       const review = await p
         .locator("input,dd,dt")
         .evaluateAll((els) => els.map((e) => e.value ?? e.textContent).join(" "));
-      if (["receipt", "document"].includes(mode))
+      if (["receipt", "document", "duplicate"].includes(mode))
         assert.ok(
           [new RegExp(ref, "i"), /elm appliances/i, /TWK7203/i, /2026-03-18/, /65/].every((x) =>
             x.test(review),
@@ -171,12 +176,42 @@ try {
           /Dyson\s*V15/i.test(review) && /Currys/i.test(review) && hasExactGbp(review, 599),
         );
       phase = "save";
-      p.once("dialog", async (d) => {
-        if (d.type() === "confirm" && /^This file was already uploaded as /.test(d.message()))
-          await d.accept();
-        else await d.dismiss();
-      });
-      await save.click();
+      if (mode === "duplicate") {
+        // Observe all requests made by the customer page across the cancel action.
+        const writes = [];
+        const onRequest = (request) => {
+          if (["PUT", "PATCH", "POST", "DELETE"].includes(request.method()))
+            writes.push(request.method());
+        };
+        const confirmDuplicate = async (accept) => {
+          const handled = p.waitForEvent("dialog").then(async (dialog) => {
+            const duplicate =
+              dialog.type() === "confirm" &&
+              /^This file was already uploaded as .+Save it again anyway\?$/.test(dialog.message());
+            if (duplicate && accept) await dialog.accept();
+            else await dialog.dismiss();
+            assert.ok(duplicate, "Expected duplicate receipt confirmation");
+          });
+          await Promise.all([handled, save.click()]);
+        };
+        p.on("request", onRequest);
+        await confirmDuplicate(false);
+        assert.ok(await save.isVisible());
+        p.off("request", onRequest);
+        assert.equal(writes.length, 0, "Duplicate cancellation submitted a write");
+        await confirmDuplicate(true);
+      } else {
+        p.once("dialog", async (d) => {
+          if (
+            ["photo", "room"].includes(mode) &&
+            d.type() === "confirm" &&
+            /^This file was already uploaded as /.test(d.message())
+          )
+            await d.accept();
+          else await d.dismiss();
+        });
+        await save.click();
+      }
       await p.getByText(/^Saved to /).waitFor();
       const links = await p
         .locator("div.fixed")
