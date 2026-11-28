@@ -58,7 +58,7 @@ export function UpgradeModal() {
   }, []);
   if (!b) return null;
   const current = profile?.plan ?? "free";
-  const eligible = eligiblePlans(current, b.feature, published, b.max)
+  const eligible = eligiblePlans(current, b.feature, published, b.max, catalogue.data)
     .filter((k) => !off.has(k))
     .map((k) => catalogue.data?.find((p) => p.key === k) ?? planByKey(k));
   const [title, body] =

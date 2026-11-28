@@ -138,7 +138,7 @@ if [[ -n $existing ]]; then
 fi
 tag="qa-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 deploy_revision() {
-  if [[ $subject == *"[runtime-parity]"* ]]; then
+  if [[ $subject == *"[runtime-parity]"* || $subject == *"[voucher-qa]"* ]]; then
     # Keep the serving service's live/sandbox, mail, auth and connector configuration.
     # Cloud Run updates inherit the latest template, so first verify it serves traffic.
     if [[ -z ${parity_revision:-} ]]; then

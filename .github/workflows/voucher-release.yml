@@ -1,0 +1,59 @@
+name: Release accepted billing changes
+on:
+  workflow_run:
+    workflows: ["Verify hardening", "Promote verified MatrixKeep release"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  promote:
+    if: github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.name == 'Verify hardening' && github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[promote-voucher-release]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Dispatch the protected promotion for the browser-tested main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_RUN: ${{ github.event.workflow_run.id }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" == "$SHA" ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$STAGING_RUN/jobs" | jq -e 'any(.jobs[]; .name=="staging" and .conclusion=="success" and any(.steps[]; .name=="Functional browser QA on the published deployment" and .conclusion=="success"))'
+          gh workflow run promote.yml -R "$GITHUB_REPOSITORY" --ref main -f staging_run="$STAGING_RUN" -f acceptance="Voucher and Business Free browser acceptance on staging run $STAGING_RUN, source $SHA"
+  production-browser:
+    if: github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.name == 'Promote verified MatrixKeep release' && github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[promote-voucher-release]')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Verify the promotion deployed this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROMOTION: ${{ github.event.workflow_run.id }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROMOTION/jobs" | jq -e 'any(.jobs[]; .name=="promote" and .conclusion=="success" and any(.steps[]; .name=="Migrate production, deploy and verify customer HTTPS" and .conclusion=="success"))'
+          gh run download "$PROMOTION" -R "$GITHUB_REPOSITORY" -n matrixkeep-production-release -D "$RUNNER_TEMP/release"
+          jq -e --arg sha "$SHA" '.sha==$sha and .project=="matrixkeep-production" and .service=="matrixkeep-production-web"' "$RUNNER_TEMP/release/release.json"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.3'
+      - run: bun install --frozen-lockfile --ignore-scripts && bun x playwright install --with-deps chromium
+      - name: Verify live quotes and Business Free without confirming payment
+        env:
+          INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
+          BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/production-voucher-qa.mjs

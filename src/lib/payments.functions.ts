@@ -8,6 +8,20 @@ import {
   stripeEnvironment,
 } from "@/lib/stripe.server";
 
+export const applyPlanVoucher = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.string().trim().min(2).max(32).parse(input).toUpperCase())
+  .handler(async ({ data, context }) => {
+    const mode = process.env["STRIPE_ENVIRONMENT"];
+    if (mode === "live" || mode === "sandbox") {
+      const { reconcileExpired } = await import("./checkout-voucher.server");
+      await reconcileExpired(createStripeClient(mode), data, mode);
+    }
+    const result = await context.supabase.rpc("redeem_voucher", { _code: data });
+    if (result.error) return null;
+    return result.data;
+  });
+
 export const createCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -80,9 +94,21 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
             const selected = await context.supabase.rpc("my_checkout_vouchers");
             if (selected.error || !Array.isArray(selected.data))
               throw new Error("Voucher lookup unavailable");
-            const hasVoucher = selected.data.some(
+            const selectedOffer = selected.data.find(
               (x) => x && typeof x === "object" && !Array.isArray(x) && x["plan"] === plan,
             );
+            const selectedCode =
+              selectedOffer &&
+              typeof selectedOffer === "object" &&
+              !Array.isArray(selectedOffer) &&
+              typeof selectedOffer["code"] === "string"
+                ? selectedOffer["code"]
+                : null;
+            const hasVoucher = selectedCode !== null;
+            if (selectedCode) {
+              const { reconcileExpired } = await import("./checkout-voucher.server");
+              await reconcileExpired(stripe, selectedCode, environment);
+            }
             if (
               "expectedVoucher" in data &&
               data.expectedVoucher !== undefined &&
@@ -147,11 +173,6 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
             );
             const subscription = current[0];
             if (subscription) {
-              if (hasVoucher)
-                return {
-                  error:
-                    "This account already has a card-billed subscription. No new charge was started.",
-                };
               if (reusable) await stripe.checkout.sessions.expire(reusable.id);
               const item = subscription.items.data[0];
               const canChange =
@@ -163,6 +184,46 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                 subscription.items.data.length === 1 &&
                 item &&
                 item.price.id !== price.id;
+              let upgradeHold: Awaited<ReturnType<typeof reserve>> = null;
+              let coupon: string | undefined;
+              if (hasVoucher) {
+                if (!canChange || subscription.discounts?.length || item?.discounts?.length)
+                  return {
+                    error: "The selected voucher cannot be combined with this subscription change.",
+                  };
+                upgradeHold = await reserve(
+                  context.userId,
+                  plan,
+                  lookup.endsWith("_yearly") ? "yearly" : "monthly",
+                  environment,
+                );
+                if (!upgradeHold) throw new Error("Voucher unavailable at checkout");
+                try {
+                  if (upgradeHold.code !== selectedCode || upgradeHold.type === "free_period")
+                    throw new Error("Voucher unavailable for this subscription change");
+                  const terms = await checkoutBenefit(
+                    stripe,
+                    upgradeHold,
+                    typeof price.product === "string" ? price.product : price.product.id,
+                    environment,
+                  );
+                  coupon = terms.coupon;
+                  if (!coupon) throw new Error("Voucher unavailable at checkout");
+                  const { bindUpgrade } = await import("./checkout-voucher.server");
+                  await bindUpgrade(upgradeHold, coupon, subscription.id);
+                } catch (error) {
+                  await settle(
+                    upgradeHold.id,
+                    environment,
+                    context.userId,
+                    null,
+                    null,
+                    null,
+                    "expired",
+                  );
+                  throw error;
+                }
+              }
               const portal = await stripe.billingPortal.sessions.create({
                 customer,
                 return_url: returnUrl,
@@ -172,6 +233,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                         type: "subscription_update_confirm" as const,
                         subscription_update_confirm: {
                           subscription: subscription.id,
+                          ...(coupon ? { discounts: [{ coupon }] } : {}),
                           items: [{ id: item.id, price: price.id, quantity: item.quantity ?? 1 }],
                         },
                         after_completion: {
@@ -182,6 +244,16 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                     }
                   : {}),
               });
+              if (upgradeHold)
+                await settle(
+                  upgradeHold.id,
+                  environment,
+                  context.userId,
+                  portal.id,
+                  subscription.id,
+                  coupon ?? null,
+                  "reserved",
+                );
               return { portalUrl: portal.url };
             }
             if (reusable) return { clientSecret: reusable.secret };
@@ -191,6 +263,10 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
               lookup.endsWith("_yearly") ? "yearly" : "monthly",
               environment,
             );
+            if (hold && hold.code !== selectedCode) {
+              await settle(hold.id, environment, context.userId, null, null, null, "expired");
+              throw new Error("Voucher selection changed");
+            }
             if (hasVoucher && !hold) throw new Error("Voucher unavailable at checkout");
             let benefit: { coupon?: string; trial_end?: number } = {};
             if (hold) {

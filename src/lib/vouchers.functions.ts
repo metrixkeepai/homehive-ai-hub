@@ -146,7 +146,7 @@ export const voucherDetail = createServerFn({ method: "GET" })
     const db = await adminClient(context as Ctx);
     const { data: v } = await db.from("vouchers").select("*").eq("code", data.code).maybeSingle();
     if (!v) throw new Error("Voucher not found");
-    const [{ data: r }, { data: siblings }] = await Promise.all([
+    const [{ data: r }, { data: siblings }, reservations] = await Promise.all([
       db
         .from("voucher_redemptions")
         .select("*")
@@ -155,8 +155,17 @@ export const voucherDetail = createServerFn({ method: "GET" })
       v.batch
         ? db.from("vouchers").select("code, uses, active").eq("batch", v.batch)
         : Promise.resolve({ data: [] as { code: string; uses: number; active: boolean }[] }),
+      db
+        .from("checkout_voucher_holds")
+        .select(
+          "id,user_id,plan,state,billing_interval,environment,session_id,coupon_id,expires_at",
+        )
+        .eq("code", v.code)
+        .neq("state", "final")
+        .order("expires_at", { ascending: false }),
     ]);
-    const ids = [...new Set((r ?? []).map((x) => x.user_id))];
+    if (reservations.error) throw new Error("Voucher audit unavailable");
+    const ids = [...new Set([...(r ?? []), ...reservations.data].map((x) => x.user_id))];
     const { data: profs } = ids.length
       ? await db.from("profiles").select("id, display_name, org_name, account_type").in("id", ids)
       : {
@@ -171,6 +180,10 @@ export const voucherDetail = createServerFn({ method: "GET" })
     return {
       voucher: { ...v, state: voucherState(v) },
       redemptions: (r ?? []).map((x) => ({ ...x, account: names.get(x.user_id) ?? x.user_id })),
+      reservations: reservations.data.map((h) => ({
+        ...h,
+        account: names.get(h.user_id) ?? h.user_id,
+      })),
       batch: siblings ?? [],
     };
   });

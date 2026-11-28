@@ -234,6 +234,24 @@ function VoucherDetail() {
           ]}
         />
       </section>
+      {!!q.data?.reservations.length && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Checkout reservations</h2>
+          <DataTable
+            name={`holds-${v.code}`}
+            rows={q.data.reservations}
+            cols={[
+              { key: "account", label: "Account" },
+              { key: "state", label: "Status" },
+              { key: "plan", label: "Plan" },
+              { key: "billing_interval", label: "Interval" },
+              { key: "environment", label: "Environment" },
+              { key: "session_id", label: "Stripe session" },
+              { key: "expires_at", label: "Expires", render: (r) => when(r.expires_at) },
+            ]}
+          />
+        </section>
+      )}
       {batch.length > 1 && (
         <section className="space-y-3">
           <h2 className="font-semibold">Other codes in this batch</h2>

@@ -5,7 +5,7 @@ import { voucherPrice, type VoucherOffer } from "@/lib/voucher-terms";
 import { Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { chooseFreePlan } from "@/lib/payments.functions";
+import { applyPlanVoucher, chooseFreePlan } from "@/lib/payments.functions";
 import { useStore } from "@/components/hv/store";
 import { planByKey, trialInfo, type PlanDef } from "@/lib/plans";
 import { useInactivePlans, usePublishedPlans } from "@/lib/plan-status";
@@ -55,10 +55,8 @@ function Plans() {
     },
   });
   const list = (catalogue.data ?? [])
-    .filter(
-      (p) =>
-        p.key === profile?.plan ||
-        (kind === "individual" ? p.audience === "individual" : p.audience !== "individual"),
+    .filter((p) =>
+      kind === "individual" ? p.audience === "individual" : p.audience !== "individual",
     )
     .filter((p) => !off.has(p.key) || p.key === profile?.plan);
   const published = usePublished();
@@ -77,16 +75,16 @@ function Plans() {
     if (p && profile && p.key !== profile.plan) void choose(p); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!profile, catalogue.isSuccess]);
   const eligible = need
-    ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over)
+    ? eligiblePlans(profile?.plan ?? "free", need.feature, published, need.over, catalogue.data)
     : [];
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
 
   const redeem = async (c: string) => {
     if (!c.trim()) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("redeem_voucher", { _code: c.trim() });
+    const data = await applyPlanVoucher({ data: c.trim() }).catch(() => null);
     setBusy(false);
-    if (error || !data) {
+    if (!data) {
       toast.error("That voucher code isn't valid or has been used up.");
       return;
     }

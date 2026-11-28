@@ -40,7 +40,7 @@ const mocks = {
   "./connector-review.server":
     "export const requireConnectorPlan=async()=>{};export const db={from:()=>({insert:async()=>({error:null})})};",
   "./checkout-voucher.server":
-    "export const reserve=async()=>null; export const settle=async()=>{}; export const checkoutBenefit=async()=>({});",
+    "export const reconcileExpired=async()=>{}; export const paidPortalVoucher=async()=>{}; export const bindUpgrade=async()=>{}; export const reserve=async()=>null; export const settle=async()=>{}; export const checkoutBenefit=async()=>({});",
   "./billing-catalogue.server":
     "export const cataloguePlan=async()=>({audience:'individual'}); export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",

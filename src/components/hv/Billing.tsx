@@ -72,7 +72,7 @@ export function BillingPage() {
     [biz ? "Team members" : "Household members", 1 + n(biz ? "team" : "family"), p.limits.users],
     [
       biz ? "Locations" : "Properties",
-      Math.max(1, n(biz ? "locations" : "my-home")),
+      biz ? n("locations") : Math.max(1, n("my-home")),
       p.limits.places,
     ],
   ];
@@ -111,7 +111,9 @@ export function BillingPage() {
             {p.monthly === null
               ? "Custom contract"
               : p.monthly === 0
-                ? "Free"
+                ? p.key === "business_free"
+                  ? "£0"
+                  : "Free"
                 : `${gbp(p.monthly)}/month or ${gbp(p.yearly!)}/year`}{" "}
             ·{" "}
             {trial

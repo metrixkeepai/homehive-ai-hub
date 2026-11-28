@@ -327,6 +327,26 @@ export type Database = {
         };
         Relationships: [];
       };
+      checkout_voucher_holds: {
+        Row: {
+          id: string;
+          user_id: string;
+          code: string;
+          plan: string;
+          environment: string;
+          billing_interval: string;
+          terms: Json;
+          legacy_id: string | null;
+          state: string;
+          expires_at: string;
+          session_id: string | null;
+          coupon_id: string | null;
+          target_subscription: string | null;
+        };
+        Insert: never;
+        Update: { target_subscription?: string; coupon_id?: string };
+        Relationships: [];
+      };
       billing_customers: {
         Row: {
           created_at: string;

@@ -21,6 +21,21 @@ describe("plan entitlements", () => {
       true,
     );
   });
+  it("Business Free allows one location and suggests all four paid business upgrades", () => {
+    expect(checkAdd(effective("business_free"), "locations", 0).ok).toBe(true);
+    expect(checkAdd(effective("business_free"), "locations", 1)).toMatchObject({
+      ok: false,
+      reason: "limit",
+      max: 1,
+    });
+    expect(eligiblePlans("business_free", "locations", {}, 1)).toEqual([
+      "business_starter",
+      "business",
+      "business_pro",
+      "business_scale",
+    ]);
+    expect(checkAdd(effective("free"), "my-home", 0).ok).toBe(true);
+  });
   it("vehicle upgrade suggests Home+ and Family", () => {
     expect(eligiblePlans("free", "vehicle_passport", {})).toEqual(["plus", "family"]);
   });

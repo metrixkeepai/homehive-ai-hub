@@ -849,10 +849,13 @@ test("voucher reservations enforce eligibility, release abandonment and finalise
             ])
           ).rows[0].h;
         const settle = (id, state) =>
-          db.query(
-            "SELECT settle_checkout_voucher($1,'sandbox',$2,$3,'sub_test','coupon_test',$4)",
-            [id, user, "cs_" + id, state],
-          );
+          db.query("SELECT settle_checkout_voucher($1,'sandbox',$2,$3,'sub_test',$5,$4)", [
+            id,
+            user,
+            "cs_" + id,
+            state,
+            "coupon_" + id,
+          ]);
         const abandoned = await reserve();
         assert.equal(abandoned.type, type);
         await settle(abandoned.id, "expired");

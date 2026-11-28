@@ -247,7 +247,11 @@ export function defaultEntitlements(planKey: string, audience?: Audience): Entit
   if (planKey === "business_free") {
     const base = defaultEntitlements("free");
     delete base["properties"];
-    return { ...base, locations: { on: true, limit: 1, unit: "count" } };
+    return {
+      ...base,
+      locations: { on: true, limit: 1, unit: "count" },
+      users: { on: true, limit: 1, unit: "count" },
+    };
   }
   const list = plans.filter((x) => x.audience === aud && x.key !== "business_free");
   const tier =
@@ -313,9 +317,10 @@ export function eligiblePlans(
   feature: string,
   published: Record<string, Entitlements>,
   needMoreThan?: number | undefined,
+  catalogue = plans,
 ) {
-  const aud = planByKey(currentKey).audience;
-  return plans
+  const aud = (catalogue.find((p) => p.key === currentKey) ?? planByKey(currentKey)).audience;
+  return catalogue
     .filter((p) => p.audience === aud && p.key !== currentKey)
     .filter((p) => {
       const e = effective(p.key, published[p.key])[feature];

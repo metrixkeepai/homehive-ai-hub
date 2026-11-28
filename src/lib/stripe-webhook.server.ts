@@ -92,6 +92,15 @@ export async function handleStripeWebhook(request: Request) {
       "checkout.session.async_payment_succeeded",
     ]);
     if (!accepted.has(event.type) || !subscriptionId) return Response.json({ received: true });
+    if (event.type === "invoice.paid" && object.object === "invoice") {
+      const { paidPortalVoucher } = await import("./checkout-voucher.server");
+      await paidPortalVoucher(
+        createStripeClient(environment),
+        object.id,
+        subscriptionId,
+        environment,
+      );
+    }
     // Fetch current state so delayed webhook delivery cannot restore an obsolete subscription.
     const stripe = createStripeClient(environment);
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
