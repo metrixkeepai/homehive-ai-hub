@@ -28,6 +28,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     z
       .union([
         z.object({
+          expectedPence: z.number().int().nonnegative().optional(),
           expectedVoucher: z.string().max(32).nullable().optional(),
           plan: z.string().regex(/^[a-z0-9_]{2,40}$/),
           interval: z.enum(["monthly", "yearly"]),
@@ -124,6 +125,10 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                   )))
             )
               throw new Error("Voucher selection changed");
+            const expectedPence = "expectedPence" in data ? data.expectedPence : undefined;
+            const { voucherPrice } = await import("./voucher-terms");
+            if (!hasVoucher && expectedPence !== undefined && expectedPence !== price.unit_amount)
+              throw new Error("Plan price changed");
             const open = await stripe.checkout.sessions.list({
               customer,
               status: "open",
@@ -199,7 +204,12 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
                 );
                 if (!upgradeHold) throw new Error("Voucher unavailable at checkout");
                 try {
-                  if (upgradeHold.code !== selectedCode || upgradeHold.type === "free_period")
+                  if (
+                    upgradeHold.code !== selectedCode ||
+                    upgradeHold.type === "free_period" ||
+                    (expectedPence !== undefined &&
+                      expectedPence !== voucherPrice(price.unit_amount!, upgradeHold))
+                  )
                     throw new Error("Voucher unavailable for this subscription change");
                   const terms = await checkoutBenefit(
                     stripe,
@@ -263,7 +273,12 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
               lookup.endsWith("_yearly") ? "yearly" : "monthly",
               environment,
             );
-            if (hold && hold.code !== selectedCode) {
+            if (
+              hold &&
+              (hold.code !== selectedCode ||
+                (expectedPence !== undefined &&
+                  expectedPence !== voucherPrice(price.unit_amount!, hold)))
+            ) {
               await settle(hold.id, environment, context.userId, null, null, null, "expired");
               throw new Error("Voucher selection changed");
             }

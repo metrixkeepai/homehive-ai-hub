@@ -210,14 +210,31 @@ try {
       .waitFor();
     await page.getByRole("button", { name: "Choose " + name, exact: true }).click();
     step = audience + " embedded Stripe amount";
-    await page
-      .frameLocator("#checkout iframe")
-      .first()
-      .getByText(
-        new RegExp("£\\s*" + (total / 100).toFixed(2).replace(/\.00$/, "").replace(".", "\\.")),
-      )
-      .first()
-      .waitFor({ timeout: 45000 });
+    const displayedAmount = new RegExp(
+      "£\\s*" + (total / 100).toFixed(2).replace(/\.00$/, "").replace(".", "\\.") + "(?![0-9])",
+    );
+    let shown = false;
+    for (let i = 0; i < 45 && !shown; i++) {
+      for (const frame of page.frames()) {
+        let host;
+        try {
+          host = new URL(frame.url()).hostname;
+        } catch {
+          continue;
+        }
+        if (!host.endsWith(".stripe.com")) continue;
+        const body = await frame
+          .locator("body")
+          .innerText({ timeout: 1200 })
+          .catch(() => "");
+        if (displayedAmount.test(body)) {
+          shown = true;
+          break;
+        }
+      }
+      if (!shown) await new Promise((r) => setTimeout(r, 1000));
+    }
+    assert.ok(shown);
     const customer = await db
       .from("billing_customers")
       .select("customer_id")

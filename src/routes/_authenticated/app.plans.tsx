@@ -79,6 +79,9 @@ function Plans() {
     : [];
   const trial = trialInfo(profile?.trial_ends_at, profile?.plan_source);
 
+  const checkoutOffer = offers.data?.find((v) => v.plan === checkout?.key);
+  const checkoutPrice = checkout && (yearly ? checkout.yearly : checkout.monthly);
+  const quotePence = checkoutPrice == null ? undefined : Math.round(checkoutPrice * 100);
   const redeem = async (c: string) => {
     if (!c.trim()) return;
     setBusy(true);
@@ -323,7 +326,12 @@ function Plans() {
           </DialogHeader>
           {checkout && (
             <StripeEmbeddedCheckout
-              expectedVoucher={offers.data?.find((v) => v.plan === checkout.key)?.code ?? null}
+              expectedVoucher={checkoutOffer?.code ?? null}
+              expectedPence={
+                checkoutOffer && quotePence !== undefined
+                  ? voucherPrice(quotePence, checkoutOffer)
+                  : quotePence
+              }
               plan={checkout.key}
               interval={yearly ? "yearly" : "monthly"}
             />

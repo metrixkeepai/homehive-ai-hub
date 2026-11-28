@@ -43,6 +43,7 @@ export type Profile = {
   org_size: string | null;
   branches: number | null;
   trial_ends_at: string | null;
+  voucher_ends_at?: string | null;
   org_name: string | null;
   sector: string | null;
   job_title: string | null;
@@ -212,7 +213,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         supabase
           .from("profiles")
           .select(
-            "display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,country,bio,plan,plan_source,business_type,org_size,branches,trial_ends_at",
+            "display_name,avatar_url,household,account_type,org_name,sector,job_title,phone,language,currency,timezone,country,bio,plan,plan_source,business_type,org_size,branches,trial_ends_at,voucher_ends_at",
           )
           .eq("id", u.user.id)
           .maybeSingle(),
@@ -245,7 +246,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cursor.current = (rows.at(-1) as Row | undefined) ?? null;
     setAllRows((rows ?? []) as Row[]);
     setRawWs((ws ?? []) as Workspace[]);
-    setProfile(p ? { ...emptyProfile, ...(p as Partial<Profile>) } : emptyProfile);
+    const loaded = p ? { ...emptyProfile, ...(p as Partial<Profile>) } : emptyProfile;
+    const expiredGrant =
+      loaded.plan_source?.startsWith("voucher:") &&
+      loaded.voucher_ends_at &&
+      Date.parse(loaded.voucher_ends_at) <= Date.now();
+    setProfile(
+      expiredGrant
+        ? {
+            ...loaded,
+            plan: loaded.account_type === "business" ? "business_free" : "free",
+            plan_source: null,
+          }
+        : loaded,
+    );
   }, [wsId]);
 
   useEffect(() => {
