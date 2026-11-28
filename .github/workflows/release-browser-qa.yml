@@ -10,8 +10,6 @@ on:
         required: false
       CAPTURE_QA_BUSINESS_PASSWORD:
         required: false
-      CAPTURE_QA_HUMAN_WAV:
-        required: false
   workflow_dispatch:
     inputs:
       target:
@@ -20,6 +18,7 @@ on:
         options: [staging, production]
 permissions:
   contents: read
+  id-token: write
 jobs:
   browser:
     if: github.ref == 'refs/heads/main' && (inputs.target == 'staging' || inputs.target == 'production')
@@ -43,12 +42,34 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y espeak-ng ffmpeg python3-pil
           bun x playwright install --with-deps chromium
+      - name: Authenticate for private fixture access
+        id: fixture_auth
+        if: vars.CAPTURE_QA_AUDIO_OBJECT != '' && vars.CAPTURE_QA_AUDIO_SHA256 != ''
+        continue-on-error: true
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.CAPTURE_QA_IDENTITY_PROVIDER || vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CAPTURE_QA_FIXTURE_READER }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/devstorage.read_only
+          access_token_lifetime: 600s
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Verify private recording and prepare browser input
+        id: fixture
+        if: steps.fixture_auth.outcome == 'success'
+        continue-on-error: true
+        env:
+          FIXTURE_TOKEN: ${{ steps.fixture_auth.outputs.access_token }}
+          FIXTURE_OBJECT: ${{ vars.CAPTURE_QA_AUDIO_OBJECT }}
+          FIXTURE_SHA256: ${{ vars.CAPTURE_QA_AUDIO_SHA256 }}
+        run: python3 deploy/recovery/private-audio.py
       - name: Complete customer workflows and reopen saved records
         env:
           APP_ENV: ${{ inputs.target }}
           QA_ROLE: ${{ matrix.role }}
           QA_PASSWORD: ${{ secrets[format('CAPTURE_QA_{0}_PASSWORD', matrix.role == 'business' && 'BUSINESS' || 'INDIVIDUAL')] }}
-          QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
+          QA_HUMAN_AUDIO_PATH: ${{ steps.fixture.outputs.wav }}
         run: node deploy/recovery/browser-qa.mjs
       - uses: actions/upload-artifact@v4
         if: always()
@@ -56,3 +77,6 @@ jobs:
           name: capture-browser-${{ inputs.target }}-${{ matrix.role }}
           path: browser-*.json
           if-no-files-found: error
+      - name: Remove private runner audio
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/matrixkeep-qa-audio"

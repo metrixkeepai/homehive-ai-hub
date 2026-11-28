@@ -249,11 +249,13 @@ jobs:
 
   capture-acceptance:
     needs: promote
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/release-browser-qa.yml
     secrets:
       CAPTURE_QA_INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
       CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
-      CAPTURE_QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
     with:
       target: production
 
@@ -357,10 +359,12 @@ jobs:
 
   recovered-capture-acceptance:
     needs: recover-production
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/release-browser-qa.yml
     secrets:
       CAPTURE_QA_INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
       CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
-      CAPTURE_QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
     with:
       target: production

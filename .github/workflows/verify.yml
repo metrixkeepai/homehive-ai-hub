@@ -250,6 +250,9 @@ jobs:
   capture-acceptance:
     needs: staging
     if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[runtime-parity]')
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/release-browser-qa.yml
     with:
       target: staging
@@ -332,10 +335,12 @@ jobs:
   production-capture-qa:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify.outputs.website_workflow_install == 'true' && contains(github.event.head_commit.message, '[production-capture-qa]')
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/release-browser-qa.yml
     secrets:
       CAPTURE_QA_INDIVIDUAL_PASSWORD: ${{ secrets.CAPTURE_QA_INDIVIDUAL_PASSWORD }}
       CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
-      CAPTURE_QA_HUMAN_WAV: ${{ secrets.CAPTURE_QA_HUMAN_WAV }}
     with:
       target: production

@@ -36,10 +36,6 @@ try {
     throw new Error("Protected " + target + " " + role + " QA credential unavailable");
   }
   execFileSync("python3", ["scripts/ai-benchmark-fixtures.py", dir, ref]);
-  if (process.env.QA_HUMAN_WAV)
-    writeFileSync(join(dir, "human.wav"), Buffer.from(process.env.QA_HUMAN_WAV, "base64"), {
-      mode: 0o600,
-    });
   browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(origin + "/auth");
@@ -67,11 +63,11 @@ try {
     email: "Import email",
   })) {
     const speech = mode === "en" || mode === "ml";
-    if (mode === "ml" && !process.env.QA_HUMAN_WAV) {
+    if (mode === "ml" && !process.env.QA_HUMAN_AUDIO_PATH) {
       report(mode, "HUMAN AUDIO UNAVAILABLE");
       continue;
     }
-    const file = join(dir, mode === "ml" ? "human.wav" : "en.wav");
+    const file = mode === "ml" ? process.env.QA_HUMAN_AUDIO_PATH : join(dir, "en.wav");
     const client = await chromium.launch({
       args: speech
         ? [
