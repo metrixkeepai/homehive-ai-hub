@@ -41,7 +41,15 @@ try {
   await page.goto(origin + "/auth");
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
-  await page.locator("form button[type=submit]").click();
+  const authResponse = page.waitForResponse((response) =>
+    response.request().method() === "POST" && new URL(response.url()).pathname === "/auth/v1/token",
+  );
+  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
+  const login = await authResponse;
+  if (!login.ok()) {
+    report("sign-in", "SIGN-IN REJECTED (HTTP " + login.status() + ")");
+    throw new Error("Customer sign-in failed");
+  }
   await page.waitForURL((url) => url.origin === origin && url.pathname.startsWith("/app"));
   await page.goto(origin + "/app/profile");
   await page.waitForFunction(
