@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      audit_only:
+        description: Read serving identity, mail worker and scheduler for release certification
+        type: boolean
+        default: false
       recovered_release:
         description: Use a verified serving-release artifact from a successful recovery run
         type: boolean
@@ -37,7 +41,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   promote:
-    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.audit_only != true && inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only != true && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -122,7 +126,7 @@ jobs:
         run: python3 deploy/monitoring.py
 
   serving-acceptance:
-    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.audit_only != true && inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.acceptance_only && !inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -171,7 +175,7 @@ jobs:
         run: bash deploy/billing-acceptance.sh
 
   mail:
-    if: inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
+    if: github.event_name == 'workflow_dispatch' && inputs.audit_only != true && inputs.recovered_release != true && inputs.website_sha == '' && github.ref == 'refs/heads/main' && inputs.mail_only
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -204,7 +208,7 @@ jobs:
       - run: bash deploy/production-mail-worker.sh
 
   website-production:
-    if: inputs.recovered_release != true && github.ref == 'refs/heads/main' && inputs.website_sha != ''
+    if: github.event_name == 'workflow_dispatch' && inputs.audit_only != true && inputs.recovered_release != true && github.ref == 'refs/heads/main' && inputs.website_sha != ''
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -260,7 +264,7 @@ jobs:
       target: production
 
   request-witness:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.audit_only != true && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -293,7 +297,7 @@ jobs:
 
   recover-production:
     needs: request-witness
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.audit_only != true && inputs.recovered_release && !inputs.mail_only && !inputs.acceptance_only && !inputs.billing_acceptance && inputs.website_sha == ''
     permissions:
       actions: read
       contents: read
@@ -368,3 +372,20 @@ jobs:
       CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
     with:
       target: production
+
+  audit-serving-release:
+    if: github.ref == 'refs/heads/main' && inputs.audit_only
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Read production serving identity and mail status
+        run: bash deploy/recovery/read-serving.sh

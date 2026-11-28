@@ -17,7 +17,7 @@ const origin = prod
   : "https://matrixkeep-staging-web-893477687403.europe-west2.run.app";
 const email = prod
   ? role === "business"
-    ? "sain.sabu@talksandtalks.ai"
+    ? "matrixkeep-qa+business@matrixkeep.com"
     : "sain.sabu41@gmail.com"
   : "zaineluvathingal+matrixkeep-public-" + role + "@gmail.com";
 const password = process.env.QA_PASSWORD;
@@ -27,6 +27,11 @@ const results = [];
 const report = (mode, status) => {
   results.push({ mode, status });
   console.log(mode, status);
+  if (status.startsWith("QA ENVIRONMENT /")) {
+    console.warn("::warning::Incomplete automated coverage for " + mode + ": " + status);
+    process.exitCode ||= 2;
+    return;
+  }
   if (status !== "PASS" && status !== "EXPECTED ENTITLEMENT BLOCK") process.exitCode = 1;
 };
 let browser;
@@ -67,6 +72,16 @@ try {
       ),
     email,
   );
+  if (prod && role === "business") {
+    await page.goto(origin + "/app/billing");
+    const meter = await page.getByText(/^Account AI captures/).innerText();
+    const match = meter.match(/(\d+) \/ (\d+|Unlimited)/);
+    assert.ok(match, "Internal QA capture meter unavailable");
+    if (match[2] !== "Unlimited" && Number(match[2]) - Number(match[1]) < 10) {
+      report("business suite", "QA ENVIRONMENT / ALLOWANCE LIMIT");
+      throw new Error("Internal QA account needs ten available captures before a full run");
+    }
+  }
   const state = await page.context().storageState();
   for (const [mode, label] of Object.entries({
     receipt: "Scan receipt",
@@ -80,7 +95,7 @@ try {
   })) {
     const speech = mode === "en" || mode === "ml";
     if (mode === "ml" && !process.env.QA_HUMAN_AUDIO_PATH) {
-      report(mode, "HUMAN AUDIO UNAVAILABLE");
+      report(mode, "QA ENVIRONMENT / FIXTURE UNAVAILABLE");
       continue;
     }
     const file = mode === "ml" ? process.env.QA_HUMAN_AUDIO_PATH : join(dir, "en.wav");
@@ -120,7 +135,7 @@ try {
         continue;
       }
       if (remaining < (speech ? 2 : 1)) {
-        report(mode, "INSUFFICIENT QA ALLOWANCE");
+        report(mode, "QA ENVIRONMENT / ALLOWANCE LIMIT");
         continue;
       }
       phase = "capture";

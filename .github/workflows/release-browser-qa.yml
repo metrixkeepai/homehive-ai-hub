@@ -68,7 +68,7 @@ jobs:
         env:
           APP_ENV: ${{ inputs.target }}
           QA_ROLE: ${{ matrix.role }}
-          QA_PASSWORD: ${{ secrets[format('CAPTURE_QA_{0}_PASSWORD', matrix.role == 'business' && 'BUSINESS' || 'INDIVIDUAL')] }}
+          QA_PASSWORD: ${{ secrets[inputs.target == 'production' && matrix.role == 'business' && 'CAPTURE_QA_INTERNAL_BUSINESS_PASSWORD' || format('CAPTURE_QA_{0}_PASSWORD', matrix.role == 'business' && 'BUSINESS' || 'INDIVIDUAL')] }}
           QA_HUMAN_AUDIO_PATH: ${{ steps.fixture.outputs.wav }}
         run: node deploy/recovery/browser-qa.mjs
       - uses: actions/upload-artifact@v4

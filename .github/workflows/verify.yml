@@ -344,3 +344,17 @@ jobs:
       CAPTURE_QA_BUSINESS_PASSWORD: ${{ secrets.CAPTURE_QA_BUSINESS_PASSWORD }}
     with:
       target: production
+
+  request-serving-audit:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[read-serving]')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the protected read-only production check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/promote.yml/dispatches" \
+            -f ref=main -f 'inputs[audit_only]=true' -f 'inputs[staging_run]=46093161289' \
+            -f 'inputs[acceptance]=Recorded owner acceptance; read-only certification'

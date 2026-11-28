@@ -1,0 +1,23 @@
+{
+  "run": "46093161289",
+  "source_sha": "b03f368ba9c95347f7afa568c51762bcd8ece5ae",
+  "production_revision": "matrixkeep-production-web-00014-raw",
+  "date": "2026-11-28",
+  "individual_browser": {
+    "receipt": "PASS", "duplicate": "PASS", "english_speak": "PASS",
+    "photo": "PASS", "document": "PASS", "room": "PASS", "email": "PASS",
+    "malayalam": "QA ENVIRONMENT / FIXTURE UNAVAILABLE"
+  },
+  "business_browser": {
+    "receipt": "PASS", "duplicate": "QA ENVIRONMENT / ALLOWANCE LIMIT",
+    "english_speak": "QA ENVIRONMENT / ALLOWANCE LIMIT",
+    "photo": "QA ENVIRONMENT / ALLOWANCE LIMIT", "document": "QA ENVIRONMENT / ALLOWANCE LIMIT",
+    "room": "EXPECTED ENTITLEMENT BLOCK", "email": "EXPECTED ENTITLEMENT BLOCK",
+    "malayalam": "QA ENVIRONMENT / FIXTURE UNAVAILABLE"
+  },
+  "owner_production": {
+    "individual": {"speak": "PASS", "receipt": "PASS"},
+    "business": {"speak": "PASS", "receipt": "PASS"}
+  },
+  "owner_staging": "Human Malayalam automatic detection, original transcript and English translation passed."
+}
