@@ -22,6 +22,10 @@ export function voucherPrice(pence: number, offer: VoucherOffer) {
 export function discountMonths(start: Date, end: Date) {
   const months =
     (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth();
+  return months + Number(billingAnniversary(start, months) < end);
+}
+
+function billingAnniversary(start: Date, months: number) {
   const boundary = new Date(start);
   boundary.setUTCDate(1);
   boundary.setUTCMonth(boundary.getUTCMonth() + months);
@@ -29,5 +33,18 @@ export function discountMonths(start: Date, end: Date) {
     Date.UTC(boundary.getUTCFullYear(), boundary.getUTCMonth() + 1, 0),
   ).getUTCDate();
   boundary.setUTCDate(Math.min(start.getUTCDate(), last));
-  return months + Number(boundary < end);
+  return boundary;
+}
+
+export function trialBillingDate(offer: VoucherOffer, start = new Date()) {
+  const date = offer.end
+    ? new Date(offer.end + "T00:00:00Z")
+    : billingAnniversary(start, offer.months ?? 0);
+  if (offer.end) date.setUTCDate(date.getUTCDate() + 1);
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }

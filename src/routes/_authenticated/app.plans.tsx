@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { voucherPrice, type VoucherOffer } from "@/lib/voucher-terms";
+import { trialBillingDate, voucherPrice, type VoucherOffer } from "@/lib/voucher-terms";
 import { Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -253,7 +253,12 @@ function Plans() {
                       price: voucherPrice(Math.round(amount * 100), offer) / 100,
                       duration:
                         offer.type === "free_period"
-                          ? "Then £" + amount + " per " + (yearly ? "year" : "month")
+                          ? "£" +
+                            amount +
+                            " per " +
+                            (yearly ? "year" : "month") +
+                            " from " +
+                            trialBillingDate(offer)
                           : offer.end
                             ? "Through " + offer.end
                             : offer.months

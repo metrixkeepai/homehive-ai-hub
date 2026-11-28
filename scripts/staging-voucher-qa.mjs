@@ -70,7 +70,9 @@ async function payInSandbox(page) {
   let submitted = false;
   for (const frame of stripeFrames()) {
     const submit = frame
-      .getByRole("button", { name: /subscribe|pay now|start subscription/i })
+      .getByRole("button", {
+        name: /subscribe|pay now|start (?:your |a )?(?:free )?trial|start subscription/i,
+      })
       .last();
     if ((await submit.isVisible()) && (await submit.isEnabled())) {
       await submit.click();
@@ -80,6 +82,15 @@ async function payInSandbox(page) {
   }
 
   if (!submitted) throw Error();
+}
+async function record(name, outcome) {
+  const saved = await db
+    .from("release_qa_checks")
+    .upsert(
+      { run_id: e.QA_RUN + "-voucher-" + e.QA_ATTEMPT, check_name: name, outcome },
+      { onConflict: "run_id,check_name" },
+    );
+  assert.ifError(saved.error);
 }
 let step = "Super Admin login";
 try {
@@ -102,228 +113,266 @@ try {
     ["individual", "family", "Family", "plan", 1, 1499, 0],
     ["business", "business", "Business", "plan", 1, 2900, 0],
   ]) {
-    step = audience + " fixture";
-    const { email } = createExecutionIdentity(e.QA_RUN, e.QA_ATTEMPT);
-    const password = randomUUID() + randomUUID();
-    const { data, error } = await db.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { account_type: audience, full_name: "Staging billing QA" },
-    });
-    if (error) throw Error(step);
-    const code = "QA" + randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase();
-    step = audience + " Super Admin voucher";
-    await admin.goto(base + "/super-admin/vouchers");
-    step = audience + " open form";
-    await admin.getByRole("button", { name: "Create voucher", exact: true }).click();
-    step = audience + " enter voucher";
-    await admin.getByPlaceholder("Spring launch offer").fill("Staging billing acceptance");
-    await admin.getByPlaceholder("SPRING2027").fill(code);
-    await admin
-      .locator("select")
-      .filter({ has: admin.locator('option[value="discount_percent"]') })
-      .selectOption(benefit);
-    await admin
-      .locator("select")
-      .filter({ has: admin.locator('option[value="family"]') })
-      .selectOption(plan);
-    if (benefit.startsWith("discount"))
-      await admin
-        .getByLabel(benefit === "discount_fixed" ? "Amount off (£)" : "Discount %", { exact: true })
-        .fill(String(value));
-    if (benefit === "free_period" || benefit === "plan") {
+    const scenario = audience + " " + benefit;
+    let page;
+    try {
+      step = audience + " fixture";
+      const { email } = createExecutionIdentity(e.QA_RUN, e.QA_ATTEMPT);
+      const password = randomUUID() + randomUUID();
+      const { data, error } = await db.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { account_type: audience, full_name: "Staging billing QA" },
+      });
+      if (error) throw Error(step);
+      const code = "QA" + randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase();
+      step = audience + " Super Admin voucher";
+      await admin.goto(base + "/super-admin/vouchers");
+      step = audience + " open form";
+      await admin.getByRole("button", { name: "Create voucher", exact: true }).click();
+      step = audience + " enter voucher";
+      await admin.getByPlaceholder("Spring launch offer").fill("Staging billing acceptance");
+      await admin.getByPlaceholder("SPRING2027").fill(code);
       await admin
         .locator("select")
-        .filter({ has: admin.locator('option[value="months"]') })
-        .selectOption("months");
-      await admin.getByLabel("Months", { exact: true }).fill("1");
-    }
-    await admin.getByPlaceholder("customer@example.com").fill(email);
-    step = audience + " review voucher";
-    await admin.getByRole("button", { name: "Review", exact: true }).click();
-    step = audience + " create voucher";
-    await admin.getByRole("button", { name: "Create", exact: true }).click();
-    step = audience + " confirm creation";
-    await admin.getByText(code, { exact: true }).first().waitFor();
-    const page = await browser.newPage();
-    step = audience + " login";
-    await page.goto(base + "/auth");
-    await page.locator("form[data-interactive=true]").waitFor();
-    await page.locator("input[type=email]").fill(email);
-    await page.locator("input[type=password]").fill(password);
-    await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
-    await page.waitForURL(/\/app(?:\/|$)/);
-    if (audience === "business" && benefit === "discount_fixed") {
-      await page.goto(base + "/app/billing");
-      await page.getByText("Business Free", { exact: true }).first().waitFor();
-      step = "Business Free location save and reopen";
-      await page.goto(base + "/app/locations");
-      const location = "QA branch " + e.QA_RUN;
-      const save = async (n) => {
-        await page.getByRole("button", { name: "Add location", exact: true }).click();
-        await page.getByLabel("Location name").fill(n);
-        await page.getByRole("button", { name: "Save location" }).click();
-      };
-      await save(location);
-      await page.getByText(location, { exact: true }).first().waitFor();
-      await page.reload();
-      await page.getByText(location, { exact: true }).first().click();
-      await page.getByRole("heading", { name: location, exact: true }).waitFor();
-      await page.goto(base + "/app/locations");
-      step = "second location blocked with eligible upgrades";
-      await save(location + " second");
-      for (const label of ["Business Starter", "Business", "Business Pro", "Business Scale"])
-        await page.getByRole("dialog").getByText(label, { exact: true }).waitFor();
-    }
-    step = audience + " voucher quote";
-    await page.goto(base + "/app/plans");
-    await page
-      .getByRole("heading", {
-        name: audience === "business" ? "Business Free" : "Free",
-        exact: true,
-      })
-      .first()
-      .waitFor();
-    await page.getByPlaceholder("Voucher code").fill(code);
-    await page.getByRole("button", { name: "Redeem", exact: true }).click();
-    if (benefit === "plan") {
+        .filter({ has: admin.locator('option[value="discount_percent"]') })
+        .selectOption(benefit);
+      await admin
+        .locator("select")
+        .filter({ has: admin.locator('option[value="family"]') })
+        .selectOption(plan);
+      if (benefit.startsWith("discount"))
+        await admin
+          .getByLabel(benefit === "discount_fixed" ? "Amount off (£)" : "Discount %", {
+            exact: true,
+          })
+          .fill(String(value));
+      if (benefit === "free_period" || benefit === "plan") {
+        await admin
+          .locator("select")
+          .filter({ has: admin.locator('option[value="months"]') })
+          .selectOption("months");
+        await admin.getByLabel("Months", { exact: true }).fill("1");
+      }
+      await admin.getByPlaceholder("customer@example.com").fill(email);
+      step = audience + " review voucher";
+      await admin.getByRole("button", { name: "Review", exact: true }).click();
+      step = audience + " create voucher";
+      await admin.getByRole("button", { name: "Create", exact: true }).click();
+      step = audience + " confirm creation";
+      await admin.getByText(code, { exact: true }).first().waitFor();
+      page = await browser.newPage();
+      step = audience + " login";
+      await page.goto(base + "/auth");
+      await page.locator("form[data-interactive=true]").waitFor();
+      await page.locator("input[type=email]").fill(email);
+      await page.locator("input[type=password]").fill(password);
+      await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
+      await page.waitForURL(/\/app(?:\/|$)/);
+      if (audience === "business" && benefit === "discount_fixed") {
+        await page.goto(base + "/app/billing");
+        await page.getByText("Business Free", { exact: true }).first().waitFor();
+        step = "Business Free location save and reopen";
+        await page.goto(base + "/app/locations");
+        const location = "QA branch " + e.QA_RUN;
+        const save = async (n) => {
+          await page.getByRole("button", { name: "Add location", exact: true }).click();
+          await page.getByLabel("Location name").fill(n);
+          await page.getByRole("button", { name: "Save location" }).click();
+        };
+        await save(location);
+        await page.getByText(location, { exact: true }).first().waitFor();
+        await page.reload();
+        await page.getByText(location, { exact: true }).first().click();
+        await page.getByRole("heading", { name: location, exact: true }).waitFor();
+        await page.goto(base + "/app/locations");
+        step = "second location blocked with eligible upgrades";
+        await save(location + " second");
+        for (const label of ["Business Starter", "Business", "Business Pro", "Business Scale"])
+          await page.getByRole("dialog").getByText(label, { exact: true }).waitFor();
+      }
+      step = audience + " voucher quote";
+      await page.goto(base + "/app/plans");
       await page
-        .getByText("Voucher applied — " + name, { exact: true })
+        .getByRole("heading", {
+          name: audience === "business" ? "Business Free" : "Free",
+          exact: true,
+        })
         .first()
         .waitFor();
-      const profile = await db
-        .from("profiles")
-        .select("plan,plan_source,voucher_ends_at")
-        .eq("id", data.user.id)
-        .single();
-      assert.equal(profile.data?.plan, plan);
-      assert.equal(profile.data.plan_source, "voucher:" + code);
-      assert.ok(Date.parse(profile.data.voucher_ends_at) > Date.now());
-      console.log(audience, "plan grant PASS");
-      await page.close();
-      continue;
-    }
-    await page
-      .getByText(code + " applied ·", { exact: false })
-      .first()
-      .waitFor();
-    await page.getByRole("button", { name: "Choose " + name, exact: true }).click();
-    step = audience + " embedded Stripe amount";
-    const displayedAmount = new RegExp(
-      "£\\s*" + (total / 100).toFixed(2).replace(/\.00$/, "").replace(".", "\\.") + "(?![0-9])",
-    );
-    let shown = false;
-    for (let i = 0; i < 45 && !shown; i++) {
-      for (const frame of page.frames()) {
-        let host;
-        try {
-          host = new URL(frame.url()).hostname;
-        } catch {
-          continue;
-        }
-        if (!host.endsWith(".stripe.com")) continue;
-        const body = await frame
-          .locator("body")
-          .innerText({ timeout: 1200 })
-          .catch(() => "");
-        if (displayedAmount.test(body)) {
-          shown = true;
-          break;
-        }
+      await page.getByPlaceholder("Voucher code").fill(code);
+      await page.getByRole("button", { name: "Redeem", exact: true }).click();
+      if (benefit === "plan") {
+        await page
+          .getByRole("heading", { name, exact: true })
+          .locator("..")
+          .getByRole("button", { name: "Current plan", exact: true })
+          .waitFor();
+        const profile = await db
+          .from("profiles")
+          .select("plan,plan_source,voucher_ends_at")
+          .eq("id", data.user.id)
+          .single();
+        assert.equal(profile.data?.plan, plan);
+        assert.equal(profile.data.plan_source, "voucher:" + code);
+        assert.ok(Date.parse(profile.data.voucher_ends_at) > Date.now());
+        console.log(audience, "plan grant PASS");
+        await record(scenario, "PASS");
+        continue;
       }
-      if (!shown) await new Promise((r) => setTimeout(r, 1000));
-    }
-    assert.ok(shown);
-    const customer = await db
-      .from("billing_customers")
-      .select("customer_id")
-      .eq("user_id", data.user.id)
-      .eq("environment", "sandbox")
-      .single();
-    assert.ok(customer.data?.customer_id);
-    const [session] = (
-      await stripe.checkout.sessions.list({
-        customer: customer.data.customer_id,
-        status: "open",
-        limit: 1,
-      })
-    ).data;
-    assert.equal(session.livemode, false);
-    assert.equal(session.currency, "gbp");
-    if (benefit !== "free_period") assert.equal(session.amount_subtotal, original);
-    if (benefit !== "free_period")
-      assert.equal(session.total_details.amount_discount, original - total);
-    assert.equal(session.amount_total, total);
-    if (
-      benefit === "free_period" ||
-      (benefit === "discount_percent" && audience === "individual")
-    ) {
-      step = audience + " " + benefit + " sandbox payment and webhook settlement";
-      await payInSandbox(page);
-      let completed = false;
-      for (let n = 0; n < 30; n++) {
-        const row = await db
-          .from("voucher_redemptions")
-          .select("outcome,subscription_id")
-          .eq("code", code)
-          .eq("checkout_session", session.id)
-          .maybeSingle();
-        if (row.data?.outcome === "final") {
-          const subscription = await stripe.subscriptions.retrieve(row.data.subscription_id);
-          if (benefit === "free_period") {
-            assert.equal(subscription.status, "trialing");
-            assert.ok(subscription.trial_end > Date.now() / 1000);
+      await page
+        .getByText(code + " applied ·", { exact: false })
+        .first()
+        .waitFor();
+      await page.getByRole("button", { name: "Choose " + name, exact: true }).click();
+      step = audience + " embedded Stripe amount";
+      const displayedAmount = new RegExp(
+        "£\\s*" + (total / 100).toFixed(2).replace(/\.00$/, "").replace(".", "\\.") + "(?![0-9])",
+      );
+      let shown = false;
+      const recurring = new RegExp(
+        "£\\s*" +
+          (original / 100).toFixed(2).replace(/\.00$/, "").replace(".", "\\.") +
+          "(?![0-9])",
+      );
+      let freeLabel = false,
+        recurringShown = false;
+      for (let i = 0; i < 45 && !shown; i++) {
+        for (const frame of page.frames()) {
+          let host;
+          try {
+            host = new URL(frame.url()).hostname;
+          } catch {
+            continue;
           }
-          completed = true;
-          break;
+          if (!host.endsWith(".stripe.com")) continue;
+          const body = await frame
+            .locator("body")
+            .innerText({ timeout: 1200 })
+            .catch(() => "");
+          freeLabel ||=
+            /free trial|days? free|free for|trial ends|trial period|start trial|days? trial|free today/i.test(
+              body,
+            );
+          recurringShown ||= recurring.test(body);
+          if (
+            benefit === "free_period" ? freeLabel && recurringShown : displayedAmount.test(body)
+          ) {
+            shown = true;
+            break;
+          }
         }
-        await new Promise((r) => setTimeout(r, 2000));
+        if (!shown) await new Promise((r) => setTimeout(r, 1000));
       }
-      assert.ok(completed);
-      if (benefit === "free_period" && audience === "individual") {
-        step = "existing Home subscription Family voucher confirmation";
-        const next = "QA" + randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase();
-        const offer = await db.from("vouchers").insert({
-          code: next,
-          plan: "family",
-          benefit_type: "discount_percent",
-          benefit_value: 90,
-          max_uses: 1,
-          assigned_email: email,
-          audiences: ["individual"],
-        });
-        assert.ifError(offer.error);
-        await page.goto(base + "/app/plans");
-        await page.getByPlaceholder("Voucher code").fill(next);
-        await page.getByRole("button", { name: "Redeem", exact: true }).click();
-        await page
-          .getByText(next + " applied ·")
-          .first()
-          .waitFor();
-        await page.getByRole("button", { name: "Choose Family", exact: true }).click();
-        const link = page.getByRole("link", { name: "Review your subscription in Stripe" });
-        await link.waitFor();
-        assert.equal(new URL(await link.getAttribute("href")).hostname, "billing.stripe.com");
-        await link.click();
-        await page
-          .getByText(/£\s*1\.50/)
-          .first()
-          .waitFor();
-        console.log("Existing Home subscription Family voucher confirmed at GBP 1.50");
-      }
-    } else await stripe.checkout.sessions.expire(session.id);
-    console.log(
-      audience,
-      "Stripe sandbox confirmed",
-      original,
-      "minus",
-      original - total,
-      "equals",
-      total,
-      "pence",
-    );
-    await page.close();
+      if (!shown && benefit === "free_period")
+        step += " (trial label " + freeLabel + ", recurring price " + recurringShown + ")";
+      assert.ok(shown);
+      const customer = await db
+        .from("billing_customers")
+        .select("customer_id")
+        .eq("user_id", data.user.id)
+        .eq("environment", "sandbox")
+        .single();
+      assert.ok(customer.data?.customer_id);
+      const [session] = (
+        await stripe.checkout.sessions.list({
+          customer: customer.data.customer_id,
+          status: "open",
+          limit: 1,
+        })
+      ).data;
+      assert.equal(session.livemode, false);
+      assert.equal(session.currency, "gbp");
+      if (benefit !== "free_period") assert.equal(session.amount_subtotal, original);
+      if (benefit !== "free_period")
+        assert.equal(session.total_details.amount_discount, original - total);
+      assert.equal(session.amount_total, total);
+      if (
+        benefit === "free_period" ||
+        (benefit === "discount_percent" && audience === "individual")
+      ) {
+        step = audience + " " + benefit + " sandbox payment and webhook settlement";
+        await payInSandbox(page);
+        let completed = false;
+        for (let n = 0; n < 30; n++) {
+          const row = await db
+            .from("voucher_redemptions")
+            .select("outcome,subscription_id")
+            .eq("code", code)
+            .eq("checkout_session", session.id)
+            .maybeSingle();
+          if (row.data?.outcome === "final") {
+            const subscription = await stripe.subscriptions.retrieve(row.data.subscription_id);
+            if (benefit === "free_period") {
+              assert.equal(subscription.status, "trialing");
+              assert.ok(subscription.trial_end > Date.now() / 1000);
+              const hold = await db
+                .from("checkout_voucher_holds")
+                .select("terms")
+                .eq("session_id", session.id)
+                .single();
+              assert.equal(
+                subscription.trial_end,
+                Math.floor(Date.parse(hold.data.terms.end) / 1000),
+              );
+              assert.equal(subscription.items.data[0].price.unit_amount, original);
+            }
+            completed = true;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+        assert.ok(completed);
+        if (benefit === "free_period" && audience === "individual") {
+          step = "existing Home subscription Family voucher confirmation";
+          const next = "QA" + randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase();
+          const offer = await db.from("vouchers").insert({
+            code: next,
+            plan: "family",
+            benefit_type: "discount_percent",
+            benefit_value: 90,
+            max_uses: 1,
+            assigned_email: email,
+            audiences: ["individual"],
+          });
+          assert.ifError(offer.error);
+          await page.goto(base + "/app/plans");
+          await page.getByPlaceholder("Voucher code").fill(next);
+          await page.getByRole("button", { name: "Redeem", exact: true }).click();
+          await page
+            .getByText(next + " applied ·")
+            .first()
+            .waitFor();
+          await page.getByRole("button", { name: "Choose Family", exact: true }).click();
+          const link = page.getByRole("link", { name: "Review your subscription in Stripe" });
+          await link.waitFor();
+          assert.equal(new URL(await link.getAttribute("href")).hostname, "billing.stripe.com");
+          await link.click();
+          await page
+            .getByText(/£\s*1\.50/)
+            .first()
+            .waitFor();
+          console.log("Existing Home subscription Family voucher confirmed at GBP 1.50");
+        }
+      } else await stripe.checkout.sessions.expire(session.id);
+      console.log(
+        audience,
+        "Stripe sandbox confirmed",
+        original,
+        "minus",
+        original - total,
+        "equals",
+        total,
+        "pence",
+      );
+      await record(scenario, "PASS");
+    } catch {
+      await record(scenario, "FAIL: " + step);
+      process.exitCode = 1;
+    } finally {
+      if (page) await page.close();
+    }
   }
 } catch {
   await db
