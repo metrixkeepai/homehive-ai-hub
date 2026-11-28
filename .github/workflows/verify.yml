@@ -42,6 +42,9 @@ jobs:
             echo 'only=true' >> "$GITHUB_OUTPUT"
             if ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- deploy/recovery/request.json; then echo 'recovery=true' >> "$GITHUB_OUTPUT"; fi
           fi
+          if [[ $(git log -1 --format=%s) == *"[voucher-staging-probe]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(deploy\/voucher-staging-probe\.mjs|\.github\/workflows\/verify\.yml)$/ { other=1 } END { exit other }'; then
+            echo 'only=true' >> "$GITHUB_OUTPUT"
+          fi
           if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
           fi
@@ -358,3 +361,36 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/workflows/promote.yml/dispatches" \
             -f ref=main -f 'inputs[audit_only]=true' -f 'inputs[staging_run]=46093161289' \
             -f 'inputs[acceptance]=Recorded owner acceptance; read-only certification'
+
+  voucher-staging-probe:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && needs.verify.outputs.website_workflow_install == 'true' && contains(github.event.head_commit.message, '[voucher-staging-probe]')
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Exercise the staged billing credential and Business Free independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          project=matrixkeep-staging
+          args=(--project="$project" --region=europe-west2 --quiet)
+          state=$(gcloud run services describe matrixkeep-staging-web "${args[@]}" --format=json)
+          revision=$(jq -er '[.status.traffic[]|select(.percent==100)]|select(length==1)|.[0].revisionName' <<<"$state")
+          meta=$(gcloud run revisions describe "$revision" "${args[@]}" --format=json)
+          sha=$(jq -er '.metadata.labels["source-commit"]' <<<"$meta")
+          [[ $sha =~ ^[a-f0-9]{40}$ ]]
+          repo=europe-west2-docker.pkg.dev/$project/matrixkeep/staging-qa
+          digest=$(gcloud artifacts docker images describe "$repo:$sha" --project="$project" --format='value(image_summary.digest)')
+          [[ $digest =~ ^sha256:[a-f0-9]{64}$ ]]
+          bindings=$(jq -er '[.spec.containers[0].env[]|select(.name|IN("SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","STRIPE_SECRET_KEY"))|"\(.name)=\(.valueFrom.secretKeyRef.name):\(.valueFrom.secretKeyRef.key)"]|select(length==3)|join(",")' <<<"$meta")
+          code=$(cat deploy/voucher-staging-probe.mjs)
+          gcloud run jobs deploy matrixkeep-staging-voucher-check "${args[@]}" --image="$repo@$digest" --service-account="matrixkeep-web@$project.iam.gserviceaccount.com" --set-env-vars="APP_ENV=staging,QA_RUN=$GITHUB_RUN_ID" --set-secrets="$bindings" --command=node --args="^@@^--input-type=module@@-e@@$code" --max-retries=0 --cpu=2 --memory=2Gi --task-timeout=5m --tasks=1 --execute-now --wait
