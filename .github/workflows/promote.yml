@@ -2,6 +2,10 @@ name: Promote verified MatrixKeep release
 on:
   workflow_dispatch:
     inputs:
+      voucher_acceptance:
+        description: Run targeted unpaid voucher and location acceptance after promotion
+        type: boolean
+        default: false
       audit_only:
         description: Read serving identity, mail worker and scheduler for release certification
         type: boolean
@@ -252,6 +256,7 @@ jobs:
           if-no-files-found: error
 
   capture-acceptance:
+    if: inputs.voucher_acceptance != true
     needs: promote
     permissions:
       contents: read

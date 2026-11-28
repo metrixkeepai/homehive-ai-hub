@@ -45,6 +45,9 @@ jobs:
           if [[ $(git log -1 --format=%s) == *"[voucher-staging-probe]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(deploy\/voucher-staging-probe\.mjs|\.github\/workflows\/verify\.yml)$/ { other=1 } END { exit other }'; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
           fi
+          if [[ $(git log -1 --format=%s) == *"[voucher-production-qa]"* ]] && git diff --name-only "$BEFORE" "$GITHUB_SHA" | awk 'NF && $0 !~ /^(scripts\/production-voucher-qa\.mjs|\.github\/workflows\/(promote|verify|voucher-release)\.yml)$/ { other=1 } END { exit other }'; then
+            echo 'only=true' >> "$GITHUB_OUTPUT"
+          fi
           if [[ $BEFORE == 3537ef8a033978d5195677b7993b72811c68436d ]]; then
             echo 'only=true' >> "$GITHUB_OUTPUT"
           fi
