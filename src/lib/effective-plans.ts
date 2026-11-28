@@ -38,6 +38,13 @@ export function resolvePlans(data: Rows) {
             : (e.limit ?? base?.limits[slot] ?? 0)
         : (base?.limits[slot] ?? 0);
     }
+    const placeLabel = row.audience === "individual" ? "property" : "location";
+    for (const [slot, value, singular, plural] of [
+      ["places", limits.places, placeLabel, placeLabel === "property" ? "properties" : "locations"],
+      ["users", limits.users, "user", "users"],
+    ] as const)
+      cap[slot] =
+        (value === Infinity ? "Unlimited" : value) + " " + (value === 1 ? singular : plural);
     for (const [slot, feature, label] of [
       ["captures", "ai_captures", "AI captures/mo"],
       ["sera", "sera_questions", "Sera questions/mo"],

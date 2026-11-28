@@ -355,7 +355,7 @@ function AddAccount({
                 className="mt-1 w-full rounded-md border bg-background p-2 text-sm text-foreground"
               >
                 {plans
-                  .filter((p) => p.key === "free" || p.audience === audience)
+                  .filter((p) => p.audience === audience)
                   .map((p) => (
                     <option key={p.key} value={p.key}>
                       {p.name}

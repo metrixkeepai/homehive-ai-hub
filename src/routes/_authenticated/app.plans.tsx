@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { voucherPrice, type VoucherOffer } from "@/lib/voucher-terms";
 import { Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/app/plans")({
 });
 
 function Plans() {
-  const { profile, reload } = useStore();
+  const { profile, email, reload } = useStore();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [yearly, setYearly] = useState(false);
@@ -43,6 +45,15 @@ function Plans() {
   const kind = profile?.account_type ?? "individual";
   const off = useInactivePlans();
   const catalogue = usePublishedPlans();
+  const offers = useQuery({
+    queryKey: ["checkout-vouchers", email],
+    enabled: !!email,
+    queryFn: async () => {
+      const r = await supabase.rpc("my_checkout_vouchers");
+      if (r.error) throw r.error;
+      return (r.data ?? []) as unknown as VoucherOffer[];
+    },
+  });
   const list = (catalogue.data ?? [])
     .filter(
       (p) =>
@@ -80,8 +91,12 @@ function Plans() {
       return;
     }
     localStorage.removeItem("hv-voucher");
+    const applied = await offers.refetch();
+    const offer = applied.data?.find((v) => v.plan === data && v.code === c.trim().toUpperCase());
     toast.success(
-      `Voucher applied — you're on ${catalogue.data?.find((p) => p.key === data)?.name ?? planByKey(data).name}`,
+      offer
+        ? `${offer.code} applied to ${catalogue.data?.find((p) => p.key === data)?.name ?? data}`
+        : `Voucher applied — ${catalogue.data?.find((p) => p.key === data)?.name ?? data}`,
     );
     setCode("");
     await reload();
@@ -175,6 +190,19 @@ function Plans() {
           Redeem
         </button>
       </form>
+      {offers.data?.map((offer) => (
+        <button
+          key={offer.plan}
+          className="text-sm underline"
+          onClick={async () => {
+            const result = await supabase.rpc("remove_checkout_voucher", { _plan: offer.plan });
+            if (result.error) toast.error("Could not remove the voucher");
+            else await offers.refetch();
+          }}
+        >
+          Remove {offer.code}
+        </button>
+      ))}
       {need && (
         <p className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm">
           {eligible.length ? (
@@ -201,12 +229,38 @@ function Plans() {
         )}
         {list.map((p) => {
           const cur = (profile?.plan ?? "free") === p.key;
+          const offer = offers.data?.find((v) => v.plan === p.key);
+          const amount = yearly ? p.yearly : p.monthly;
           return (
             <PlanCard
               key={p.key}
               p={p}
               yearly={yearly}
               current={cur}
+              voucher={
+                offer && amount != null
+                  ? {
+                      code: offer.code,
+                      detail:
+                        offer.type === "discount_percent"
+                          ? offer.value + "% off"
+                          : offer.type === "discount_fixed"
+                            ? "£" + offer.value + " off"
+                            : offer.end
+                              ? "Free through " + offer.end
+                              : "Free for " + offer.months + " months",
+                      price: voucherPrice(Math.round(amount * 100), offer) / 100,
+                      duration:
+                        offer.type === "free_period"
+                          ? "Then £" + amount + " per " + (yearly ? "year" : "month")
+                          : offer.end
+                            ? "Through " + offer.end
+                            : offer.months
+                              ? "For " + offer.months + " months"
+                              : "Recurring discount",
+                    }
+                  : undefined
+              }
               highlight={need ? eligible.includes(p.key) : p.badge === "Most popular"}
               cta={
                 cur && profile?.plan_source === "stripe" ? (
@@ -270,7 +324,11 @@ function Plans() {
             </DialogTitle>
           </DialogHeader>
           {checkout && (
-            <StripeEmbeddedCheckout plan={checkout.key} interval={yearly ? "yearly" : "monthly"} />
+            <StripeEmbeddedCheckout
+              expectedVoucher={offers.data?.find((v) => v.plan === checkout.key)?.code ?? null}
+              plan={checkout.key}
+              interval={yearly ? "yearly" : "monthly"}
+            />
           )}
         </DialogContent>
       </Dialog>

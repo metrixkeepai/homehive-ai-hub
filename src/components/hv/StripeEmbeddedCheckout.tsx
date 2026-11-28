@@ -4,11 +4,16 @@ import { getStripe } from "@/lib/stripe";
 import { createCheckoutSession } from "@/lib/payments.functions";
 
 interface StripeEmbeddedCheckoutProps {
+  expectedVoucher?: string | null;
   plan: string;
   interval: "monthly" | "yearly";
 }
 
-export function StripeEmbeddedCheckout({ plan, interval }: StripeEmbeddedCheckoutProps) {
+export function StripeEmbeddedCheckout({
+  plan,
+  interval,
+  expectedVoucher,
+}: StripeEmbeddedCheckoutProps) {
   const [result, setResult] = useState<Awaited<ReturnType<typeof createCheckoutSession>> | null>(
     null,
   );
@@ -19,7 +24,7 @@ export function StripeEmbeddedCheckout({ plan, interval }: StripeEmbeddedCheckou
     async function start() {
       try {
         const response = await createCheckoutSession({
-          data: { plan, interval },
+          data: { plan, interval, expectedVoucher },
         });
         if (active) setResult(response);
       } catch {
@@ -31,7 +36,7 @@ export function StripeEmbeddedCheckout({ plan, interval }: StripeEmbeddedCheckou
     return () => {
       active = false;
     };
-  }, [plan, interval]);
+  }, [plan, interval, expectedVoucher]);
 
   if (!result) return <p role="status">Preparing checkout…</p>;
   if ("error" in result) return <p role="alert">{result.error}</p>;

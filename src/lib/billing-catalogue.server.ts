@@ -58,7 +58,7 @@ export async function publishPlanVersion(id: string, admin: string) {
     if (error || !v) throw new Error("Plan version unavailable");
     const key = v.plan_key;
     const before = await cataloguePlan(key);
-    const protectedPlan = ["free", "enterprise", "whitelabel"].includes(key);
+    const protectedPlan = ["free", "business_free", "enterprise", "whitelabel"].includes(key);
     if (protectedPlan && (v.monthly !== before?.monthly || v.yearly !== before?.yearly))
       throw new Error("This plan uses free or contracted billing");
     if ((v.monthly === 0 && v.yearly !== 0) || (v.yearly === 0 && v.monthly !== 0))

@@ -1139,6 +1139,13 @@ export type Database = {
       };
       voucher_redemptions: {
         Row: {
+          outcome: string;
+          checkout_session: string | null;
+          subscription_id: string | null;
+          coupon_id: string | null;
+          billing_interval: string | null;
+          billing_environment: string | null;
+          checkout_plan: string | null;
           benefit_ends_at: string | null;
           benefit_type: string;
           benefit_value: number | null;
@@ -1464,6 +1471,24 @@ export type Database = {
       record_email_reminder: {
         Args: { _enabled?: boolean; _record: string };
         Returns: boolean;
+      };
+      remove_checkout_voucher: { Args: { _plan: string }; Returns: undefined };
+      my_checkout_vouchers: { Args: Record<PropertyKey, never>; Returns: Json };
+      reserve_checkout_voucher: {
+        Args: { _user: string; _plan: string; _interval: string; _environment: string };
+        Returns: Json;
+      };
+      settle_checkout_voucher: {
+        Args: {
+          _hold: string;
+          _environment: string;
+          _user: string;
+          _session: string | null;
+          _subscription: string | null;
+          _coupon: string | null;
+          _state: string;
+        };
+        Returns: undefined;
       };
       redeem_voucher: { Args: { _code: string }; Returns: string };
       release_billing_action: {

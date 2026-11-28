@@ -244,7 +244,12 @@ export const groupsFor = (a: Audience) => [...new Set(catalogueFor(a).map((f) =>
 export function defaultEntitlements(planKey: string, audience?: Audience): Entitlements {
   const p = plans.find((x) => x.key === planKey);
   const aud = p?.audience ?? "individual";
-  const list = plans.filter((x) => x.audience === aud);
+  if (planKey === "business_free") {
+    const base = defaultEntitlements("free");
+    delete base["properties"];
+    return { ...base, locations: { on: true, limit: 1, unit: "count" } };
+  }
+  const list = plans.filter((x) => x.audience === aud && x.key !== "business_free");
   const tier =
     aud === "enterprise"
       ? 99

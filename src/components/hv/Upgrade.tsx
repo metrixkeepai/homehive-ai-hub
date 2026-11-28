@@ -96,7 +96,7 @@ export function UpgradeModal() {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Plans that unlock this
             </p>
-            {eligible.slice(0, 3).map((p) => {
+            {eligible.map((p) => {
               const e = effective(p.key, published[p.key])[b.feature];
               return (
                 <button

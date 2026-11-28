@@ -441,7 +441,7 @@ export const archivePlan = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ key: z.string().max(60) }).parse(d))
   .handler(async ({ context, data }) => {
     const db = await adminClient(context as Ctx);
-    if (data.key === "free")
+    if (["free", "business_free"].includes(data.key))
       throw new Error("The Free plan can't be archived — new accounts start on it.");
     const { error } = await db.from("plan_status").upsert({
       plan_key: data.key,

@@ -39,7 +39,10 @@ globalThis.__matrixkeepSecurityMocks = {
 const mocks = {
   "./connector-review.server":
     "export const requireConnectorPlan=async()=>{};export const db={from:()=>({insert:async()=>({error:null})})};",
-  "./billing-catalogue.server": "export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
+  "./checkout-voucher.server":
+    "export const reserve=async()=>null; export const settle=async()=>{}; export const checkoutBenefit=async()=>({});",
+  "./billing-catalogue.server":
+    "export const cataloguePlan=async()=>({audience:'individual'}); export const withBillingLock=async(k,f)=>f(crypto.randomUUID());",
   "./feature-access.server": "export const requireFeature=async()=>{};",
   "./stripe-billing.server":
     'export const requireBillingEnvironment=async(mode)=>{if(mode!==globalThis.__matrixkeepSecurityMocks.dbMode)throw Error("Billing database environment mismatch")}; export const existingCustomer=async()=>"cus_test"; export const customerForUser=async()=>"cus_test"; export const validatedPrice=async()=>({id:"price_test"});',
@@ -83,7 +86,7 @@ const { startGoogleConnect } = await import(new URL("src/lib/google.functions.ts
 const { runExtraction } = await import(new URL("src/lib/capture.server.ts", root));
 const query = {
   async single() {
-    return { data: { suspended: false } };
+    return { data: { suspended: false, account_type: "individual" } };
   },
   select() {
     return this;
@@ -106,6 +109,7 @@ const context = {
   supabase: {
     auth: { getUser: async () => ({ data: { user: { email: "test@example.invalid" } } }) },
     from: () => query,
+    rpc: async () => ({ data: [], error: null }),
   },
 };
 beforeEach(() => {

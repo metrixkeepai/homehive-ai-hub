@@ -368,7 +368,7 @@ function Vouchers() {
                   onChange={(e) => set("plan", e.target.value)}
                 >
                   {plans
-                    .filter((p) => p.monthly !== null && p.key !== "free")
+                    .filter((p) => p.monthly !== null && p.monthly > 0)
                     .map((p) => (
                       <option key={p.key} value={p.key}>
                         {p.name}
@@ -470,8 +470,8 @@ function Vouchers() {
               </label>
               {f.benefit_type.startsWith("discount") && (
                 <p className="text-xs text-muted-foreground sm:col-span-2">
-                  Discounts are recorded on redemption and applied to card billing once Stripe is
-                  connected. They don't change the customer's plan.
+                  Eligible customers see the discount in Checkout. Usage is counted when Stripe
+                  confirms completion.
                 </p>
               )}
               <div className="sm:col-span-2">

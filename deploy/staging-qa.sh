@@ -7,6 +7,8 @@ entry=()
 if [[ $(git log -1 --format=%s) == *"[capture-qa]"* ]]; then
   target=ai-benchmark
   entry=(--command=node --args=scripts/staging-capture-parity.mjs)
+elif [[ $(git log -1 --format=%s) == *"[voucher-qa]"* ]]; then
+  entry=(--command=node --args=scripts/staging-voucher-qa.mjs)
 fi
 docker build --target "$target" -t "$image" .
 docker push "$image"

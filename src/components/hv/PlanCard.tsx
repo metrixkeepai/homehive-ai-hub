@@ -39,12 +39,14 @@ export function PlanCard({
   yearly,
   highlight,
   current,
+  voucher,
   cta,
 }: {
   p: PlanDef;
   yearly: boolean;
   highlight?: boolean;
   current?: boolean;
+  voucher?: { code: string; detail: string; price: number; duration: string } | undefined;
   cta: ReactNode;
 }) {
   const [more, setMore] = useState(false);
@@ -70,11 +72,23 @@ export function PlanCard({
       <h3 className="font-semibold">{p.name}</h3>
       <p className={`mt-1 text-sm ${sub}`}>{p.positioning}</p>
       <p className="mt-5 font-display text-4xl">
-        {priceLabel(p, yearly)}
+        {voucher ? (
+          <>
+            <del className="mr-2 text-lg">{priceLabel(p, yearly)}</del>
+            {gbp(voucher.price)}
+          </>
+        ) : (
+          priceLabel(p, yearly)
+        )}
         {(yearly ? p.yearly : p.monthly) ? (
           <span className="text-sm opacity-60">{yearly ? "/year" : "/month"}</span>
         ) : null}
       </p>
+      {voucher && (
+        <p role="status">
+          {voucher.code} applied · {voucher.detail} · {voucher.duration}
+        </p>
+      )}
       <p className={`mt-1 h-4 text-xs ${sub}`}>
         {p.monthly && p.yearly
           ? yearly

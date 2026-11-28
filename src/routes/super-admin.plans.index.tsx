@@ -148,7 +148,7 @@ function Plans() {
               <td className="p-3">{q.data?.counts[p.key] ?? 0}</td>
               <td className="p-3">{v ? `v${v.version} · ${v.status}` : "Live only"}</td>
               <td className="p-3">{p.trialDays ? p.trialDays + " days" : "—"}</td>
-              {p.key === "free" ? (
+              {["free", "business_free"].includes(p.key) ? (
                 <td className="p-3 text-xs text-muted-foreground">Required</td>
               ) : (
                 actions(p.key, false)

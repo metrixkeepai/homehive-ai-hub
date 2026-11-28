@@ -290,7 +290,7 @@ test("billing updates are bound, atomic, idempotent and isolated by environment"
   await apply("evt_failed", 20, "sandbox", { ...subscription, status: "past_due" }, false);
   assert.equal(
     (await db.query("SELECT plan FROM public.profiles WHERE id=$1", [a])).rows[0].plan,
-    "free",
+    "business_free",
   );
   await assert.rejects(
     asUser(
@@ -325,7 +325,9 @@ test("expired Stripe periods fail closed without waiting for webhooks", async ()
   );
   const actual = (await db.query("SELECT public.account_entitlements($1) AS ent", [a])).rows[0].ent;
   const free = (
-    await db.query("SELECT entitlements AS ent FROM public.plan_defaults WHERE plan_key='free'")
+    await db.query(
+      "SELECT entitlements AS ent FROM public.plan_defaults WHERE plan_key='business_free'",
+    )
   ).rows[0].ent;
   assert.deepEqual(actual, free);
 });
@@ -776,4 +778,91 @@ test("approved capture allowance reaches the catalogue and shared receipt/speech
   await reserve("capture");
   await reserve("speech");
   await assert.rejects(reserve("capture"), /Monthly quota reached/);
+});
+
+test("Business Free permits exactly one location and Individual Free retains its property allowance", async () => {
+  for (const [id, audience] of [
+    [a, "business"],
+    [b, "individual"],
+  ]) {
+    await db.query(
+      "UPDATE profiles SET plan='free',plan_source='self',account_type=$2,suspended=false WHERE id=$1",
+      [id, audience],
+    );
+  }
+  const ent = async (id) =>
+    (await db.query("SELECT account_entitlements($1) ent", [id])).rows[0].ent;
+  assert.equal((await ent(a)).locations.limit, 1);
+  assert.equal((await ent(b)).properties.limit, 1);
+  await asUser(
+    a,
+    "INSERT INTO home_items(user_id,section,title) VALUES($1,'locations','First location')",
+    [a],
+  );
+  await assert.rejects(
+    asUser(
+      a,
+      "INSERT INTO home_items(user_id,section,title) VALUES($1,'locations','Second location')",
+      [a],
+    ),
+    /capacity/,
+  );
+});
+
+test("voucher reservations enforce eligibility, release abandonment and finalise once", async () => {
+  await db.exec("UPDATE runtime_limits SET billing_environment='sandbox' WHERE singleton");
+  for (const [user, audience, plan] of [
+    [a, "business", "business"],
+    [b, "individual", "family"],
+  ]) {
+    for (const type of ["discount_percent", "discount_fixed", "free_period", "plan"]) {
+      const code = (audience + type).toUpperCase();
+      await db.query(
+        "INSERT INTO vouchers(code,plan,max_uses,benefit_type,benefit_value,duration_months,audiences) VALUES($1,$2,1,$3,$4,3,ARRAY[$5::text])",
+        [code, plan, type, type === "discount_percent" ? 90 : 10, audience],
+      );
+      const apply = () => asUser(user, "SELECT redeem_voucher($1)", [code]);
+      const uses = async () =>
+        (await db.query("SELECT uses FROM vouchers WHERE code=$1", [code])).rows[0].uses;
+      await assert.rejects(
+        asUser(user === a ? b : a, "SELECT redeem_voucher($1)", [code]),
+        /unavailable/,
+      );
+      for (const [bad, restore] of [
+        ["active=false", "active=true"],
+        ["valid_until=now()-interval '1 day'", "valid_until=null"],
+        ["assigned_email='other@example.test'", "assigned_email=null"],
+        ["uses=1", "uses=0"],
+      ]) {
+        await db.query("UPDATE vouchers SET " + bad + " WHERE code=$1", [code]);
+        await assert.rejects(apply(), /unavailable/);
+        await db.query("UPDATE vouchers SET " + restore + " WHERE code=$1", [code]);
+      }
+      await apply();
+      if (type !== "plan") {
+        assert.equal(await uses(), 0);
+        const reserve = async () =>
+          (
+            await db.query("SELECT reserve_checkout_voucher($1,$2,'monthly','sandbox') h", [
+              user,
+              plan,
+            ])
+          ).rows[0].h;
+        const settle = (id, state) =>
+          db.query(
+            "SELECT settle_checkout_voucher($1,'sandbox',$2,$3,'sub_test','coupon_test',$4)",
+            [id, user, "cs_" + id, state],
+          );
+        const abandoned = await reserve();
+        assert.equal(abandoned.type, type);
+        await settle(abandoned.id, "expired");
+        assert.equal(await uses(), 0);
+        const h = await reserve();
+        await settle(h.id, "final");
+        await settle(h.id, "final");
+      }
+      assert.equal(await uses(), 1);
+      await assert.rejects(apply(), /unavailable/);
+    }
+  }
 });

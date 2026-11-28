@@ -42,6 +42,36 @@ export async function handleStripeWebhook(request: Request) {
   }
   try {
     const object = event.data.object;
+    if (
+      object.object === "checkout.session" &&
+      object.metadata?.["hold"] &&
+      object.metadata["app"] === "matrixkeep"
+    ) {
+      const final =
+        ["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(
+          event.type,
+        ) && ["paid", "no_payment_required"].includes(object.payment_status);
+      const expired = [
+        "checkout.session.expired",
+        "checkout.session.async_payment_failed",
+      ].includes(event.type);
+      if (final || expired) {
+        const { settle } = await import("./checkout-voucher.server");
+        const sub =
+          typeof object.subscription === "string" ? object.subscription : object.subscription?.id;
+        if (!object.client_reference_id || (final && !sub))
+          throw new Error("Checkout identity unavailable");
+        await settle(
+          object.metadata["hold"],
+          environment,
+          object.client_reference_id,
+          object.id,
+          sub ?? null,
+          object.metadata["voucher_coupon"] ?? null,
+          final ? "final" : "expired",
+        );
+      }
+    }
     let subscriptionId: string | null = null;
     if (object.object === "subscription") subscriptionId = object.id;
     else if (object.object === "invoice") {

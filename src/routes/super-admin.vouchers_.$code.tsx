@@ -221,6 +221,12 @@ function VoucherDetail() {
               render: (r) => planByKey(r.plan_after ?? "free").name,
             },
             {
+              key: "outcome",
+              label: "Outcome",
+            },
+            { key: "checkout_session", label: "Stripe Checkout" },
+            { key: "subscription_id", label: "Subscription" },
+            {
               key: "benefit_ends_at",
               label: "Benefit ends",
               render: (r) => (r.benefit_ends_at ? when(r.benefit_ends_at) : "—"),
