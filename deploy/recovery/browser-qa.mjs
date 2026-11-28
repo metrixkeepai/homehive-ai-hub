@@ -41,8 +41,10 @@ try {
   await page.goto(origin + "/auth");
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
-  const authResponse = page.waitForResponse((response) =>
-    response.request().method() === "POST" && new URL(response.url()).pathname === "/auth/v1/token",
+  const authResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/auth/v1/token",
   );
   await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
   const login = await authResponse;
@@ -111,7 +113,7 @@ try {
         report(mode, "EXPECTED ENTITLEMENT BLOCK");
         continue;
       }
-      if (remaining < (speech ? 2 : 1) + (prod ? 1 : 0)) {
+      if (remaining < (speech ? 2 : 1)) {
         report(mode, "INSUFFICIENT QA ALLOWANCE");
         continue;
       }
