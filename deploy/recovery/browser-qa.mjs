@@ -39,14 +39,20 @@ try {
   browser = await chromium.launch();
   const page = await browser.newPage();
   await page.goto(origin + "/auth");
-  await page.locator('input[type="email"]').fill(email);
-  await page.locator('input[type="password"]').fill(password);
+  const form = page.locator('form[data-interactive="true"]');
+  await form.waitFor({ timeout: 45000 });
+  if (password.length < 8 || password.length > 72) {
+    report("sign-in", "QA CREDENTIAL FAILS LOGIN FORM VALIDATION");
+    throw new Error("Protected QA password does not meet the customer form requirements");
+  }
+  await form.locator('input[type="email"]').fill(email);
+  await form.locator('input[type="password"]').fill(password);
   const authResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
       new URL(response.url()).pathname === "/auth/v1/token",
   );
-  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
+  await form.getByRole("button", { name: "Sign in", exact: true }).click();
   const login = await authResponse;
   if (!login.ok()) {
     report("sign-in", "SIGN-IN REJECTED (HTTP " + login.status() + ")");
